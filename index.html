@@ -204,7 +204,7 @@
             <!-- 解除スキルボタン -->
             <div>
                 <div style="font-size:0.75em; color:#666; font-weight:bold; margin-bottom:4px;">🧪 状態異常解除</div>
-                <div id="cure-skills-area" style="display:flex; gap:4px; flex-wrap:wrap;">
+                <div id="cure-skills-area" style="display:flex; gap:4px; flex-wrap:nowrap; overflow-x:auto;">
                     <small style="color:#999;">解除スキルなし</small>
                 </div>
             </div>
@@ -1522,8 +1522,8 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         let cureButtonHTML = "";
         const cureSkills = [
             { key: 'poisonCure', name: '☠️毒', color: '#8bc34a' },
-            { key: 'darknessCure', name: '🌑暗', color: '#424242' },
-            { key: 'paralysisCure', name: '⚡麻', color: '#9575cd' }
+            { key: 'darknessCure', name: '🌑暗闇', color: '#424242' },
+            { key: 'paralysisCure', name: '⚡麻痺', color: '#9575cd' }
         ];
         cureSkills.forEach(cure => {
             if ((gameState.treeSkills[cure.key] || 0) > 0) {
