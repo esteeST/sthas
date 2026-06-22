@@ -164,6 +164,17 @@
             <button class="stage-nav-btn" onclick="moveStage(1)">ステージ▶</button>
         </div>
 
+        <!-- 【上部】敵の情報 -->
+        <div style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:10px;">
+            <div style="font-weight:bold; color:#e65100; margin-bottom:6px;">🔍 敵の情報</div>
+            <div id="enemy-box">
+                <div class="stat" style="font-weight: bold; font-size: 1.1em;"><span id="enemy-name">スライム</span></div>
+                <div class="stat">敵HP: <span id="enemy-hp">100</span> / <span id="enemy-max-hp">100</span></div>
+                <div style="font-size:0.8em; color:#555;">物理防御:<span id="e-stat-def">0</span> | 魔法耐性:<span id="e-stat-mres">0</span>% | 回避率:<span id="e-stat-eva">0</span>%</div>
+                <div style="font-size:0.75em; color:#ff9800; margin-top:4px;" id="enemy-gimmick-label"></div>
+            </div>
+        </div>
+
         <div style="text-align: left; font-size: 0.85em; font-weight: bold; margin-bottom: 3px; color: #37474f;">🎖️ 操作リーダー切り替え（クリック攻撃＆スキル担当）：</div>
         <div class="leader-select-zone">
             <div id="btn-leader-0" class="leader-btn active" onclick="switchLeader(0)"><span id="leader-name-0">主人公</span><br><small id="lbl-leader-0">-</small></div>
@@ -171,52 +182,36 @@
             <div id="btn-leader-2" class="leader-btn locked" onclick="switchLeader(2)"><span id="leader-name-2">仲間2</span><br><small id="lbl-leader-2">未加入</small></div>
         </div>
 
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px;">
-            <div class="stat">パーティの共有HP: <span id="player-hp" class="hp-bar">100</span> / <span id="player-max-hp">100</span> <small style="color:#4caf50;">(+<span id="stat-regen">0</span>/s)</small></div>
+        <!-- 【操作エリア】敵をタップ + スキル + 解除スキル -->
+        <div style="background:#e3f2fd; border:1px solid #64b5f6; border-radius:6px; padding:10px; margin-bottom:10px;">
+            <div style="font-weight:bold; color:#1565c0; margin-bottom:8px;">⚔️ 戦闘操作</div>
             
-            <div id="enemy-box">
-                <div class="stat" style="font-weight: bold; font-size: 1.1em;"><span id="enemy-name">スライム</span></div>
-                <div class="stat">敵HP: <span id="enemy-hp">100</span> / <span id="enemy-max-hp">100</span></div>
-                <div style="font-size:0.8em; color:#555;">物理防御:<span id="e-stat-def">0</span> | 魔法耐性:<span id="e-stat-mres">0</span>% | 回避率:<span id="e-stat-eva">0</span>%</div>
+            <!-- 敵をタップ（攻撃） -->
+            <div style="margin-bottom:8px;">
+                <button onclick="attack()" style="width:100%; padding:12px; background:#4caf50; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.1em;">
+                    【敵をタップして攻撃】
+                </button>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; background: #e3f2fd; padding: 6px; border-radius: 4px; margin-top: 5px; font-weight: bold; font-size:0.95em; text-align:left; padding-left:15px;">
-                <div>🔷 所持経験値: <span id="exp" style="color:#0d47a1;">0</span> EXP</div>
-                <div>💰 所持ゴールド: <span id="gold" style="color:#e65100;">0</span> G</div>
-                <div style="grid-column: span 2; border-top:1px dashed #90caf9; margin-top:3px; padding-top:3px;">✨ 強化石: <span id="dust-count" style="color:#0288d1;">0</span> 個</div>
+            
+            <!-- スキルボタン -->
+            <div style="margin-bottom:8px;">
+                <div style="font-size:0.75em; color:#666; font-weight:bold; margin-bottom:4px;">📊 スキル</div>
+                <div id="skill-buttons-area" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap:4px;">
+                    <small style="color:#999;">習得スキルなし</small>
+                </div>
+            </div>
+            
+            <!-- 解除スキルボタン -->
+            <div>
+                <div style="font-size:0.75em; color:#666; font-weight:bold; margin-bottom:4px;">🧪 状態異常解除</div>
+                <div id="cure-skills-area" style="display:flex; gap:4px; flex-wrap:wrap;">
+                    <small style="color:#999;">解除スキルなし</small>
+                </div>
             </div>
         </div>
 
-        <div class="unified-log-window">
-            <div class="log-sub-menu">
-                <button class="log-sub-btn active" id="btn-log-battle" onclick="switchLogTab('battle')">⚔️ 戦闘リアルタイム</button>
-                <button class="log-sub-btn" id="btn-log-exp" onclick="switchLogTab('exp')">📊 獲得・経済ログ</button>
-                <button class="log-sub-btn" id="btn-log-drop" onclick="switchLogTab('drop')">🎁 ドロップログ</button>
-            </div>
-
-            <div id="pane-battle" class="log-pane active">
-                <div class="fixed-battle-monitor">
-                    <div style="color: #64b5f6; font-weight: bold; margin-bottom: 2px; font-size: 0.9em;">▼ パーティの行動</div>
-                    <div class="monitor-row">
-                        <span class="monitor-label">・総放置自動攻撃(合算)：</span>
-                        <span class="monitor-value" id="m-p-dps">敵に 0 のダメージ</span>
-                    </div>
-                    <div class="monitor-row">
-                        <span class="monitor-label">・現リーダーのクリック：</span>
-                        <span class="monitor-value" id="m-p-click">--</span>
-                    </div>
-                    <div class="monitor-row">
-                        <span class="monitor-label">・リーダーのアクティブスキル：</span>
-                        <span class="monitor-value" id="m-p-skill1">--</span>
-                    </div>
-                    <div style="color: #e57373; font-weight: bold; margin-top: 6px; margin-bottom: 2px; font-size: 0.9em;">▼ 敵の行動</div>
-                    <div class="monitor-row">
-                        <span class="monitor-label">・通常反撃ダメージ：</span>
-                        <span class="monitor-value" id="m-e-atk">勇者に 0 のダメージ</span>
-                    </div>
-                </div>
-            </div>
-            <div id="pane-exp" class="log-pane"><div id="log-exp-area" class="log-scroll-area"></div></div>
-            <div id="pane-drop" class="log-pane"><div id="log-drop-area" class="log-scroll-area"></div></div>
+        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px;">
+            <div class="stat">パーティの共有HP: <span id="player-hp" class="hp-bar">100</span> / <span id="player-max-hp">100</span> <small style="color:#4caf50;">(+<span id="stat-regen">0</span>/s)</small></div>
         </div>
 
         <div class="tab-menu">
@@ -229,9 +224,38 @@
         </div>
 
         <div id="tab-battle" class="tab-content active">
-            <button onclick="attack()" style="font-size: 1.2em; height: 50px; background: #ff5722; color: white; border: none; margin-bottom: 5px;">リーダーがマニュアルクリック攻撃！</button>
-            <h4 style="margin: 10px 0 5px 0; border-left: 4px solid #ff9800; padding-left: 5px;">現リーダーの発動可能スキル</h4>
-            <div class="active-skill-zone" id="leader-skill-zone"></div>
+            <div class="unified-log-window">
+                <div class="log-sub-menu">
+                    <button class="log-sub-btn active" id="btn-log-battle" onclick="switchLogTab('battle')">⚔️ 戦闘リアルタイム</button>
+                    <button class="log-sub-btn" id="btn-log-exp" onclick="switchLogTab('exp')">📊 獲得・経済ログ</button>
+                    <button class="log-sub-btn" id="btn-log-drop" onclick="switchLogTab('drop')">🎁 ドロップログ</button>
+                </div>
+
+                <div id="pane-battle" class="log-pane active">
+                    <div class="fixed-battle-monitor">
+                        <div style="color: #64b5f6; font-weight: bold; margin-bottom: 2px; font-size: 0.9em;">▼ パーティの行動</div>
+                        <div class="monitor-row">
+                            <span class="monitor-label">・総放置自動攻撃(合算)：</span>
+                            <span class="monitor-value" id="m-p-dps">敵に 0 のダメージ</span>
+                        </div>
+                        <div class="monitor-row">
+                            <span class="monitor-label">・現リーダーのクリック：</span>
+                            <span class="monitor-value" id="m-p-click">--</span>
+                        </div>
+                        <div class="monitor-row">
+                            <span class="monitor-label">・リーダーのアクティブスキル：</span>
+                            <span class="monitor-value" id="m-p-skill1">--</span>
+                        </div>
+                        <div style="color: #e57373; font-weight: bold; margin-top: 6px; margin-bottom: 2px; font-size: 0.9em;">▼ 敵の行動</div>
+                        <div class="monitor-row">
+                            <span class="monitor-label">・通常反撃ダメージ：</span>
+                            <span class="monitor-value" id="m-e-atk">勇者に 0 のダメージ</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="pane-exp" class="log-pane"><div id="log-exp-area" class="log-scroll-area"></div></div>
+                <div id="pane-drop" class="log-pane"><div id="log-drop-area" class="log-scroll-area"></div></div>
+            </div>
         </div>
 
         <div id="tab-status" class="tab-content">
@@ -357,6 +381,13 @@
         </div>
 
         <div id="tab-equip" class="tab-content">
+            <!-- 【リソース表示】経験値・ゴールド・強化石 -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; background: #e3f2fd; padding: 8px; border-radius: 4px; margin-bottom:15px; font-weight: bold; font-size:0.95em; text-align:left; padding-left:15px;">
+                <div>🔷 所持経験値: <span id="exp" style="color:#0d47a1;">0</span> EXP</div>
+                <div>💰 所持ゴールド: <span id="gold" style="color:#e65100;">0</span> G</div>
+                <div style="grid-column: span 2; border-top:1px dashed #90caf9; margin-top:5px; padding-top:5px;">✨ 強化石: <span id="dust-count" style="color:#0288d1;">0</span> 個</div>
+            </div>
+            
             <h3 style="margin-top: 0; margin-bottom:5px;">🛡️ キャラクター装備スロット</h3>
             <div id="party-equipment-container"></div>
 
@@ -1467,21 +1498,48 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             }
         });
 
-        let currentLeader = gameState.party[gameState.currentLeaderIndex], skillZone = document.getElementById('leader-skill-zone'); skillZone.innerHTML = "";
+        let currentLeader = gameState.party[gameState.currentLeaderIndex];
         let hasSkills = false, activeKeys = { warrior: ['bash', 'rush', 'warcry'], rogue: ['rain', 'coin', 'shadowstep'], mage: ['heal', 'blizzard', 'meteor'] }[currentLeader.job] || [];
         const skillLabels = { bash: "💥 パワフルバッシュ", rush: "⚡ ラッシュブレイド", warcry: "🔥 ウォークライ", rain: "🏹 アローレイン", coin: "💰 コインディグ", shadowstep: "🌑 シャドウステップ", heal: "✨ 聖なるヒール", blizzard: "❄️ ブリザード", meteor: "☄️ メテオ" };
         const skillColors = { bash: "#d32f2f", rush: "#e53935", warcry: "#bf360c", rain: "#2e7d32", coin: "#f57c00", shadowstep: "#4a148c", heal: "#388e3c", blizzard: "#1976d2", meteor: "#e64a19" };
 
+        // === 【新】スキルボタン生成（操作エリア用） ===
+        let skillButtonHTML = "";
         activeKeys.forEach(key => {
             if ((gameState.treeSkills[key] || 0) > 0) {
-                hasSkills = true; let ct = coolTimes[key] || 0, btn = document.createElement('button');
-                btn.className = "skill-trigger-btn"; btn.style.display = "block";
-                btn.style.background = skillColors[key] || "#555";
-                btn.innerText = (ct > 0) ? `${skillLabels[key]} (${ct}秒)` : `${skillLabels[key]} (発動可)`;
-                btn.disabled = (ct > 0); btn.setAttribute('onclick', `useTreeSkill('${key}')`); skillZone.appendChild(btn);
+                let ct = coolTimes[key] || 0;
+                let enabled = ct <= 0;
+                let ctText = ct > 0 ? `${ct}s` : "ready";
+                skillButtonHTML += `<button onclick="${enabled ? `useTreeSkill('${key}')` : 'void(0)'}" style="padding:8px; background:${enabled ? skillColors[key] || '#2196f3' : '#ccc'}; color:white; border:none; border-radius:3px; font-weight:bold; cursor:${enabled ? 'pointer' : 'not-allowed'}; opacity:${enabled ? '1' : '0.6'};"><small>${skillLabels[key]}<br>${ctText}</small></button>`;
             }
         });
-        if(!hasSkills) skillZone.innerHTML = `<div style="color:#aaa; font-size:0.9em; text-align:center; padding:10px;">このリーダーはまだアクティブスキルを習得していません。</div>`;
+        let skillArea = document.getElementById('skill-buttons-area');
+        if (skillArea) {
+            skillArea.innerHTML = skillButtonHTML || '<small style="color:#999;">習得スキルなし</small>';
+        }
+
+        // === 【新】解除スキルボタン生成（常時表示、使用可能時のみ有効） ===
+        let cureButtonHTML = "";
+        const cureSkills = [
+            { key: 'poisonCure', name: '☠️毒', color: '#8bc34a' },
+            { key: 'darknessCure', name: '🌑暗', color: '#424242' },
+            { key: 'paralysisCure', name: '⚡麻', color: '#9575cd' }
+        ];
+        cureSkills.forEach(cure => {
+            if ((gameState.treeSkills[cure.key] || 0) > 0) {
+                let enabled = (cure.key === 'poisonCure' && playerPoison > 0 && coolTimes.poisonCure <= 0) ||
+                              (cure.key === 'darknessCure' && playerDarkness > 0 && coolTimes.darknessCure <= 0) ||
+                              (cure.key === 'paralysisCure' && playerParalysis > 0 && coolTimes.paralysisCure <= 0);
+                let cdText = (cure.key === 'poisonCure' && coolTimes.poisonCure > 0) ? `(${coolTimes.poisonCure}s)` :
+                             (cure.key === 'darknessCure' && coolTimes.darknessCure > 0) ? `(${coolTimes.darknessCure}s)` :
+                             (cure.key === 'paralysisCure' && coolTimes.paralysisCure > 0) ? `(${coolTimes.paralysisCure}s)` : '';
+                cureButtonHTML += `<button onclick="${enabled ? `castCureSkill('${cure.key}')` : 'void(0)'}" style="padding:6px 10px; background:${cure.color}; color:white; border:none; border-radius:3px; font-size:0.75em; font-weight:bold; cursor:${enabled ? 'pointer' : 'not-allowed'}; opacity:${enabled ? '1' : '0.4'}; white-space:nowrap;">${cure.name}${cdText}</button>`;
+            }
+        });
+        let cureArea = document.getElementById('cure-skills-area');
+        if (cureArea) {
+            cureArea.innerHTML = cureButtonHTML || '<small style="color:#999;">解除スキルなし</small>';
+        }
 
         let hireZone = document.getElementById('hire-action-zone'); hireZone.innerHTML = "";
         let unlockedCompanions = gameState.party.map(c => c.job);
