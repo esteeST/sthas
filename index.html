@@ -475,6 +475,79 @@
                 <p style="color:#555; font-size:0.88em;">まとまった資金を投資して、新しい職業スロットを開放しよう。</p>
                 <div id="hire-action-zone"></div>
             </div>
+            
+            <div style="border-top:2px solid #ddd; margin-top:20px; padding-top:15px;">
+                <h3 style="margin-top:0;">💎 強化石販売</h3>
+                <p style="color:#555; font-size:0.88em;">強化石を購入して、装備強化に使用できます。</p>
+                <button onclick="buyUpgradeStone()" style="
+                    background: linear-gradient(135deg, #3f51b5 0%, #5c6bc0 100%);
+                    color: white;
+                    border: none;
+                    padding: 12px 20px;
+                    font-size: 1em;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    margin-bottom: 10px;
+                ">
+                💎 強化石1個を購入（50,000ゴールド）
+                </button>
+            </div>
+            
+            <div style="border-top:2px solid #ddd; margin-top:20px; padding-top:15px;">
+                <h3 style="margin-top:0;">⬆️ ステータス強化</h3>
+                <p style="color:#555; font-size:0.88em;">経験値を消費して、パーティの基礎ステータスを強化します。</p>
+                <div style="background:#f9f9f9; border:1px solid #e0e0e0; border-radius:8px; padding:12px; margin-bottom:12px;">
+                    <div style="font-size:0.9em; color:#333; margin-bottom:8px;">
+                        <strong>現在のボーナス</strong><br>
+                        HP: <span id="bonus-hp-display">0</span> | ATK: <span id="bonus-atk-display">0</span> | DEF: <span id="bonus-def-display">0</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button onclick="enhanceStatus('hp')" style="
+                        flex: 1;
+                        min-width: 120px;
+                        background: linear-gradient(135deg, #e53935 0%, #e65100 100%);
+                        color: white;
+                        border: none;
+                        padding: 10px;
+                        font-size: 0.95em;
+                        font-weight: bold;
+                        border-radius: 6px;
+                        cursor: pointer;
+                    ">
+                    ❤️ HP+1（10万EXP）
+                    </button>
+                    <button onclick="enhanceStatus('atk')" style="
+                        flex: 1;
+                        min-width: 120px;
+                        background: linear-gradient(135deg, #ff6f00 0%, #ff8f00 100%);
+                        color: white;
+                        border: none;
+                        padding: 10px;
+                        font-size: 0.95em;
+                        font-weight: bold;
+                        border-radius: 6px;
+                        cursor: pointer;
+                    ">
+                    ⚔️ ATK+1（10万EXP）
+                    </button>
+                    <button onclick="enhanceStatus('def')" style="
+                        flex: 1;
+                        min-width: 120px;
+                        background: linear-gradient(135deg, #0277bd 0%, #0288d1 100%);
+                        color: white;
+                        border: none;
+                        padding: 10px;
+                        font-size: 0.95em;
+                        font-weight: bold;
+                        border-radius: 6px;
+                        cursor: pointer;
+                    ">
+                    🛡️ DEF+1（10万EXP）
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div id="tab-quest" class="tab-content">
@@ -555,6 +628,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             gold10k: false, eq_legendary: false, awaken: false, party3: false,
         },
         totalKills: 0,
+        statusBonus: { hp: 0, atk: 0, def: 0 },  // === ステータス強化ボーナス ===
         worldClearCount: 0,
     };
 
@@ -1036,9 +1110,13 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             playerPoison = 0; playerPoisonDmg = 0;
             playerDarkness = 0; darknessDuration = 0;
             playerParalysis = 0; paralysisDuration = 0;
-            if (gameState.stage > 1) gameState.stage--;
-            else if (gameState.world > 1) { gameState.world--; gameState.stage = 10; }
+            // === 修正：前のステージに戻るのではなく、現在のステージをリスタート ===
+            // ステージを戻さずに、killsInStage = 0 で同じステージの最初から再開
             enemyPoisoned = 0;
+            
+            // === 敗北演出：赤フラッシュと警告テキスト ===
+            showDefeatEffect();
+            
             spawnEnemy(); saveGame();
         }
 
@@ -1343,7 +1421,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
 
     function upgradeEquipped(charIndex, slot) {
         let item = gameState.party[charIndex].currentEquip[slot]; if (!item || item.name === "なし") return;
-        let neededStone = (item.level + 1) * 2, neededGold = (item.level + 1) * 50;
+        let neededStone = (item.level + 1) * 2, neededGold = (item.level + 1) * 200;  // 50G → 200G に増加
 
         if (gameState.upgradeStone >= neededStone && gameState.gold >= neededGold) {
             gameState.upgradeStone -= neededStone; gameState.gold -= neededGold;
@@ -1406,6 +1484,10 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             if (char.job === "rogue" && charHasBowBonus) dps = Math.floor(dps * 1.5 * awakenMult);
             else if (char.awakened) dps = Math.floor(dps * awakenMult);
         });
+        // === ステータスボーナスを適用 ===
+        maxHp += (gameState.statusBonus?.hp || 0);
+        dps += (gameState.statusBonus?.atk || 0);
+        def += (gameState.statusBonus?.def || 0);
         expBonus = bonus + guildExpBonus;
         return { dps, def, regen, maxHp, mres: Math.min(75, mres), eva: Math.min(75, eva), poisonRes: Math.min(95, poisonRes), darknessRes: Math.min(95, darknessRes), paralysisRes: Math.min(95, paralysisRes) };
     }
@@ -1962,6 +2044,11 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         document.getElementById('e-stat-def').innerText = enemyDef; document.getElementById('e-stat-mres').innerText = enemyMres; document.getElementById('e-stat-eva').innerText = enemyEva;
         document.getElementById('stat-p-dps').innerText = pStats.dps; document.getElementById('stat-p-def').innerText = pStats.def; document.getElementById('stat-p-mres').innerText = pStats.mres; document.getElementById('stat-p-eva').innerText = pStats.eva;
         document.getElementById('stat-poison-res').innerText = pStats.poisonRes; document.getElementById('stat-darkness-res').innerText = pStats.darknessRes; document.getElementById('stat-paralysis-res').innerText = pStats.paralysisRes;
+        
+        // === ステータスボーナス表示 ===
+        document.getElementById('bonus-hp-display').innerText = gameState.statusBonus?.hp || 0;
+        document.getElementById('bonus-atk-display').innerText = gameState.statusBonus?.atk || 0;
+        document.getElementById('bonus-def-display').innerText = gameState.statusBonus?.def || 0;
 
         for (let i = 0; i < 3; i++) {
             let btn = document.getElementById(`btn-leader-${i}`), 
@@ -2117,6 +2204,102 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
 
     loadGame(); 
     if (gameState.isJobSelected) { spawnEnemy(); updateDisplay(); }
+    
+    // === 敗北演出関数 ===
+    // === 強化石購入関数 ===
+    function buyUpgradeStone() {
+        const cost = 50000;  // 50,000ゴールド
+        if (gameState.gold < cost) {
+            return alert(`ゴールドが足りません！\n必要: ${cost}G / 所持: ${gameState.gold}G`);
+        }
+        gameState.gold -= cost;
+        gameState.upgradeStone += 1;
+        appendLog('log-drop-area', `${getLogTime()} 💎 <span style="color:#3f51b5; font-weight:bold;">強化石を購入しました！</span> -${cost}G`, "c-yellow");
+        saveGame(); updateDisplay();
+    }
+    
+    // === ステータス強化関数 ===
+    function enhanceStatus(type) {
+        const cost = 100000;  // 10万経験値
+        if (gameState.exp < cost) {
+            return alert(`経験値が足りません！\n必要: ${cost}EXP / 所持: ${gameState.exp}EXP`);
+        }
+        
+        gameState.exp -= cost;
+        gameState.statusBonus = gameState.statusBonus || { hp: 0, atk: 0, def: 0 };
+        
+        let typeName = { hp: "HP", atk: "攻撃力", def: "防御力" }[type];
+        let emoji = { hp: "❤️", atk: "⚔️", def: "🛡️" }[type];
+        let color = { hp: "#e53935", atk: "#ff6f00", def: "#0277bd" }[type];
+        
+        gameState.statusBonus[type]++;
+        appendLog('log-exp-area', `${getLogTime()} ${emoji} <span style="color:${color}; font-weight:bold;">ステータス強化: ${typeName}+1</span> -100,000EXP`, "c-yellow");
+        
+        // プレイヤーHP再計算
+        playerHp = calcPartyAllStats().maxHp;
+        
+        saveGame(); updateDisplay();
+    }
+    
+    function showDefeatEffect() {
+        // 赤フラッシュ演出
+        let gameContainer = document.querySelector('body');
+        let flashOverlay = document.createElement('div');
+        flashOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.6);
+            z-index: 8888;
+            pointer-events: none;
+            animation: defeatFlash 0.3s ease-out;
+        `;
+        document.body.appendChild(flashOverlay);
+        
+        // 0.3秒後にフラッシュを削除
+        setTimeout(() => flashOverlay.remove(), 300);
+        
+        // 【DEFEAT】警告テキスト表示
+        let defeatText = document.createElement('div');
+        defeatText.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            font-weight: bold;
+            color: #ff4444;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 8889;
+            pointer-events: none;
+            animation: defeatFade 1.5s ease-in-out forwards;
+            letter-spacing: 3px;
+        `;
+        defeatText.textContent = '【DEFEAT】再挑戦中...';
+        document.body.appendChild(defeatText);
+        
+        // 1.5秒後にテキストを削除
+        setTimeout(() => defeatText.remove(), 1500);
+    }
+    
+    // === CSS アニメーション定義（スタイルセクションに追加） ===
+    let styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+        @keyframes defeatFlash {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        @keyframes defeatFade {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            90% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); }
+        }
+    `;
+    document.head.appendChild(styleSheet);
     
     // === W10クリア時のエンディングダイアログ ===
     function showGameClearDialog() {
