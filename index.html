@@ -1559,12 +1559,12 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         // === ボスドロップ ===
         if (isBoss) {
             if (w <= 3) {
-                // W1～3：ボスはレア5%
+                // W1～3：ボスはレア確定
                 rarity = "Rare";
                 mult = 1.4 * (1 + (w-1)*0.2);
                 maxOpts = 1;
-            } else {
-                // W4～7：ボスはレア8%、エピック2%
+            } else if (w <= 7) {
+                // W4～7：ボスはNormal 90%、Rare 8%、Epic 2%
                 if (rand < 0.02) {
                     rarity = "Epic";
                     mult = 2.5 * (1 + (w-1)*0.3);
@@ -1573,6 +1573,25 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
                     rarity = "Rare";
                     mult = 1.4 * (1 + (w-1)*0.2);
                     maxOpts = 1;
+                }
+            } else {
+                // W8～10：ボスはNormal 60%、Rare 25%、Epic 4%、Legendary 1%
+                if (rand < 0.01) {
+                    rarity = "Legendary";
+                    mult = 4.0 * (1 + (w-1)*0.4);
+                    maxOpts = 3;
+                } else if (rand < 0.05) {
+                    rarity = "Epic";
+                    mult = 2.5 * (1 + (w-1)*0.3);
+                    maxOpts = 2;
+                } else if (rand < 0.30) {
+                    rarity = "Rare";
+                    mult = 1.4 * (1 + (w-1)*0.2);
+                    maxOpts = 1;
+                } else {
+                    rarity = "Normal";
+                    mult = 1.0;
+                    maxOpts = 0;
                 }
             }
         }
@@ -1583,9 +1602,20 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
                 rarity = "Normal";
                 mult = 1;
                 maxOpts = 0;
-            } else {
-                // W4～7：通常敵がレア3%
+            } else if (w <= 7) {
+                // W4～7：通常敵がNormal 97%、Rare 3%
                 if (rand < 0.03) {
+                    rarity = "Rare";
+                    mult = 1.4 * (1 + (w-1)*0.2);
+                    maxOpts = 1;
+                }
+            } else {
+                // W8～10：通常敵がNormal 85%、Rare 12%、Epic 3%
+                if (rand < 0.03) {
+                    rarity = "Epic";
+                    mult = 2.5 * (1 + (w-1)*0.3);
+                    maxOpts = 2;
+                } else if (rand < 0.15) {
                     rarity = "Rare";
                     mult = 1.4 * (1 + (w-1)*0.2);
                     maxOpts = 1;
