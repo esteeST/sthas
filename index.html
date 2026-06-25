@@ -566,6 +566,71 @@
             </div>
 
             <div style="text-align: center; padding:15px; border-top:1px solid #eee;">
+                <div style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); border: 2px solid #64b5f6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h4 style="color: #64b5f6; margin: 0 0 10px 0; font-size: 1.2em;">💾 セーブコード（データ移行）</h4>
+                    <p style="color: #e0e0e0; margin: 0 0 12px 0; font-size: 0.9em;">PCとスマホ間でゲームデータを移行できます。</p>
+                    
+                    <!-- エクスポート -->
+                    <div style="margin-bottom: 15px; text-align: left;">
+                        <label style="color: #64b5f6; font-weight: bold; display: block; margin-bottom: 5px;">📤 現在のセーブコード（書き出し）</label>
+                        <textarea id="export-save-code" style="
+                            width: 100%;
+                            height: 80px;
+                            padding: 8px;
+                            font-family: monospace;
+                            font-size: 0.85em;
+                            border: 1px solid #64b5f6;
+                            border-radius: 4px;
+                            background: #f5f5f5;
+                            color: #333;
+                            resize: vertical;
+                            box-sizing: border-box;
+                        " readonly placeholder="「コードを発行する」ボタンを押してください"></textarea>
+                        <button style="
+                            background: #42a5f5;
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            font-size: 0.95em;
+                            font-weight: bold;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            margin-top: 8px;
+                            width: 100%;
+                        " onclick="exportSaveCode()">📋 コードを発行する</button>
+                    </div>
+                    
+                    <!-- インポート -->
+                    <div style="text-align: left;">
+                        <label style="color: #64b5f6; font-weight: bold; display: block; margin-bottom: 5px;">📥 外部のセーブコード（読み込み）</label>
+                        <textarea id="import-save-code" style="
+                            width: 100%;
+                            height: 80px;
+                            padding: 8px;
+                            font-family: monospace;
+                            font-size: 0.85em;
+                            border: 1px solid #64b5f6;
+                            border-radius: 4px;
+                            background: white;
+                            color: #333;
+                            resize: vertical;
+                            box-sizing: border-box;
+                        " placeholder="セーブコードをここに貼り付けてください"></textarea>
+                        <button style="
+                            background: #ef5350;
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            font-size: 0.95em;
+                            font-weight: bold;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            margin-top: 8px;
+                            width: 100%;
+                        " onclick="importSaveCode()">📂 コードを読み込む</button>
+                    </div>
+                </div>
+                
                 <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 2px solid #ffd700; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                     <h4 style="color: #ffd700; margin: 0 0 10px 0; font-size: 1.2em;">🎖️ 次なる試練へ</h4>
                     <p style="color: #e0e0e0; margin: 0 0 12px 0; font-size: 0.95em;">全世界制覇後、さらなる困難に挑戦します。</p>
@@ -824,6 +889,72 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
     }
     function resetGame() { if (confirm("データを完全初期化しますか？最初の職業選択に戻ります。")) { localStorage.removeItem(SAVE_KEY); location.reload(); } }
 
+    // === セーブコード発行（エクスポート） ===
+    function exportSaveCode() {
+        try {
+            // gameState を JSON 文字列化
+            let jsonStr = JSON.stringify(gameState);
+            
+            // Base64 エンコード
+            let encodedCode = btoa(unescape(encodeURIComponent(jsonStr)));
+            
+            // テキストエリアに表示
+            document.getElementById('export-save-code').value = encodedCode;
+            
+            alert('✅ セーブコードを発行しました！\nコードをコピーして別の端末に貼り付けてください。');
+        } catch (err) {
+            alert('❌ セーブコードの発行に失敗しました。');
+            console.error('Export error:', err);
+        }
+    }
+
+    // === セーブコード読み込み（インポート） ===
+    function importSaveCode() {
+        try {
+            // テキストエリアからコードを取得
+            let importedCode = document.getElementById('import-save-code').value.trim();
+            
+            // 空のチェック
+            if (!importedCode) {
+                alert('❌ セーブコードを入力してください。');
+                return;
+            }
+            
+            // Base64 デコード
+            let jsonStr = decodeURIComponent(escape(atob(importedCode)));
+            
+            // JSON パース
+            let importedData = JSON.parse(jsonStr);
+            
+            // データの妥当性チェック（最低限のチェック）
+            if (!importedData.world || importedData.world < 1 || importedData.world > 10) {
+                throw new Error('Invalid world data');
+            }
+            
+            // 確認ダイアログ
+            if (!confirm('⚠️ 現在のデータをインポートしたコードで上書きします。\nよろしいですか？')) {
+                return;
+            }
+            
+            // gameState を上書き
+            Object.assign(gameState, importedData);
+            
+            // ローカルストレージに保存
+            saveGame();
+            
+            // UI をリフレッシュ
+            updateDisplay();
+            
+            // テキストエリアをクリア
+            document.getElementById('import-save-code').value = '';
+            
+            alert('✅ セーブデータを読み込みました！\nゲームを再読み込みしてください。');
+            
+        } catch (err) {
+            alert('❌ 無効なセーブコードです。\nコードが正しく貼り付けられているか確認してください。');
+            console.error('Import error:', err);
+        }
+    }
     function moveStage(diff) {
         let target = gameState.stage + diff;
         if (target < 1) {
@@ -1240,7 +1371,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         if (leader.job === "mage") {
             // === 魔導士も会心を出す ===
             let isCrit = Math.random() * 100 < lStats.crit;
-            let baseMagicDmg = Math.max(1, Math.floor(lStats.atk * arcaneBoost * arcaneAmpMult * berserkMult * paralysisMult * (1 - enemyMres / 100)));
+            let baseMagicDmg = Math.max(1, Math.floor(lStats.atk * arcaneBoost * arcaneAmpMult * berserkMult * paralysisMult * (1 - Math.min(99, enemyMres) / 100)));  // === 魔法耐性を最大99%に制限 ===
             let magicDmg = isCrit ? Math.max(1, Math.floor(baseMagicDmg * (lStats.critMultiplier / 100))) : baseMagicDmg;
             enemyHp -= magicDmg;
             document.getElementById('m-p-click').innerHTML = isCrit
@@ -1279,7 +1410,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             let mult = { bash: 3.5, rush: 3.6, rain: 4.0, coin: 2.0, blizzard: 4.5, meteor: 8.0 }[skillKey];
             
             let baseDmg = ['blizzard','meteor'].includes(skillKey)
-                ? Math.max(1, Math.floor((lStats.atk * mult) * (1 - enemyMres / 100)))
+                ? Math.max(1, Math.floor((lStats.atk * mult) * (1 - Math.min(99, enemyMres) / 100)))  // === 魔法耐性を最大99%に制限 ===
                 : Math.max(1, Math.floor((lStats.atk * mult) - enemyDef));
             
             // 会心が発生した場合、会心倍率を適用
