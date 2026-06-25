@@ -629,6 +629,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         },
         totalKills: 0,
         statusBonus: { hp: 0, atk: 0, def: 0 },  // === ステータス強化ボーナス ===
+        upgradeMaxLevel: 20,  // === 装備強化上限（W10クリアで30に） ===
         worldClearCount: 0,
     };
 
@@ -876,6 +877,11 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
     setInterval(() => {
         if (!gameState.isJobSelected) return;
         let stats = calcPartyAllStats();
+        let leader = gameState.party[gameState.currentLeaderIndex];
+        let lStats = calcSingleCharStats(leader);
+        
+        // === ATKの10%をDPSに加算 ===
+        let totalDps = stats.dps + Math.floor(lStats.atk * 0.1);
         
         // バーサーカー効果（HP50%以下で発動）
         let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0)
@@ -887,7 +893,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         let dpsBoost = warcryActive > 0 ? 1.5 : 1.0;
         // 暗闇による DPS 低下（50%に低下）
         let darknessMult = playerDarkness > 0 ? 0.5 : 1.0;
-        let dpsNet = Math.max(1, Math.floor((stats.dps * dpsBoost * berserkMult * darknessMult) * (1 - enemyEva / 100)));
+        let dpsNet = Math.max(1, Math.floor((totalDps * dpsBoost * berserkMult * darknessMult) * (1 - enemyEva / 100)));
         enemyHp -= dpsNet;
 
         let dpsInfo = `敵に <span class="c-green">${dpsNet}</span> 自動ダメ`;
@@ -1232,15 +1238,20 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         let paralysisMult = playerParalysis > 0 ? 0.5 : 1.0;
 
         if (leader.job === "mage") {
-            let magicDmg = Math.max(1, Math.floor(lStats.atk * arcaneBoost * arcaneAmpMult * berserkMult * paralysisMult * (1 - enemyMres / 100)));
+            // === 魔導士も会心を出す ===
+            let isCrit = Math.random() * 100 < lStats.crit;
+            let baseMagicDmg = Math.max(1, Math.floor(lStats.atk * arcaneBoost * arcaneAmpMult * berserkMult * paralysisMult * (1 - enemyMres / 100)));
+            let magicDmg = isCrit ? Math.max(1, Math.floor(baseMagicDmg * (lStats.critMultiplier / 100))) : baseMagicDmg;
             enemyHp -= magicDmg;
-            document.getElementById('m-p-click').innerHTML = `🔮 [魔導士] <span class="c-purple">${magicDmg}</span> 必中魔法${arcaneBoost>1?` <span style="color:#ce93d8;">[アーケイン×${arcaneBoost.toFixed(1)}]</span>`:''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`;
+            document.getElementById('m-p-click').innerHTML = isCrit
+                ? `⚔️ 会心 <span class="c-crit-flash">${magicDmg}💥</span>${arcaneBoost>1?` <span style="color:#ce93d8;">[アーケイン×${arcaneBoost.toFixed(1)}]</span>`:''} 必中魔法`
+                : `🔮 [魔導士] <span class="c-purple">${magicDmg}</span> 必中魔法${arcaneBoost>1?` <span style="color:#ce93d8;">[アーケイン×${arcaneBoost.toFixed(1)}]</span>`:''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`;
         } else {
-            let isCrit = leader.job === "warrior" && Math.random() * 100 < lStats.crit;
+            let isCrit = Math.random() * 100 < lStats.crit;  // 全職業で会心判定
             let baseDmg = lStats.atk - (isCrit ? 0 : enemyDef);
             let dmg = Math.max(1, Math.floor((isCrit ? baseDmg * (lStats.critMultiplier / 100) : baseDmg) * (1 - (isCrit ? enemyEva * 0.5 : enemyEva) / 100) * berserkMult * arcaneAmpMult * paralysisMult));
-            // 死の刻印：会心時に追加ダメ
-            if (isCrit && (gameState.treeSkills.deathmark||0) > 0) {
+            // 死の刻印：会心時に追加ダメ（ローグ限定）
+            if (isCrit && (gameState.treeSkills.deathmark||0) > 0 && leader.job === "rogue") {
                 dmg = Math.floor(dmg * (1 + gameState.treeSkills.deathmark * 0.15));
             }
             // ローグ：毒付与
@@ -1251,7 +1262,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             enemyHp -= dmg;
             document.getElementById('m-p-click').innerHTML = isCrit 
                 ? `⚔️ 会心 <span class="c-crit-flash">${dmg}💥</span>${berserkMult>1?' <span style="color:#f44336;">[狂戦]</span>':''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`
-                : `${leader.job === "warrior" ? '⚔️ [戦士]' : '🍃 [ローグ]'} <span class="c-white">${dmg}</span>${enemyPoisoned>0?' ☠️毒付与':''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`; 
+                : `${leader.job === "warrior" ? '⚔️ [戦士]' : leader.job === "rogue" ? '🍃 [ローグ]' : '✨ [魔道士]'} <span class="c-white">${dmg}</span>${enemyPoisoned>0?' ☠️毒付与':''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`; 
         }
         if (enemyHp <= 0) winBattle();
         updateDisplay();
@@ -1263,23 +1274,45 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         let mLog = document.getElementById('m-p-skill1'), dmg = 0;
 
         if (['bash', 'rush', 'rain', 'coin', 'blizzard', 'meteor'].includes(skillKey)) {
+            // === スキル攻撃にも会心判定を追加 ===
+            let isCrit = Math.random() * 100 < lStats.crit;
             let mult = { bash: 3.5, rush: 3.6, rain: 4.0, coin: 2.0, blizzard: 4.5, meteor: 8.0 }[skillKey];
-            dmg = ['blizzard','meteor'].includes(skillKey)
+            
+            let baseDmg = ['blizzard','meteor'].includes(skillKey)
                 ? Math.max(1, Math.floor((lStats.atk * mult) * (1 - enemyMres / 100)))
                 : Math.max(1, Math.floor((lStats.atk * mult) - enemyDef));
+            
+            // 会心が発生した場合、会心倍率を適用
+            dmg = isCrit ? Math.max(1, Math.floor(baseDmg * (lStats.critMultiplier / 100))) : baseDmg;
             enemyHp -= dmg;
+            
+            // === スキルのログ出力を会心判定に応じて変更 ===
+            let critMark = isCrit ? ` <span class="c-crit-flash">💥会心💥</span>` : '';
         }
 
-        if (skillKey === 'bash') { coolTimes.bash = 6; mLog.innerHTML = `バッシュ！敵に <span class="c-red">${dmg}</span> 物理ダメージ`; }
-        else if (skillKey === 'rush') { coolTimes.rush = 4; mLog.innerHTML = `ラッシュ！ <span class="c-red">${Math.floor(dmg/2)}×2連撃 (${dmg})</span>`; }
+        if (skillKey === 'bash') { 
+            let isCrit = Math.random() * 100 < lStats.crit;
+            coolTimes.bash = 6; 
+            mLog.innerHTML = `バッシュ！敵に <span class="c-red">${dmg}</span> 物理ダメージ${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
+        }
+        else if (skillKey === 'rush') { 
+            let isCrit = Math.random() * 100 < lStats.crit;
+            coolTimes.rush = 4; 
+            mLog.innerHTML = `ラッシュ！ <span class="c-red">${Math.floor(dmg/2)}×2連撃 (${dmg})</span>${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
+        }
         else if (skillKey === 'warcry') {
             warcryActive = 10; coolTimes.warcry = 20;
             mLog.innerHTML = `<span style="color:#ff9800;">🔥 ウォークライ！10秒間、放置DPS 1.5倍！</span>`;
         }
-        else if (skillKey === 'rain') { coolTimes.rain = 7; mLog.innerHTML = `アローレイン！敵に <span class="c-red">${dmg}</span> 矢の雨ダメージ`; }
+        else if (skillKey === 'rain') { 
+            let isCrit = Math.random() * 100 < lStats.crit;
+            coolTimes.rain = 7; 
+            mLog.innerHTML = `アローレイン！敵に <span class="c-red">${dmg}</span> 矢の雨ダメージ${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
+        }
         else if (skillKey === 'coin') {
+            let isCrit = Math.random() * 100 < lStats.crit;
             let bonusGold = gameState.stage * 15 * gameState.world; gameState.gold += bonusGold; coolTimes.coin = 8;
-            mLog.innerHTML = `コインディグ！ <span class="c-red">${dmg}撃打</span> ＆ <span class="c-gold">+${bonusGold}G強奪</span>`;
+            mLog.innerHTML = `コインディグ！ <span class="c-red">${dmg}撃打</span> ＆ <span class="c-gold">+${bonusGold}G強奪</span>${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
         }
         else if (skillKey === 'shadowstep') {
             shadowstepActive = 8; coolTimes.shadowstep = 25;
@@ -1288,10 +1321,15 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         else if (skillKey === 'heal') {
             let healVal = Math.floor(calcPartyAllStats().maxHp * 0.4); playerHp = Math.min(calcPartyAllStats().maxHp, playerHp + healVal); coolTimes.heal = 9;
             mLog.innerHTML = `聖なるヒール！共有HPを <span class="c-green">＋${healVal}</span> 回復`;
-        } else if (skillKey === 'blizzard') { coolTimes.blizzard = 8; mLog.innerHTML = `ブリザード！必中で <span class="c-purple">${dmg}</span> 魔法ダメージ`; }
+        } else if (skillKey === 'blizzard') { 
+            let isCrit = Math.random() * 100 < lStats.crit;
+            coolTimes.blizzard = 8; 
+            mLog.innerHTML = `ブリザード！必中で <span class="c-purple">${dmg}</span> 魔法ダメージ${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
+        }
         else if (skillKey === 'meteor') {
+            let isCrit = Math.random() * 100 < lStats.crit;
             coolTimes.meteor = 15;
-            mLog.innerHTML = `<span style="color:#ff5722;">☄️ メテオ！必中で <span class="c-purple">${dmg}</span> の超高火力魔法ダメージ！</span>`;
+            mLog.innerHTML = `<span style="color:#ff5722;">☄️ メテオ！必中で <span class="c-purple">${dmg}</span> の超高火力魔法ダメージ！${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}</span>`;
         }
 
         if (enemyHp <= 0) winBattle();
@@ -1421,15 +1459,37 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
 
     function upgradeEquipped(charIndex, slot) {
         let item = gameState.party[charIndex].currentEquip[slot]; if (!item || item.name === "なし") return;
-        let neededStone = (item.level + 1) * 2, neededGold = (item.level + 1) * 200;  // 50G → 200G に増加
+        
+        // === 強化上限チェック ===
+        let maxLevel = gameState.upgradeMaxLevel || 20;
+        if (item.level >= maxLevel) {
+            return alert(`強化上限に達しました！\n現在の上限: +${maxLevel}\n(W10クリア後に+30に解放されます)`);
+        }
+        
+        let neededStone = (item.level + 1) * 2, neededGold = (item.level + 1) * 200;
 
         if (gameState.upgradeStone >= neededStone && gameState.gold >= neededGold) {
             gameState.upgradeStone -= neededStone; gameState.gold -= neededGold;
             item.level++; item.value = Math.floor(item.value * 1.3) + 2;
             if (item.options) {
                 item.options.forEach(o => {
-                    o.val = Math.floor(o.val * 1.2) + 1;
-                    let base = o.text.split("+")[0]; o.text = `${base}+${o.val}${o.text.includes("%")?"%":o.text.includes("/s")?"/s":""}`;
+                    // === %系オプションは1強化で1%追加、数値系は段階的に増加 ===
+                    let isPercentageOption = o.text.includes("%");
+                    let isFixedValueOption = o.text.includes("/s") || o.text.match(/回復|Regen/);
+                    
+                    if (isPercentageOption) {
+                        // %系：1強化で+1%固定
+                        o.val += 1;
+                    } else if (isFixedValueOption) {
+                        // 数値固定系（回復等）：小さめの増加
+                        o.val = Math.floor(o.val * 1.15);
+                    } else {
+                        // ATK/DEF等：段階的に増加
+                        o.val = Math.floor(o.val * 1.2) + 1;
+                    }
+                    
+                    let base = o.text.split("+")[0]; 
+                    o.text = `${base}+${o.val}${o.text.includes("%")?"%":o.text.includes("/s")?"/s":""}`;
                 });
             }
             alert(`＋${item.level} への強化成功！`); saveGame(); updateDisplay();
@@ -1438,11 +1498,30 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
 
     function calcSingleCharStats(char) {
         let atk = 10, crit = 5, critMultiplier = 200;
-        if (char.job === "warrior") { atk += ((gameState.treeSkills.atk || 0) * 8); crit += ((gameState.treeSkills.crit || 0) * 3); critMultiplier += ((gameState.treeSkills.critDmg || 0) * 25); }
+        
+        // === 職業別の会心設定 ===
+        if (char.job === "warrior") { 
+            atk += ((gameState.treeSkills.atk || 0) * 8); 
+            crit += ((gameState.treeSkills.crit || 0) * 3);  // 基本5% + スキル
+            critMultiplier += ((gameState.treeSkills.critDmg || 0) * 25);  // 基本200%
+        } else if (char.job === "rogue") {
+            crit = 8;  // ローグの基本会心率：8%（戦士より高い）
+            critMultiplier = 180;  // ローグの基本会心倍率：180%（やや低め）
+            atk += ((gameState.treeSkills.atk || 0) * 8);
+        } else if (char.job === "mage") {
+            crit = 3;  // 魔道士の基本会心率：3%（低め）
+            critMultiplier = 250;  // 魔道士の基本会心倍率：250%（高め）
+            atk += ((gameState.treeSkills.atk || 0) * 8);
+        }
+        
         if (char.currentEquip) {
             Object.values(char.currentEquip).forEach(item => {
                 if (!item) return; if (item.type === "atk") atk += item.value;
-                if (item.options) item.options.forEach(opt => { if (opt.type === "atk") atk += opt.val; if (opt.type === "crit") crit += opt.val; });
+                if (item.options) item.options.forEach(opt => { 
+                    if (opt.type === "atk") atk += opt.val; 
+                    if (opt.type === "crit") crit += opt.val; 
+                    if (opt.type === "critDmg") critMultiplier += opt.val;  // === 会心ダメージオプションを加算 ===
+                });
             });
         }
         return { atk, crit, critMultiplier };
@@ -1496,8 +1575,21 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         let isBoss = (gameState.killsInStage === 4), w = gameState.world, s = gameState.stage;
         let expGain = Math.floor((isBoss ? s * 50 * w : s * 10 * w) * (1 + expBonus / 100));
         gameState.exp += expGain;
+        
+        // === 装備オプション「金策」を集計 ===
+        let equipGoldBonus = 0;
+        gameState.party.forEach(char => {
+            if (!char.isUnlocked || !char.currentEquip) return;
+            Object.values(char.currentEquip).forEach(item => {
+                if (!item || !item.options) return;
+                item.options.forEach(opt => {
+                    if (opt.type === "goldBonus") equipGoldBonus += opt.val;
+                });
+            });
+        });
+        
         // ワールド進行に伴いゴールド獲得を調整（W4以降はやや多く、仲間雇用に向かって段階的に）
-        let gainedGold = Math.floor((isBoss ? s * 30 * w : s * 5 * w) * (1 + (gameState.treeSkills.goldBonus || 0) * 0.15) * (w >= 4 ? 1.2 : 1.0));
+        let gainedGold = Math.floor((isBoss ? s * 30 * w : s * 5 * w) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100)) * (w >= 4 ? 1.2 : 1.0));
         gameState.gold += gainedGold;
         gameState.totalKills = (gameState.totalKills || 0) + 1;
 
@@ -1533,7 +1625,9 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             } else {
                 // W10クリア後は W10-10 に留まる（最新ダンジョンに再出撃）
                 gameState.stage = 10; gameState.maxReachedStage = 10;
+                gameState.upgradeMaxLevel = 30;  // === W10クリア時に強化上限を30に解放 ===
                 appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">全ワールドクリア！W${gameState.world}-10 に留まります。</span>`, "c-yellow");
+                appendLog('log-exp-area', `${getLogTime()} 💎 <span style="color:#ce93d8; font-weight:bold;">装備強化上限が+30に解放されました！</span>`, "c-yellow");
                 // === W10クリア時にエンディングダイアログを表示 ===
                 setTimeout(() => showGameClearDialog(), 500);
             }
@@ -1635,20 +1729,23 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         const optPool = [
             { name: "追加ATK", type: "atk", min: 2, max: 6 },
             { name: "追加DEF", type: "def", min: 2, max: 5 },
-            { name: "会心率", type: "crit", min: 3, max: 8, unit: "%" },
-            { name: "魔法耐性", type: "mres", min: 4, max: 10, unit: "%" },
-            { name: "回避率", type: "eva", min: 3, max: 8, unit: "%" },
-            { name: "毒耐性", type: "poisonRes", min: 5, max: 20, unit: "%" },
-            { name: "暗闇耐性", type: "darknessRes", min: 5, max: 20, unit: "%" },
-            { name: "麻痺耐性", type: "paralysisRes", min: 5, max: 20, unit: "%" }
+            { name: "会心", type: "critDmg", min: 1, max: 5, unit: "%" },
+            { name: "金策", type: "goldBonus", min: 1, max: 5, unit: "%" },
+            { name: "回復", type: "regen", min: 1, max: 3 },
+            { name: "魔法耐性", type: "mres", min: 1, max: 5, unit: "%" },
+            { name: "回避率", type: "eva", min: 1, max: 5, unit: "%" },
+            { name: "毒耐性", type: "poisonRes", min: 1, max: 5, unit: "%" },
+            { name: "暗闇耐性", type: "darknessRes", min: 1, max: 5, unit: "%" },
+            { name: "麻痺耐性", type: "paralysisRes", min: 1, max: 5, unit: "%" }
         ];
         for(let i=0; i < maxOpts; i++) {
             let poolItem = optPool[Math.floor(Math.random() * optPool.length)];
             // === % 値オプション（会心率、魔法耐性、回避率、状態異常耐性）は倍率を適用しない ===
             let baseVal = Math.floor(Math.random() * (poolItem.max - poolItem.min + 1)) + poolItem.min;
             let isPercentageOption = poolItem.unit === "%";
-            let finalVal = isPercentageOption 
-                ? baseVal  // % 値は倍率を適用しない
+            let isFixedValueOption = poolItem.type === "regen";  // 回復は固定値
+            let finalVal = isPercentageOption || isFixedValueOption
+                ? baseVal  // % 値と回復は倍率を適用しない
                 : Math.floor(baseVal * mult * (1 + gameState.stage * 0.08));  // ATK/DEFなど数値は倍率を適用
             options.push({ text: `${poolItem.name} +${finalVal}${poolItem.unit || ""}`, type: poolItem.type, val: finalVal });
         }
