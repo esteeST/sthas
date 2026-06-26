@@ -1012,7 +1012,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         let lStats = calcSingleCharStats(leader);
         
         // === ATKの10%をDPSに加算 ===
-        let totalDps = stats.dps + Math.floor(lStats.atk * 0.1);
+        let totalDps = stats.dps + Math.floor(lStats.atk * 0.1) + (stats.idleDmg || 0);
         
         // バーサーカー効果（HP50%以下で発動）
         let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0)
@@ -1361,9 +1361,10 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
     function attack() {
         if (!gameState.isJobSelected) return;
         let leader = gameState.party[gameState.currentLeaderIndex], lStats = calcSingleCharStats(leader);
+        let stats = calcPartyAllStats();  // === stats を定義（魔法耐性貫通アクセス用） ===
         let arcaneBoost = 1 + (gameState.treeSkills.arcane||0) * 0.15;
         let arcaneAmpMult = 1 + (gameState.treeSkills.arcaneamp||0) * 0.10;
-        let berserkMult = (playerHp <= calcPartyAllStats().maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0)
+        let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0)
             ? 1 + (gameState.treeSkills.berserker * 0.2) : 1.0;
         // 麻痺によるクリック攻撃低下（50%に低下）
         let paralysisMult = playerParalysis > 0 ? 0.5 : 1.0;
@@ -1371,7 +1372,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         if (leader.job === "mage") {
             // === 魔導士も会心を出す ===
             let isCrit = Math.random() * 100 < lStats.crit;
-            let baseMagicDmg = Math.max(1, Math.floor(lStats.atk * arcaneBoost * arcaneAmpMult * berserkMult * paralysisMult * (1 - Math.min(99, enemyMres) / 100)));  // === 魔法耐性を最大99%に制限 ===
+            let baseMagicDmg = Math.max(1, Math.floor((lStats.atk + stats.mag) * arcaneBoost * arcaneAmpMult * berserkMult * paralysisMult * (1 - Math.min(99, Math.max(0, enemyMres - stats.magPenetration)) / 100)));  // === mag値を追加 ===
             let magicDmg = isCrit ? Math.max(1, Math.floor(baseMagicDmg * (lStats.critMultiplier / 100))) : baseMagicDmg;
             enemyHp -= magicDmg;
             document.getElementById('m-p-click').innerHTML = isCrit
@@ -1402,6 +1403,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
     function useTreeSkill(skillKey) {
         if (coolTimes[skillKey] > 0) return;
         let leader = gameState.party[gameState.currentLeaderIndex], lStats = calcSingleCharStats(leader);
+        let stats = calcPartyAllStats();  // === stats を定義（魔法耐性貫通アクセス用） ===
         let mLog = document.getElementById('m-p-skill1'), dmg = 0;
 
         if (['bash', 'rush', 'rain', 'coin', 'blizzard', 'meteor'].includes(skillKey)) {
@@ -1410,7 +1412,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             let mult = { bash: 3.5, rush: 3.6, rain: 4.0, coin: 2.0, blizzard: 4.5, meteor: 8.0 }[skillKey];
             
             let baseDmg = ['blizzard','meteor'].includes(skillKey)
-                ? Math.max(1, Math.floor((lStats.atk * mult) * (1 - Math.min(99, enemyMres) / 100)))  // === 魔法耐性を最大99%に制限 ===
+                ? Math.max(1, Math.floor(((lStats.atk + stats.mag) * mult) * (1 - Math.min(99, Math.max(0, enemyMres - stats.magPenetration)) / 100)))  // === mag値を追加 ===
                 : Math.max(1, Math.floor((lStats.atk * mult) - enemyDef));
             
             // 会心が発生した場合、会心倍率を適用
@@ -1504,7 +1506,8 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         } else {
             filtered.forEach(item => {
                 let div = document.createElement('div'); div.className = "picker-item";
-                let isWeaponMismatched = item.slot === "weapon" && ((char.job === "warrior" && item.weaponType !== "Sword") || (char.job === "rogue" && item.weaponType !== "Bow") || (char.job === "mage" && item.weaponType !== "Staff"));
+                let isWeaponMismatched = (item.slot === "weapon" && ((char.job === "warrior" && item.weaponType !== "Sword") || (char.job === "rogue" && item.weaponType !== "Bow") || (char.job === "mage" && item.weaponType !== "Staff")))
+                    || (item.slot === "shield" && ((char.job === "warrior" && item.weaponType !== "Shield") || (char.job === "rogue" && item.weaponType !== "Arrow") || (char.job === "mage" && item.weaponType !== "Orb")));  // === サブ武器の職業別チェックを追加 ===
                 let optText = item.options ? item.options.map(o => o.text).join(", ") : "";
 
                 div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${item.name} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
@@ -1529,6 +1532,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         let invIndex = gameState.inventory.findIndex(item => item.id === itemId); if (invIndex === -1) return;
 
         let item = gameState.inventory[invIndex], char = gameState.party[activePickerCharIndex], oldItem = char.currentEquip[activePickerSlot];
+        
         char.currentEquip[activePickerSlot] = { ...item }; gameState.inventory.splice(invIndex, 1);
         if (oldItem && oldItem.name !== "なし") gameState.inventory.push({ ...oldItem });
 
@@ -1664,6 +1668,9 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         let regen = ((gameState.treeSkills.regen || 0) * 2) + facRegen;
         let mres = ((gameState.treeSkills.mres || 0) * 5), eva = ((gameState.treeSkills.eva || 0) * 4);
         let def = (gameState.treeSkills.ironwall || 0) * 4; // 鉄壁の守り
+        let mag = 0;  // === 魔法力ボーナス ===
+        let magPenetration = 0;  // === 魔法耐性貫通 ===
+        let idleDmg = 0;  // === 放置ダメージボーナス ===
         let bonus = 0;
         let guildExpBonus = (gameState.facilities?.guildLevel || 0) * 10;
         // === 状態異常耐性：スキル + 装備から集計 ===
@@ -1678,10 +1685,15 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             let awakenMult = char.awakened ? 1.3 : 1.0;
             Object.keys(char.currentEquip).forEach(slot => {
                 let item = char.currentEquip[slot]; if (!item) return;
-                if (item.type === "def") def += item.value; if (slot === "weapon" && item.weaponType === "Bow") charHasBowBonus = true;
+                if (item.type === "def") def += item.value; 
+                if (item.type === "dps") dps += item.value;  // === 矢からの放置DPSを集計 ===
+                if (item.type === "mag") mag += item.value;  // === オーブからの魔法力を集計 ===
+                if (slot === "weapon" && item.weaponType === "Bow") charHasBowBonus = true;
                 if (item.options) item.options.forEach(opt => {
                     if (opt.type === "def") def += opt.val;
                     if (opt.type === "regen") regen += opt.val;
+                    if (opt.type === "idleDmg") idleDmg += opt.val;  // === 放置ダメージオプションを集計 ===
+                    if (opt.type === "magPenetration") magPenetration += opt.val;  // === 魔法耐性貫通を集計 ===
                     if (opt.type === "exp") bonus += opt.val;
                     if (opt.type === "mres") mres += opt.val;
                     if (opt.type === "eva") eva += opt.val;
@@ -1699,7 +1711,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         dps += (gameState.statusBonus?.atk || 0);
         def += (gameState.statusBonus?.def || 0);
         expBonus = bonus + guildExpBonus;
-        return { dps, def, regen, maxHp, mres: Math.min(75, mres), eva: Math.min(75, eva), poisonRes: Math.min(95, poisonRes), darknessRes: Math.min(95, darknessRes), paralysisRes: Math.min(95, paralysisRes) };
+        return { dps, def, regen, maxHp, mres: Math.min(75, mres), eva: Math.min(75, eva), poisonRes: Math.min(95, poisonRes), darknessRes: Math.min(95, darknessRes), paralysisRes: Math.min(95, paralysisRes), idleDmg, mag, magPenetration };
     }
 
     function winBattle() {
@@ -1855,14 +1867,22 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             wType = ["Sword", "Bow", "Staff"][Math.floor(Math.random() * 3)];
             t = { Sword: "剣", Bow: "弓", Staff: "杖" }[wType];
         }
+        // === サブ武器タイプ（盾/矢/オーブ）をランダム決定 ===
+        else if (selectedSlot === "shield") {
+            wType = ["Shield", "Arrow", "Orb"][Math.floor(Math.random() * 3)];
+            t = { Shield: "盾", Arrow: "矢", Orb: "オーブ" }[wType];
+        }
 
         let options = [];
         const optPool = [
             { name: "追加ATK", type: "atk", min: 2, max: 6 },
             { name: "追加DEF", type: "def", min: 2, max: 5 },
+            { name: "会心率", type: "crit", min: 1, max: 5, unit: "%" },  // === 会心率オプション復活 ===
             { name: "会心", type: "critDmg", min: 1, max: 5, unit: "%" },
             { name: "金策", type: "goldBonus", min: 1, max: 5, unit: "%" },
             { name: "回復", type: "regen", min: 1, max: 3 },
+            { name: "放置ダメージ", type: "idleDmg", min: 1, max: 3 },
+            { name: "魔法耐性貫通", type: "magPenetration", min: 1, max: 3, unit: "%" },
             { name: "魔法耐性", type: "mres", min: 1, max: 5, unit: "%" },
             { name: "回避率", type: "eva", min: 1, max: 5, unit: "%" },
             { name: "毒耐性", type: "poisonRes", min: 1, max: 5, unit: "%" },
@@ -1874,7 +1894,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             // === % 値オプション（会心率、魔法耐性、回避率、状態異常耐性）は倍率を適用しない ===
             let baseVal = Math.floor(Math.random() * (poolItem.max - poolItem.min + 1)) + poolItem.min;
             let isPercentageOption = poolItem.unit === "%";
-            let isFixedValueOption = poolItem.type === "regen";  // 回復は固定値
+            let isFixedValueOption = poolItem.type === "regen" || poolItem.type === "idleDmg";  // 固定値オプション
             let finalVal = isPercentageOption || isFixedValueOption
                 ? baseVal  // % 値と回復は倍率を適用しない
                 : Math.floor(baseVal * mult * (1 + gameState.stage * 0.08));  // ATK/DEFなど数値は倍率を適用
@@ -1887,7 +1907,17 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             ? Math.floor(baseValue * 1.5)  // 防具：1.5倍の価値
             : baseValue;  // 武器・装飾品：通常値
         
-        let newItem = { id: "item-" + Date.now() + "-" + Math.floor(Math.random()*10000), name: `${p}${t}`, level: 0, value: finalValue, rarity: rarity, slot: selectedSlot, type: (["weapon", "hands", "acc1", "acc2"].includes(selectedSlot)) ? "atk" : "def", weaponType: wType, options: options, isFavorite: false };
+        // === アイテムタイプの決定（オーブは魔法力、その他は従来通り） ===
+        let itemType = "def";
+        if (["weapon", "hands", "acc1", "acc2"].includes(selectedSlot)) {
+            itemType = "atk";
+        } else if (selectedSlot === "shield" && wType === "Arrow") {
+            itemType = "dps";  // === 矢のメインステータスは放置DPS ===
+        } else if (selectedSlot === "shield" && wType === "Orb") {
+            itemType = "mag";  // === オーブのメインステータスは魔法力 ===
+        }
+        
+        let newItem = { id: "item-" + Date.now() + "-" + Math.floor(Math.random()*10000), name: `${p}${t}`, level: 0, value: finalValue, rarity: rarity, slot: selectedSlot, type: itemType, weaponType: wType, options: options, isFavorite: false };
         gameState.inventory.push(newItem);
         appendLog('log-drop-area', `${getLogTime()} 🌟ドロップ: [${rarity}] ${newItem.name}`, `rarity-${rarity}`);
         if (rarity === "Legendary") checkQuests();
