@@ -566,6 +566,50 @@
             </div>
 
             <div style="text-align: center; padding:15px; border-top:1px solid #eee;">
+                <!-- BGM/SE設定 -->
+                <div style="background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); border: 2px solid #81d4fa; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h4 style="color: #81d4fa; margin: 0 0 12px 0; font-size: 1.1em;">🔊 BGM/SE設定</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <button style="
+                            background: ${gameState.bgmEnabled ? '#4caf50' : '#999'};
+                            color: white;
+                            border: none;
+                            padding: 10px;
+                            font-size: 0.95em;
+                            font-weight: bold;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        " onclick="toggleBGM()">
+                            🎵 BGM: ${gameState.bgmEnabled ? 'ON' : 'OFF'}
+                        </button>
+                        <button style="
+                            background: ${gameState.seEnabled ? '#4caf50' : '#999'};
+                            color: white;
+                            border: none;
+                            padding: 10px;
+                            font-size: 0.95em;
+                            font-weight: bold;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        " onclick="toggleSE()">
+                            🔈 SE: ${gameState.seEnabled ? 'ON' : 'OFF'}
+                        </button>
+                    </div>
+                    
+                    <!-- 音量スライダー -->
+                    <div style="margin-bottom: 10px;">
+                        <label style="color: #81d4fa; font-size: 0.9em;">🎵 BGM音量: <span id="bgm-volume-display">50%</span></label>
+                        <input type="range" id="bgm-volume" min="0" max="100" value="50" style="width: 100%; cursor: pointer;" 
+                            oninput="setBGMVolume(this.value)">
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label style="color: #81d4fa; font-size: 0.9em;">🔈 SE音量: <span id="se-volume-display">50%</span></label>
+                        <input type="range" id="se-volume" min="0" max="100" value="50" style="width: 100%; cursor: pointer;" 
+                            oninput="setSEVolume(this.value)">
+                    </div>
+                </div>
+
                 <div style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); border: 2px solid #64b5f6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                     <h4 style="color: #64b5f6; margin: 0 0 10px 0; font-size: 1.2em;">💾 セーブコード（データ移行）</h4>
                     <p style="color: #e0e0e0; margin: 0 0 12px 0; font-size: 0.9em;">PCとスマホ間でゲームデータを移行できます。</p>
@@ -694,6 +738,10 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         },
         totalKills: 0,
         statusBonus: { hp: 0, atk: 0, def: 0 },  // === ステータス強化ボーナス ===
+        bgmEnabled: false,  // === BGM有効フラグ（デフォルト無音） ===
+        seEnabled: false,   // === SE有効フラグ（デフォルト無音） ===
+        bgmVolume: 0.5,     // === BGM音量（0.0～1.0） ===
+        seVolume: 0.7,      // === SE音量（0.0～1.0） ===
         upgradeMaxLevel: 20,  // === 装備強化上限（W10クリアで30に） ===
         worldClearCount: 0,
     };
@@ -889,6 +937,92 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
     }
     function resetGame() { if (confirm("データを完全初期化しますか？最初の職業選択に戻ります。")) { localStorage.removeItem(SAVE_KEY); location.reload(); } }
 
+    // === BGM/SE 制御関数 ===
+    let bgmAudio = null;  // BGM用audio要素
+
+    function initBGM() {
+        if (!bgmAudio) {
+            bgmAudio = new Audio('st-bgm.mp3');
+            bgmAudio.loop = true;
+            bgmAudio.volume = gameState.bgmVolume;
+        }
+    }
+
+    function toggleBGM() {
+        gameState.bgmEnabled = !gameState.bgmEnabled;
+        initBGM();
+        if (gameState.bgmEnabled) {
+            bgmAudio.play().catch(() => console.log("BGM再生失敗"));
+        } else {
+            bgmAudio.pause();
+        }
+        updateDisplay();
+        saveGame();
+    }
+
+    function toggleSE() {
+        gameState.seEnabled = !gameState.seEnabled;
+        updateDisplay();
+        saveGame();
+    }
+
+    function setBGMVolume(value) {
+        gameState.bgmVolume = value / 100;
+        document.getElementById('bgm-volume-display').textContent = value + '%';
+        if (currentBGM) currentBGM.volume = gameState.bgmVolume;  // === bgmAudio → currentBGM ===
+        saveGame();
+    }
+
+    function setSEVolume(value) {
+        gameState.seVolume = value / 100;
+        document.getElementById('se-volume-display').textContent = value + '%';
+        saveGame();
+    }
+
+    function playSE(seFile) {
+        if (!gameState.seEnabled) return;
+        const audio = new Audio(seFile);
+        audio.volume = gameState.seVolume;  // === 固定値 → gameState.seVolume ===
+        audio.play().catch(() => console.log("SE再生失敗: " + seFile));
+    }
+    // === BGM/SE再生関数 ===
+    let currentBGM = null;
+    
+    function playBGM() {
+        if (!gameState.bgmEnabled) return;
+        if (currentBGM) {
+            currentBGM.pause();
+            currentBGM.currentTime = 0;
+        }
+        currentBGM = new Audio('st-bgm.mp3');
+        currentBGM.loop = true;
+        currentBGM.volume = gameState.bgmVolume;  // === 固定値 0.5 → gameState.bgmVolume ===
+        currentBGM.play().catch(err => console.log('BGM再生エラー:', err));
+    }
+
+    function stopBGM() {
+        if (currentBGM) {
+            currentBGM.pause();
+            currentBGM.currentTime = 0;
+        }
+    }
+
+    function toggleBGM() {
+        gameState.bgmEnabled = !gameState.bgmEnabled;
+        if (gameState.bgmEnabled && gameState.isJobSelected) {
+            playBGM();
+        } else {
+            stopBGM();
+        }
+        saveGame();
+        updateDisplay();
+    }
+
+    function toggleSE() {
+        gameState.seEnabled = !gameState.seEnabled;
+        saveGame();
+        updateDisplay();
+    }
     // === セーブコード発行（エクスポート） ===
     function exportSaveCode() {
         try {
@@ -1374,6 +1508,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
             let isCrit = Math.random() * 100 < lStats.crit;
             let baseMagicDmg = Math.max(1, Math.floor((lStats.atk + stats.mag) * arcaneBoost * arcaneAmpMult * berserkMult * paralysisMult * (1 - Math.min(99, Math.max(0, enemyMres - stats.magPenetration)) / 100)));  // === mag値を追加 ===
             let magicDmg = isCrit ? Math.max(1, Math.floor(baseMagicDmg * (lStats.critMultiplier / 100))) : baseMagicDmg;
+            playSE('m0.mp3');  // === 魔道士クリック攻撃SE ===
             enemyHp -= magicDmg;
             document.getElementById('m-p-click').innerHTML = isCrit
                 ? `⚔️ 会心 <span class="c-crit-flash">${magicDmg}💥</span>${arcaneBoost>1?` <span style="color:#ce93d8;">[アーケイン×${arcaneBoost.toFixed(1)}]</span>`:''} 必中魔法`
@@ -1391,6 +1526,9 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
                 enemyPoisoned = 5;
                 enemyPoisonDmg = Math.max(1, Math.floor(lStats.atk * 0.3));
             }
+            // === クリック攻撃SE（職業別） ===
+            if (leader.job === "warrior") playSE('w0.mp3');
+            else if (leader.job === "rogue") playSE('r0.mp3');
             enemyHp -= dmg;
             document.getElementById('m-p-click').innerHTML = isCrit 
                 ? `⚔️ 会心 <span class="c-crit-flash">${dmg}💥</span>${berserkMult>1?' <span style="color:#f44336;">[狂戦]</span>':''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`
@@ -1425,42 +1563,51 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
 
         if (skillKey === 'bash') { 
             let isCrit = Math.random() * 100 < lStats.crit;
+            playSE('w1.mp3');  // === バッシュSE ===
             coolTimes.bash = 6; 
             mLog.innerHTML = `バッシュ！敵に <span class="c-red">${dmg}</span> 物理ダメージ${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
         }
         else if (skillKey === 'rush') { 
             let isCrit = Math.random() * 100 < lStats.crit;
+            playSE('w2.mp3');  // === ラッシュブレイドSE ===
             coolTimes.rush = 4; 
             mLog.innerHTML = `ラッシュ！ <span class="c-red">${Math.floor(dmg/2)}×2連撃 (${dmg})</span>${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
         }
         else if (skillKey === 'warcry') {
+            playSE('w3.mp3');  // === ウォークライSE ===
             warcryActive = 10; coolTimes.warcry = 20;
             mLog.innerHTML = `<span style="color:#ff9800;">🔥 ウォークライ！10秒間、放置DPS 1.5倍！</span>`;
         }
         else if (skillKey === 'rain') { 
             let isCrit = Math.random() * 100 < lStats.crit;
+            playSE('r1.mp3');  // === アローレインSE ===
             coolTimes.rain = 7; 
             mLog.innerHTML = `アローレイン！敵に <span class="c-red">${dmg}</span> 矢の雨ダメージ${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
         }
         else if (skillKey === 'coin') {
             let isCrit = Math.random() * 100 < lStats.crit;
+            playSE('r2.mp3');  // === コインディグSE ===
             let bonusGold = gameState.stage * 15 * gameState.world; gameState.gold += bonusGold; coolTimes.coin = 8;
             mLog.innerHTML = `コインディグ！ <span class="c-red">${dmg}撃打</span> ＆ <span class="c-gold">+${bonusGold}G強奪</span>${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
         }
         else if (skillKey === 'shadowstep') {
+            playSE('r3.mp3');  // === シャドウステップSE ===
             shadowstepActive = 8; coolTimes.shadowstep = 25;
             mLog.innerHTML = `<span style="color:#9c27b0;">🌑 シャドウステップ！8秒間ダメージ完全無効！</span>`;
         }
         else if (skillKey === 'heal') {
+            playSE('m1.mp3');  // === 聖なるヒールSE ===
             let healVal = Math.floor(calcPartyAllStats().maxHp * 0.4); playerHp = Math.min(calcPartyAllStats().maxHp, playerHp + healVal); coolTimes.heal = 9;
             mLog.innerHTML = `聖なるヒール！共有HPを <span class="c-green">＋${healVal}</span> 回復`;
         } else if (skillKey === 'blizzard') { 
             let isCrit = Math.random() * 100 < lStats.crit;
+            playSE('m2.mp3');  // === ブリザードSE ===
             coolTimes.blizzard = 8; 
             mLog.innerHTML = `ブリザード！必中で <span class="c-purple">${dmg}</span> 魔法ダメージ${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}`; 
         }
         else if (skillKey === 'meteor') {
             let isCrit = Math.random() * 100 < lStats.crit;
+            playSE('m3.mp3');  // === メテオSE ===
             coolTimes.meteor = 15;
             mLog.innerHTML = `<span style="color:#ff5722;">☄️ メテオ！必中で <span class="c-purple">${dmg}</span> の超高火力魔法ダメージ！${isCrit ? ' <span class="c-crit-flash">💥会心💥</span>' : ''}</span>`;
         }
@@ -2673,5 +2820,8 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
     }
 
 </script>
+    <!-- === BGM再生用 === -->
+    <audio id="bgm-audio" loop style="display: none;"></audio>
+
 </body>
 </html>
