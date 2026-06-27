@@ -152,12 +152,12 @@
         .char-equip-header { background: #37474f; color: white; padding: 6px 12px; font-weight: bold; border-radius: 4px; margin-top: 15px; margin-bottom: 5px; font-size: 0.9em; display: flex; justify-content: space-between; }
         .equipment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f5f5f5; padding: 10px; border-radius: 5px; }
         .eq-slot-box { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 6px 8px; min-height: 55px; display: flex; flex-direction: column; justify-content: space-between; }
-        .eq-info-area { font-size: 0.8em; color: #333; cursor: pointer; flex: 1; }
-        .eq-info-area:hover { background: #f5f5f5; }
+        .eq-info-area { font-size: 0.8em; color: #333; flex: 1; }
         .eq-control-btns { display: flex; gap: 4px; margin-top: 4px; }
-        .eq-btn-sub { width: 50%; font-size: 0.72em; padding: 3px 0; margin: 0; background: #eaeaea; color: #333; border: 1px solid #bbb; }
-        .eq-btn-sub.btn-change { background: #2196f3; color: white; border-color: #1e88e5; }
-        .eq-btn-sub.btn-remove { background: #78909c; color: white; border-color: #607d8b; }
+        .eq-btn-sub { width: 33%; font-size: 0.72em; padding: 3px 0; margin: 0; background: #eaeaea; color: #333; border: 1px solid #bbb; }
+        .eq-btn-sub.btn-change  { background: #2196f3; color: white; border-color: #1e88e5; }
+        .eq-btn-sub.btn-remove  { background: #78909c; color: white; border-color: #607d8b; }
+        .eq-btn-sub.btn-upgrade { background: #ff9800; color: white; border-color: #f57c00; }
         
         .inventory-box { border: 2px solid #4CAF50; padding: 12px; background: #fafafa; border-radius: 6px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); margin-top: 20px; }
         .inv-grid { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 10px; max-height: 240px; overflow-y: auto; padding-right: 4px; }
@@ -271,7 +271,7 @@
                 <div class="stat" style="font-weight: bold; font-size: 1.1em;"><span id="enemy-name">スライム</span></div>
                 <div class="stat">敵HP: <span id="enemy-hp">100</span> / <span id="enemy-max-hp">100</span></div>
                 <div style="font-size:0.8em; color:#555;">物理防御:<span id="e-stat-def">0</span> | 魔法耐性:<span id="e-stat-mres">0</span>% | 回避率:<span id="e-stat-eva">0</span>%</div>
-                <div style="font-size:0.75em; color:#ff9800; margin-top:4px;" id="enemy-gimmick-label"></div>
+                <div style="font-size:0.8em; color:#555; margin-top:4px; height:1.4em; line-height:1.4em; overflow:hidden;" id="enemy-gimmick-label"></div>
             </div>
         </div>
 
@@ -680,200 +680,181 @@
     // =========================================
     const SAVE_KEY = 'haksla_party_idle_v6_evolved';
 
-    const prefixes = ["古びた", "鉄の", "鋼鉄の", "ミスリルの", "オリハルコンの", "竜殺しの", "至高の"];
-    
-    const slotNames = {
-        weapon: ["武器"], 
-        shield: ["丸盾", "大盾"], 
-        head:   ["兜", "王冠"], 
-        body:   ["鎧", "ローブ"],
-        hands:  ["手袋", "ガントレット"], 
-        feet:   ["靴", "ブーツ"], 
-        acc1:   ["指輪", "ブローチ"], 
-        acc2:   ["指輪", "ブローチ"]
-    };
-    
-    const slotMarkers = { weapon: "⚔️", shield: "🛡️", head: "👑", body: "👕", hands: "🧤", feet: "🥾", acc1: "💍", acc2: "💍" };
-    const slotColors  = { weapon: "#ef5350", shield: "#42a5f5", head: "#ffca28", body: "#66bb6a", hands: "#ab47bc", feet: "#26a69a", acc1: "#ec407a", acc2: "#ec407a" };
-    const slotJpNames = { weapon: "武器", shield: "盾", head: "頭防具", body: "体防具", hands: "手防具", feet: "足防具", acc1: "装飾品1", acc2: "装飾品2" };
-    const jobNamesEngJp = { warrior: "戦士", rogue: "ローグ", mage: "魔導士" };
+    // =========================================
+    // GAME_DATA — すべての静的定数を一元管理
+    // =========================================
+    const GAME_DATA = {
 
-    const treeMeta = {
-        // 戦士ツリー
-        atk:        { baseCost: 40,  max: 5, req: null,         job: "warrior", label: "① 剛力強化",         desc: "クリックATK +8/Lv" },
-        bash:       { baseCost: 120, max: 1, req: "atk",        job: "warrior", label: "② バッシュ",          desc: "ATK×3.5打撃 (CT:6s)" },
-        crit:       { baseCost: 90,  max: 5, req: "bash",       job: "warrior", label: "③ 会心率強化",        desc: "会心率 +3%/Lv" },
-        ironwall:   { baseCost: 130, max: 5, req: "crit",       job: "warrior", label: "④ 🛡️鉄壁の守り",     desc: "物理DEF +4/Lv（全体）" },
-        rush:       { baseCost: 220, max: 1, req: "ironwall",   job: "warrior", label: "⑤ ラッシュブレイド",  desc: "2連撃 (CT:4s)" },
-        critDmg:    { baseCost: 180, max: 5, req: "rush",       job: "warrior", label: "⑥ 致命の一撃",        desc: "会心倍率 +25%/Lv" },
-        berserker:  { baseCost: 300, max: 3, req: "critDmg",    job: "warrior", label: "⑦ 💢バーサーカー",    desc: "HP50%以下で攻撃+20%/Lv" },
-        poisonRes:  { baseCost: 200, max: 5, req: "berserker",  job: "warrior", label: "⑧ ☠️毒耐性",         desc: "毒耐性 +10%/Lv（最大95%）" },
-        poisonCure: { baseCost: 150, max: 1, req: "poisonRes",  job: "warrior", label: "⑨ 💊アンチドート ★", desc: "毒を即時解除 (CT:15s)" },
-        warcry:     { baseCost: 500, max: 1, req: "poisonCure", job: "warrior", label: "⑩ 🔥ウォークライ ★最終スキル", desc: "10s DPS×1.5 (CT:20s)" },
-        
-        // ローグツリー
-        dps:        { baseCost: 50,  max: 5, req: null,         job: "rogue",   label: "① 影の速度",          desc: "放置DPS +6/Lv" },
-        rain:       { baseCost: 160, max: 1, req: "dps",        job: "rogue",   label: "② アローレイン",      desc: "ATK×4矢の雨 (CT:7s)" },
-        goldBonus:  { baseCost: 100, max: 5, req: "rain",       job: "rogue",   label: "③ 略奪の極意",        desc: "ゴールド +15%/Lv" },
-        poison:     { baseCost: 150, max: 3, req: "goldBonus",  job: "rogue",   label: "④ ☠️毒の刃",          desc: "毒付与確率 +10%/Lv" },
-        coin:       { baseCost: 250, max: 1, req: "poison",     job: "rogue",   label: "⑤ コインディグ",      desc: "G強奪スキル (CT:8s)" },
-        eva:        { baseCost: 200, max: 5, req: "coin",       job: "rogue",   label: "⑥ 残像ステップ",      desc: "回避率 +4%/Lv" },
-        deathmark:  { baseCost: 320, max: 3, req: "eva",        job: "rogue",   label: "⑦ 💀死の刻印",        desc: "会心時追加ダメ +15%/Lv" },
-        darknessRes:{ baseCost: 200, max: 5, req: "deathmark",  job: "rogue",   label: "⑧ 🌑暗闇耐性",        desc: "暗闇耐性 +10%/Lv（最大95%）" },
-        darknessCure:{ baseCost: 150, max: 1, req: "darknessRes", job: "rogue", label: "⑨ 👁️クリーンアイ ★", desc: "暗闇を即時解除 (CT:15s)" },
-        shadowstep: { baseCost: 600, max: 1, req: "darknessCure", job: "rogue", label: "⑩ 🌑シャドウステップ ★最終スキル", desc: "8s完全無敵 (CT:25s)" },
-        
-        // 魔導士ツリー
-        maxHp:      { baseCost: 40,  max: 5, req: null,         job: "mage",    label: "① HP最大値UP",        desc: "最大HP +30/Lv" },
-        heal:       { baseCost: 130, max: 1, req: "maxHp",      job: "mage",    label: "② 聖なるヒール",      desc: "HP40%回復 (CT:9s)" },
-        regen:      { baseCost: 90,  max: 5, req: "heal",       job: "mage",    label: "③ 自動再生",          desc: "毎秒回復 +2/Lv" },
-        arcane:     { baseCost: 140, max: 3, req: "regen",      job: "mage",    label: "④ ✨アーケインチャージ", desc: "魔法クリックダメ +15%/Lv" },
-        blizzard:   { baseCost: 240, max: 1, req: "arcane",     job: "mage",    label: "⑤ ブリザード",        desc: "必中ATK×4.5 (CT:8s)" },
-        mres:       { baseCost: 180, max: 5, req: "blizzard",   job: "mage",    label: "⑥ 反魔障壁",          desc: "魔法耐性 +5%/Lv" },
-        arcaneamp:  { baseCost: 280, max: 3, req: "mres",       job: "mage",    label: "⑦ 🌀魔力増幅",        desc: "全スキルダメ +10%/Lv" },
-        paralysisRes:{ baseCost: 200, max: 5, req: "arcaneamp", job: "mage",    label: "⑧ ⚡麻痺耐性",        desc: "麻痺耐性 +10%/Lv（最大95%）" },
-        paralysisCure:{ baseCost: 150, max: 1, req: "paralysisRes", job: "mage", label: "⑨ ✨リフレッシュ ★", desc: "麻痺を即時解除 (CT:15s)" },
-        meteor:     { baseCost: 700, max: 1, req: "paralysisCure",job: "mage",  label: "⑩ ☄️メテオ ★最終スキル", desc: "必中ATK×8 (CT:15s)" },
-    };
+        // --- 装備 ---
+        equipment: {
+            prefixes:  ["古びた", "鉄の", "鋼鉄の", "ミスリルの", "オリハルコンの", "竜殺しの", "至高の"],
+            slotNames: {
+                weapon: ["武器"],
+                shield: ["丸盾", "大盾"],
+                head:   ["兜", "王冠"],
+                body:   ["鎧", "ローブ"],
+                hands:  ["手袋", "ガントレット"],
+                feet:   ["靴", "ブーツ"],
+                acc1:   ["指輪", "ブローチ"],
+                acc2:   ["指輪", "ブローチ"],
+            },
+            slotMarkers: { weapon: "⚔️", shield: "🛡️", head: "👑", body: "👕", hands: "🧤", feet: "🥾", acc1: "💍", acc2: "💍" },
+            slotColors:  { weapon: "#ef5350", shield: "#42a5f5", head: "#ffca28", body: "#66bb6a", hands: "#ab47bc", feet: "#26a69a", acc1: "#ec407a", acc2: "#ec407a" },
+            slotJpNames: { weapon: "武器", shield: "盾", head: "頭防具", body: "体防具", hands: "手防具", feet: "足防具", acc1: "装飾品1", acc2: "装飾品2" },
+        },
 
-    const facilityMeta = {
-        smithLevel:  { name: "⚒️ 鍛冶屋",  desc: "分解で得られる強化石+1/Lv", maxLevel: 5, baseCost: 800 },
-        templeLevel: { name: "⛩️ 神殿",    desc: "自動回復量 +3/Lv",           maxLevel: 5, baseCost: 600 },
-        guildLevel:  { name: "📜 ギルド",   desc: "EXP獲得量 +10%/Lv",          maxLevel: 5, baseCost: 1000 },
-        alchemyLevel:{ name: "⚗️ 錬金工房", desc: "売却価格 +15%/Lv",           maxLevel: 5, baseCost: 1200 },
-    };
+        // --- ジョブ ---
+        jobs: {
+            namesJp: { warrior: "戦士", rogue: "ローグ", mage: "魔導士" },
+        },
 
-    const questDefs = [
-        { key: "kill100",      label: "🗡️ 敵100体撃破",         reward: { exp: 500, gold: 200 } },
-        { key: "kill500",      label: "⚔️ 敵500体撃破",         reward: { exp: 2000, gold: 1000 } },
-        { key: "kill1000",     label: "💀 敵1000体撃破",        reward: { exp: 6000, gold: 3000, stone: 10 } },
-        { key: "stage5",       label: "🏔️ W1ステージ5到達",     reward: { exp: 300, gold: 500 } },
-        { key: "stage10",      label: "🏰 W1魔王討伐",          reward: { exp: 2000, stone: 5 } },
-        { key: "world2",       label: "🌋 ワールド2到達",        reward: { exp: 5000, gold: 2000 } },
-        { key: "world3",       label: "🌀 ワールド3到達",        reward: { exp: 15000, gold: 8000, stone: 20 } },
-        { key: "gold10k",      label: "💰 累計1万G所持",        reward: { exp: 800, stone: 3 } },
-        { key: "eq_legendary", label: "⭐ Legendary装備入手",   reward: { exp: 1500, gold: 500 } },
-        { key: "awaken",       label: "✨ 誰かが覚醒",          reward: { exp: 3000, stone: 8 } },
-        { key: "party3",       label: "👥 3人パーティ結成",     reward: { exp: 2000, gold: 1500 } },
-    ];
+        // --- スキルツリー ---
+        skills: {
+            treeMeta: {
+                // 戦士ツリー
+                atk:         { baseCost: 40,  max: 5, req: null,          job: "warrior", label: "① 剛力強化",              desc: "クリックATK +8/Lv" },
+                bash:        { baseCost: 120, max: 1, req: "atk",         job: "warrior", label: "② バッシュ",               desc: "ATK×3.5打撃 (CT:6s)" },
+                crit:        { baseCost: 90,  max: 5, req: "bash",        job: "warrior", label: "③ 会心率強化",             desc: "会心率 +3%/Lv" },
+                ironwall:    { baseCost: 130, max: 5, req: "crit",        job: "warrior", label: "④ 🛡️鉄壁の守り",          desc: "物理DEF +4/Lv（全体）" },
+                rush:        { baseCost: 220, max: 1, req: "ironwall",    job: "warrior", label: "⑤ ラッシュブレイド",       desc: "2連撃 (CT:4s)" },
+                critDmg:     { baseCost: 180, max: 5, req: "rush",        job: "warrior", label: "⑥ 致命の一撃",             desc: "会心倍率 +25%/Lv" },
+                berserker:   { baseCost: 300, max: 3, req: "critDmg",     job: "warrior", label: "⑦ 💢バーサーカー",         desc: "HP50%以下で攻撃+20%/Lv" },
+                poisonRes:   { baseCost: 200, max: 5, req: "berserker",   job: "warrior", label: "⑧ ☠️毒耐性",              desc: "毒耐性 +10%/Lv（最大95%）" },
+                poisonCure:  { baseCost: 150, max: 1, req: "poisonRes",   job: "warrior", label: "⑨ 💊アンチドート ★",      desc: "毒を即時解除 (CT:15s)" },
+                warcry:      { baseCost: 500, max: 1, req: "poisonCure",  job: "warrior", label: "⑩ 🔥ウォークライ ★最終スキル", desc: "10s DPS×1.5 (CT:20s)" },
+                // ローグツリー
+                dps:         { baseCost: 50,  max: 5, req: null,          job: "rogue",   label: "① 影の速度",               desc: "放置DPS +6/Lv" },
+                rain:        { baseCost: 160, max: 1, req: "dps",         job: "rogue",   label: "② アローレイン",           desc: "ATK×4矢の雨 (CT:7s)" },
+                goldBonus:   { baseCost: 100, max: 5, req: "rain",        job: "rogue",   label: "③ 略奪の極意",             desc: "ゴールド +15%/Lv" },
+                poison:      { baseCost: 150, max: 3, req: "goldBonus",   job: "rogue",   label: "④ ☠️毒の刃",               desc: "毒付与確率 +10%/Lv" },
+                coin:        { baseCost: 250, max: 1, req: "poison",      job: "rogue",   label: "⑤ コインディグ",           desc: "G強奪スキル (CT:8s)" },
+                eva:         { baseCost: 200, max: 5, req: "coin",        job: "rogue",   label: "⑥ 残像ステップ",           desc: "回避率 +4%/Lv" },
+                deathmark:   { baseCost: 320, max: 3, req: "eva",         job: "rogue",   label: "⑦ 💀死の刻印",             desc: "会心時追加ダメ +15%/Lv" },
+                darknessRes: { baseCost: 200, max: 5, req: "deathmark",   job: "rogue",   label: "⑧ 🌑暗闇耐性",             desc: "暗闇耐性 +10%/Lv（最大95%）" },
+                darknessCure:{ baseCost: 150, max: 1, req: "darknessRes", job: "rogue",   label: "⑨ 👁️クリーンアイ ★",     desc: "暗闇を即時解除 (CT:15s)" },
+                shadowstep:  { baseCost: 600, max: 1, req: "darknessCure",job: "rogue",   label: "⑩ 🌑シャドウステップ ★最終スキル", desc: "8s完全無敵 (CT:25s)" },
+                // 魔導士ツリー
+                maxHp:       { baseCost: 40,  max: 5, req: null,          job: "mage",    label: "① HP最大値UP",             desc: "最大HP +30/Lv" },
+                heal:        { baseCost: 130, max: 1, req: "maxHp",       job: "mage",    label: "② 聖なるヒール",           desc: "HP40%回復 (CT:9s)" },
+                regen:       { baseCost: 90,  max: 5, req: "heal",        job: "mage",    label: "③ 自動再生",               desc: "毎秒回復 +2/Lv" },
+                arcane:      { baseCost: 140, max: 3, req: "regen",       job: "mage",    label: "④ ✨アーケインチャージ",   desc: "魔法クリックダメ +15%/Lv" },
+                blizzard:    { baseCost: 240, max: 1, req: "arcane",      job: "mage",    label: "⑤ ブリザード",             desc: "必中ATK×4.5 (CT:8s)" },
+                mres:        { baseCost: 180, max: 5, req: "blizzard",    job: "mage",    label: "⑥ 反魔障壁",               desc: "魔法耐性 +5%/Lv" },
+                arcaneamp:   { baseCost: 280, max: 3, req: "mres",        job: "mage",    label: "⑦ 🌀魔力増幅",             desc: "全スキルダメ +10%/Lv" },
+                paralysisRes:{ baseCost: 200, max: 5, req: "arcaneamp",   job: "mage",    label: "⑧ ⚡麻痺耐性",             desc: "麻痺耐性 +10%/Lv（最大95%）" },
+                paralysisCure:{ baseCost: 150, max: 1, req: "paralysisRes", job: "mage",  label: "⑨ ✨リフレッシュ ★",      desc: "麻痺を即時解除 (CT:15s)" },
+                meteor:      { baseCost: 700, max: 1, req: "paralysisCure", job: "mage",  label: "⑩ ☄️メテオ ★最終スキル", desc: "必中ATK×8 (CT:15s)" },
+            },
+            awakenCosts: { warrior: { gold: 5000, stone: 20 }, rogue: { gold: 5000, stone: 20 }, mage: { gold: 5000, stone: 20 } },
+            awakenNames: { warrior: "覚醒剣士【ソードセイント】", rogue: "覚醒暗殺者【シャドウロード】", mage: "覚醒魔導士【グランウィザード】" },
+        },
 
-    const worldEnemyTables = {
-        1: [
-            { name: "スライム",    gimmick: null },
-            { name: "ゴブリン",    gimmick: "shield" },     
-            { name: "ハーピィ",    gimmick: "evasive" },     
-            { name: "スケルトン",  gimmick: "regen" },       
-        ],
-        2: [
-            { name: "溶岩虫",      gimmick: "reflect" },       
-            { name: "炎の悪魔",    gimmick: "berserk" },       
-            { name: "灼熱蛇",      gimmick: "poison" },      
-            { name: "業火鳥",      gimmick: "mresist" },       
-        ],
-        3: [
-            { name: "虚空蟲",      gimmick: "nullphys" },      
-            { name: "混沌の眷属",  gimmick: "copydef" },       
-            { name: "次元ゾンビ",  gimmick: "regen" },
-            { name: "深淵の番人",  gimmick: "shield" },
-        ],
-        4: [
-            { name: "沼蜘蛛",      gimmick: "poison_normal" }, 
-            { name: "毒ガスムシ",  gimmick: "poison_normal" },
-            { name: "毒沼の魚",    gimmick: "poison_normal" },
-            { name: "瘴気の蛙",    gimmick: "shield" },
-        ],
-        5: [
-            { name: "霧幽霊",      gimmick: "darkness_normal" }, 
-            { name: "霧怪魔",      gimmick: "darkness_normal" },
-            { name: "亡霊の騎士",  gimmick: "evasive" },
-            { name: "幽体妖怪",    gimmick: "darkness_normal" },
-        ],
-        6: [
-            { name: "雷電体",      gimmick: "paralysis_normal" }, 
-            { name: "帯電妖",      gimmick: "paralysis_normal" },
-            { name: "雷光竜",      gimmick: "berserk" },
-            { name: "電撃ゴーレム",gimmick: "paralysis_normal" },
-        ],
-        7: [
-            { name: "混沌獣",      gimmick: "chaos_random" },   
-            { name: "魔界蟲",      gimmick: "chaos_random" },
-            { name: "深淵の眼",    gimmick: "chaos_random" },
-            { name: "虚無の牙",    gimmick: "nullphys" },
-        ],
-        8: [
-            { name: "溶岩スライム",gimmick: "poison_burn_normal" }, 
-            { name: "炎精霊",      gimmick: "poison_burn_normal" },
-            { name: "火の鳥",      gimmick: "berserk" },
-            { name: "火山竜",      gimmick: "poison_burn_normal" },
-        ],
-        9: [
-            { name: "虚空の触手",  gimmick: "void_random_dual" }, 
-            { name: "無の怪物",    gimmick: "void_random_dual" },
-            { name: "奈落の騎士",  gimmick: "evasive" },
-            { name: "虚空の王",    gimmick: "void_random_dual" },
-        ],
-        10: [
-            { name: "終焉の獣",    gimmick: "apocalypse_trio" }, 
-            { name: "破滅の影",    gimmick: "apocalypse_trio" },
-            { name: "終末の怪",    gimmick: "apocalypse_trio" },
-            { name: "滅びの牙",    gimmick: "nullphys" },
-        ],
-    };
+        // --- 敵・ギミック ---
+        enemies: {
+            worldTables: {
+                1:  [{ name: "スライム",      gimmick: null },             { name: "ゴブリン",      gimmick: "shield" },           { name: "ハーピィ",      gimmick: "evasive" },          { name: "スケルトン",    gimmick: "regen" }],
+                2:  [{ name: "溶岩虫",        gimmick: "reflect" },        { name: "炎の悪魔",      gimmick: "berserk" },          { name: "灼熱蛇",        gimmick: "poison" },           { name: "業火鳥",        gimmick: "mresist" }],
+                3:  [{ name: "虚空蟲",        gimmick: "nullphys" },       { name: "混沌の眷属",    gimmick: "copydef" },          { name: "次元ゾンビ",    gimmick: "regen" },            { name: "深淵の番人",    gimmick: "shield" }],
+                4:  [{ name: "沼蜘蛛",        gimmick: "poison_normal" },  { name: "毒ガスムシ",    gimmick: "poison_normal" },    { name: "毒沼の魚",      gimmick: "poison_normal" },    { name: "瘴気の蛙",      gimmick: "shield" }],
+                5:  [{ name: "霧幽霊",        gimmick: "darkness_normal" },{ name: "霧怪魔",        gimmick: "darkness_normal" },  { name: "亡霊の騎士",    gimmick: "evasive" },          { name: "幽体妖怪",      gimmick: "darkness_normal" }],
+                6:  [{ name: "雷電体",        gimmick: "paralysis_normal"},{ name: "帯電妖",        gimmick: "paralysis_normal" }, { name: "雷光竜",        gimmick: "berserk" },          { name: "電撃ゴーレム",  gimmick: "paralysis_normal" }],
+                7:  [{ name: "混沌獣",        gimmick: "chaos_random" },   { name: "魔界蟲",        gimmick: "chaos_random" },     { name: "深淵の眼",      gimmick: "chaos_random" },     { name: "虚無の牙",      gimmick: "nullphys" }],
+                8:  [{ name: "溶岩スライム",  gimmick: "poison_burn_normal"},{ name: "炎精霊",      gimmick: "poison_burn_normal"},{ name: "火の鳥",        gimmick: "berserk" },          { name: "火山竜",        gimmick: "poison_burn_normal" }],
+                9:  [{ name: "虚空の触手",    gimmick: "void_random_dual" },{ name: "無の怪物",     gimmick: "void_random_dual" }, { name: "奈落の騎士",    gimmick: "evasive" },          { name: "虚空の王",      gimmick: "void_random_dual" }],
+                10: [{ name: "終焉の獣",      gimmick: "apocalypse_trio" },{ name: "破滅の影",      gimmick: "apocalypse_trio" },  { name: "終末の怪",      gimmick: "apocalypse_trio" },  { name: "滅びの牙",      gimmick: "nullphys" }],
+            },
+            worldBosses: {
+                1:  { name: "【魔王】アブソリュート・ゼロ",    gimmick: "berserk",          hpBase: 800,   atkBase: 25 },
+                2:  { name: "【煉獄神】アインフェルノ",        gimmick: "reflect",          hpBase: 1600,  atkBase: 40 },
+                3:  { name: "【混沌龍】ヴォイドレクス",        gimmick: "nullphys",         hpBase: 3200,  atkBase: 60 },
+                4:  { name: "【沼帝】毒の化身",                gimmick: "poison_boss",      hpBase: 5500,  atkBase: 85 },
+                5:  { name: "【霧王】暗黒の支配者",            gimmick: "darkness_boss",    hpBase: 8000,  atkBase: 110 },
+                6:  { name: "【雷帝】電撃の覇者",              gimmick: "paralysis_boss",   hpBase: 11000, atkBase: 135 },
+                7:  { name: "【混沌魔王】すべてを飲む者",      gimmick: "chaos_boss",       hpBase: 14500, atkBase: 160 },
+                8:  { name: "【焦熱帝】溶岩の帝王",            gimmick: "poison_burn_boss", hpBase: 25000, atkBase: 240 },
+                9:  { name: "【虚空の支配者】無限の彼方",      gimmick: "void_dual_boss",   hpBase: 45000, atkBase: 350 },
+                10: { name: "【終焉の神】ルシファー",          gimmick: "apocalypse_final", hpBase: 80000, atkBase: 500 },
+            },
+            stageBosses: {
+                1:  [{ name: "ガーディアン",       gimmick: null },           { name: "岩の巨人",        gimmick: "shield" },       { name: "森の番人",        gimmick: "regen" },        { name: "影の騎士",        gimmick: "evasive" },      { name: "嵐の鷹",          gimmick: "berserk" },      { name: "毒の魔女",        gimmick: "poison" },       { name: "鉄壁の騎士",      gimmick: "shield" },       { name: "血塗れの剣士",    gimmick: "berserk" },      { name: "古代の竜",        gimmick: "reflect" },      { name: "魔王の右腕",      gimmick: "mresist" }],
+                2:  [{ name: "炎の守護者",         gimmick: "reflect" },      { name: "溶岩ゴーレム",    gimmick: "shield" },       { name: "地獄の将軍",      gimmick: "berserk" },      { name: "灼熱の僧侶",      gimmick: "mresist" },      { name: "業火の暴君",      gimmick: "poison" },       { name: "炎獄の魔王",      gimmick: "berserk" },      { name: "不死の炎鳥",      gimmick: "regen" },        { name: "業炎の巨神",      gimmick: "reflect" },      { name: "煉獄の支配者",    gimmick: "nullphys" },     { name: "煉獄神の使徒",    gimmick: "shield" }],
+                3:  [{ name: "虚無の門番",         gimmick: "nullphys" },     { name: "混沌の魔将",      gimmick: "regen" },        { name: "次元の歪み",      gimmick: "copydef" },      { name: "深淵の王",        gimmick: "evasive" },      { name: "虚空の暴君",      gimmick: "nullphys" },     { name: "混沌の神官",      gimmick: "mresist" },      { name: "次元喰い",        gimmick: "shield" },       { name: "深淵の魔竜",      gimmick: "berserk" },      { name: "宇宙の破壊者",    gimmick: "reflect" },      { name: "混沌龍の使徒",    gimmick: "nullphys" }],
+                4:  [{ name: "沼の領主",           gimmick: "poison_normal" },{ name: "毒沼の巨人",      gimmick: "shield" },       { name: "瘴気の王",        gimmick: "poison_normal" },{ name: "毒液体生物",      gimmick: "regen" },        { name: "沼帝の眷属",      gimmick: "poison_normal" },{ name: "毒沼の化身",      gimmick: "poison_normal" },{ name: "腐敗の君主",      gimmick: "mresist" },      { name: "沼地の魔神",      gimmick: "poison_normal" },{ name: "瘴気の支配者",    gimmick: "poison_normal" },{ name: "沼帝の使徒",      gimmick: "poison_boss" }],
+                5:  [{ name: "霧の支配者",         gimmick: "darkness_normal"},{ name: "亡霊の王",       gimmick: "evasive" },      { name: "闇の騎士",        gimmick: "darkness_normal"},{ name: "幽鬼の王",       gimmick: "darkness_normal"},{ name: "暗黒の眼",        gimmick: "darkness_normal"},{ name: "霧の化身",       gimmick: "darkness_normal"},{ name: "影の神官",        gimmick: "mresist" },      { name: "暗黒の巨人",      gimmick: "shield" },       { name: "虚無の支配者",    gimmick: "darkness_normal"},{ name: "霧王の使徒",     gimmick: "darkness_boss" }],
+                6:  [{ name: "雷電の君主",         gimmick: "paralysis_normal"},{ name: "帯電の王",      gimmick: "paralysis_normal"},{ name: "電撃龍",         gimmick: "berserk" },      { name: "雷光の戦士",      gimmick: "paralysis_normal"},{ name: "電撃の魔神",     gimmick: "paralysis_normal"},{ name: "落雷の支配者",   gimmick: "paralysis_normal"},{ name: "雷電の化身",     gimmick: "paralysis_normal"},{ name: "電撃ゴーレム王", gimmick: "shield" },       { name: "高圧の君主",      gimmick: "paralysis_normal"},{ name: "雷帝の使徒",     gimmick: "paralysis_boss"}],
+                7:  [{ name: "混沌の獣",           gimmick: "chaos_random" }, { name: "虚無の騎士",      gimmick: "chaos_random" }, { name: "魔界の支配者",    gimmick: "nullphys" },     { name: "深淵の眼玉",      gimmick: "chaos_random" }, { name: "虚無の牙",        gimmick: "chaos_random" }, { name: "混沌の影",        gimmick: "chaos_random" }, { name: "破壊の化身",      gimmick: "berserk" },      { name: "虚空の魔竜",      gimmick: "chaos_random" }, { name: "無限の饗宴",      gimmick: "chaos_random" }, { name: "混沌魔王の使徒",  gimmick: "chaos_boss" }],
+                8:  [{ name: "溶岩地獄",           gimmick: "poison_burn_normal"},{ name: "炎の支配者",  gimmick: "poison_burn_normal"},{ name: "火山の心臓",    gimmick: "shield" },       { name: "溶岩の君主",      gimmick: "poison_burn_normal"},{ name: "炎の魔神",       gimmick: "poison_burn_normal"},{ name: "焦熱の王",       gimmick: "poison_burn_normal"},{ name: "溶岩の化身",     gimmick: "poison_burn_normal"},{ name: "火炎龍",         gimmick: "berserk" },      { name: "焦げ落とし",      gimmick: "poison_burn_normal"},{ name: "焦熱帝の使徒",   gimmick: "poison_burn_boss"}],
+                9:  [{ name: "虚空の魔",           gimmick: "void_random_dual"},{ name: "奈落の王",      gimmick: "evasive" },      { name: "無の騎士",        gimmick: "void_random_dual"},{ name: "虚空の眼",       gimmick: "void_random_dual"},{ name: "奈落の蟲",        gimmick: "void_random_dual"},{ name: "無限の淵",       gimmick: "void_random_dual"},{ name: "虚空の獣",        gimmick: "void_random_dual"},{ name: "奈落の竜",       gimmick: "void_random_dual"},{ name: "無の破壊者",      gimmick: "void_random_dual"},{ name: "虚空の支配者の使徒", gimmick: "void_dual_boss"}],
+                10: [{ name: "終焉の兆し",         gimmick: "apocalypse_trio"},{ name: "滅びの影",       gimmick: "apocalypse_trio"},{ name: "破滅の怪",        gimmick: "apocalypse_trio"},{ name: "終末の牙",        gimmick: "nullphys" },     { name: "消滅の王",        gimmick: "apocalypse_trio"},{ name: "終わりの象徴",   gimmick: "apocalypse_trio"},{ name: "黒き来訪者",      gimmick: "apocalypse_trio"},{ name: "滅びの龍",       gimmick: "apocalypse_trio"},{ name: "終焉の絶望",      gimmick: "apocalypse_trio"},{ name: "【終焉の神】ルシファー", gimmick: "apocalypse_final"}],
+            },
+            gimmickDesc: {
+                shield:              "🛡️[鉄壁] DEF大幅上昇",
+                evasive:             "💨[高機動] 回避率大幅上昇",
+                regen:               "💚[再生] 毎秒HP回復",
+                berserk:             "🔥[暴走] HP50%以下でATK2倍",
+                reflect:             "🔁[反射] 物理ダメージ20%軽減&跳ね返し",
+                poison:              "☠️[猛毒] 毎秒プレイヤーHP削り",
+                mresist:             "✨[魔障壁] 魔法耐性+60%",
+                nullphys:            "🚫[物理無効] 物理攻撃が当たらない",
+                copydef:             "🪞[模倣] プレイヤーDEFをコピー",
+                poison_normal:       "☠️[毒付与] 攻撃時15%で毒を付与",
+                poison_boss:         "☠️[猛毒領主] 攻撃時100%で毒を付与",
+                darkness_normal:     "🌑[暗闇付与] 攻撃時15%で暗闇を付与",
+                darkness_boss:       "🌑[暗黒王] 攻撃時100%で暗闇を付与",
+                paralysis_normal:    "⚡[麻痺付与] 攻撃時15%で麻痺を付与",
+                paralysis_boss:      "⚡[雷帝] 攻撃時100%で麻痺を付与",
+                chaos_random:        "🌀[混沌] 攻撃時にランダムに状態異常を付与",
+                chaos_boss:          "🌀[混沌魔王] 状態異常を頻繁に付与",
+                poison_burn_normal:  "🔥[火傷付与] 攻撃時15%で火傷（毒）を付与",
+                poison_burn_boss:    "🔥[焦熱の帝] 攻撃時100%で火傷（毒）を付与",
+                void_random_dual:    "🌀[虚空の掌握] 暗闇または麻痺を20%で付与",
+                void_dual_boss:      "🌀[虚空の王] 暗闇と麻痺の両方を100%で付与",
+                apocalypse_trio:     "🌋[終焉の兆し] 3つの状態異常を同時に15%で付与",
+                apocalypse_final:    "💀[終焉の神] すべての状態異常を25%で付与・貫通攻撃あり",
+            },
+        },
 
-    const worldBossData = {
-        1: { name: "【魔王】アブソリュート・ゼロ",  gimmick: "berserk", hpBase: 800, atkBase: 25 },
-        2: { name: "【煉獄神】アインフェルノ",      gimmick: "reflect", hpBase: 1600, atkBase: 40 },
-        3: { name: "【混沌龍】ヴォイドレクス",      gimmick: "nullphys", hpBase: 3200, atkBase: 60 },
-        4: { name: "【沼帝】毒の化身",              gimmick: "poison_boss", hpBase: 5500, atkBase: 85 },
-        5: { name: "【霧王】暗黒の支配者",          gimmick: "darkness_boss", hpBase: 8000, atkBase: 110 },
-        6: { name: "【雷帝】電撃の覇者",            gimmick: "paralysis_boss", hpBase: 11000, atkBase: 135 },
-        7: { name: "【混沌魔王】すべてを飲む者",    gimmick: "chaos_boss", hpBase: 14500, atkBase: 160 },
-        8: { name: "【焦熱帝】溶岩の帝王",          gimmick: "poison_burn_boss", hpBase: 25000, atkBase: 240 },
-        9: { name: "【虚空の支配者】無限の彼方",    gimmick: "void_dual_boss", hpBase: 45000, atkBase: 350 },
-        10:{ name: "【終焉の神】ルシファー",        gimmick: "apocalypse_final", hpBase: 80000, atkBase: 500 },
-    };
+        // --- 施設 ---
+        facility: {
+            facilityMeta: {
+                smithLevel:  { name: "⚒️ 鍛冶屋",   desc: "分解で得られる強化石+1/Lv", maxLevel: 5, baseCost: 800 },
+                templeLevel: { name: "⛩️ 神殿",     desc: "自動回復量 +3/Lv",           maxLevel: 5, baseCost: 600 },
+                guildLevel:  { name: "📜 ギルド",    desc: "EXP獲得量 +10%/Lv",          maxLevel: 5, baseCost: 1000 },
+                alchemyLevel:{ name: "⚗️ 錬金工房", desc: "売却価格 +15%/Lv",            maxLevel: 5, baseCost: 1200 },
+            },
+        },
 
-    const stageBossData = {
-        1: [{ name: "ガーディアン", gimmick: null }, { name: "岩の巨人", gimmick: "shield" }, { name: "森の番人", gimmick: "regen" }, { name: "影の騎士", gimmick: "evasive" }, { name: "嵐の鷹", gimmick: "berserk" }, { name: "毒の魔女", gimmick: "poison" }, { name: "鉄壁の騎士", gimmick: "shield" }, { name: "血塗れの剣士", gimmick: "berserk" }, { name: "古代の竜", gimmick: "reflect" }, { name: "魔王の右腕", gimmick: "mresist" }],
-        2: [{ name: "炎の守護者", gimmick: "reflect" }, { name: "溶岩ゴーレム", gimmick: "shield" }, { name: "地獄の将軍", gimmick: "berserk" }, { name: "灼熱の僧侶", gimmick: "mresist" }, { name: "業火の暴君", gimmick: "poison" }, { name: "炎獄の魔王", gimmick: "berserk" }, { name: "不死の炎鳥", gimmick: "regen" }, { name: "業炎の巨神", gimmick: "reflect" }, { name: "煉獄の支配者", gimmick: "nullphys" }, { name: "煉獄神の使徒", gimmick: "shield" }],
-        3: [{ name: "虚無の門番", gimmick: "nullphys" }, { name: "混沌の魔将", gimmick: "regen" }, { name: "次元の歪み", gimmick: "copydef" }, { name: "深淵の王", gimmick: "evasive" }, { name: "虚空の暴君", gimmick: "nullphys" }, { name: "混沌の神官", gimmick: "mresist" }, { name: "次元喰い", gimmick: "shield" }, { name: "深淵の魔竜", gimmick: "berserk" }, { name: "宇宙の破壊者", gimmick: "reflect" }, { name: "混沌龍の使徒", gimmick: "nullphys" }],
-        4: [{ name: "沼の領主", gimmick: "poison_normal" }, { name: "毒沼の巨人", gimmick: "shield" }, { name: "瘴気の王", gimmick: "poison_normal" }, { name: "毒液体生物", gimmick: "regen" }, { name: "沼帝の眷属", gimmick: "poison_normal" }, { name: "毒沼の化身", gimmick: "poison_normal" }, { name: "腐敗の君主", gimmick: "mresist" }, { name: "沼地の魔神", gimmick: "poison_normal" }, { name: "瘴気の支配者", gimmick: "poison_normal" }, { name: "沼帝の使徒", gimmick: "poison_boss" }],
-        5: [{ name: "霧の支配者", gimmick: "darkness_normal" }, { name: "亡霊の王", gimmick: "evasive" }, { name: "闇の騎士", gimmick: "darkness_normal" }, { name: "幽鬼の王", gimmick: "darkness_normal" }, { name: "暗黒の眼", gimmick: "darkness_normal" }, { name: "霧の化身", gimmick: "darkness_normal" }, { name: "影の神官", gimmick: "mresist" }, { name: "暗黒の巨人", gimmick: "shield" }, { name: "虚無の支配者", gimmick: "darkness_normal" }, { name: "霧王の使徒", gimmick: "darkness_boss" }],
-        6: [{ name: "雷電の君主", gimmick: "paralysis_normal" }, { name: "帯電の王", gimmick: "paralysis_normal" }, { name: "電撃龍", gimmick: "berserk" }, { name: "雷光の戦士", gimmick: "paralysis_normal" }, { name: "電撃の魔神", gimmick: "paralysis_normal" }, { name: "落雷の支配者", gimmick: "paralysis_normal" }, { name: "雷電の化身", gimmick: "paralysis_normal" }, { name: "電撃ゴーレム王", gimmick: "shield" }, { name: "高圧の君主", gimmick: "paralysis_normal" }, { name: "雷帝の使徒", gimmick: "paralysis_boss" }],
-        7: [{ name: "混沌の獣", gimmick: "chaos_random" }, { name: "虚無の騎士", gimmick: "chaos_random" }, { name: "魔界の支配者", gimmick: "nullphys" }, { name: "深淵の眼玉", gimmick: "chaos_random" }, { name: "虚無の牙", gimmick: "chaos_random" }, { name: "混沌の影", gimmick: "chaos_random" }, { name: "破壊の化身", gimmick: "berserk" }, { name: "虚空の魔竜", gimmick: "chaos_random" }, { name: "無限の饗宴", gimmick: "chaos_random" }, { name: "混沌魔王の使徒", gimmick: "chaos_boss" }],
-        8: [{ name: "溶岩地獄", gimmick: "poison_burn_normal" }, { name: "炎の支配者", gimmick: "poison_burn_normal" }, { name: "火山の心臓", gimmick: "shield" }, { name: "溶岩の君主", gimmick: "poison_burn_normal" }, { name: "炎の魔神", gimmick: "poison_burn_normal" }, { name: "焦熱の王", gimmick: "poison_burn_normal" }, { name: "溶岩の化身", gimmick: "poison_burn_normal" }, { name: "火炎龍", gimmick: "berserk" }, { name: "焦げ落とし", gimmick: "poison_burn_normal" }, { name: "焦熱帝の使徒", gimmick: "poison_burn_boss" }],
-        9: [{ name: "虚空の魔", gimmick: "void_random_dual" }, { name: "奈落の王", gimmick: "evasive" }, { name: "無の騎士", gimmick: "void_random_dual" }, { name: "虚空の眼", gimmick: "void_random_dual" }, { name: "奈落の蟲", gimmick: "void_random_dual" }, { name: "無限の淵", gimmick: "void_random_dual" }, { name: "虚空の獣", gimmick: "void_random_dual" }, { name: "奈落の竜", gimmick: "void_random_dual" }, { name: "無の破壊者", gimmick: "void_random_dual" }, { name: "虚空の支配者の使徒", gimmick: "void_dual_boss" }],
-        10:[{ name: "終焉の兆し", gimmick: "apocalypse_trio" }, { name: "滅びの影", gimmick: "apocalypse_trio" }, { name: "破滅の怪", gimmick: "apocalypse_trio" }, { name: "終末の牙", gimmick: "nullphys" }, { name: "消滅の王", gimmick: "apocalypse_trio" }, { name: "終わりの象徴", gimmick: "apocalypse_trio" }, { name: "黒き来訪者", gimmick: "apocalypse_trio" }, { name: "滅びの龍", gimmick: "apocalypse_trio" }, { name: "終焉の絶望", gimmick: "apocalypse_trio" }, { name: "【終焉の神】ルシファー", gimmick: "apocalypse_final" }],
-    };
+        // --- クエスト ---
+        quests: {
+            questDefs: [
+                { key: "kill100",      label: "🗡️ 敵100体撃破",       reward: { exp: 500,   gold: 200 } },
+                { key: "kill500",      label: "⚔️ 敵500体撃破",       reward: { exp: 2000,  gold: 1000 } },
+                { key: "kill1000",     label: "💀 敵1000体撃破",      reward: { exp: 6000,  gold: 3000, stone: 10 } },
+                { key: "stage5",       label: "🏔️ W1ステージ5到達",   reward: { exp: 300,   gold: 500 } },
+                { key: "stage10",      label: "🏰 W1魔王討伐",        reward: { exp: 2000,  stone: 5 } },
+                { key: "world2",       label: "🌋 ワールド2到達",      reward: { exp: 5000,  gold: 2000 } },
+                { key: "world3",       label: "🌀 ワールド3到達",      reward: { exp: 15000, gold: 8000, stone: 20 } },
+                { key: "gold10k",      label: "💰 累計1万G所持",      reward: { exp: 800,   stone: 3 } },
+                { key: "eq_legendary", label: "⭐ Legendary装備入手", reward: { exp: 1500,  gold: 500 } },
+                { key: "awaken",       label: "✨ 誰かが覚醒",        reward: { exp: 3000,  stone: 8 } },
+                { key: "party3",       label: "👥 3人パーティ結成",   reward: { exp: 2000,  gold: 1500 } },
+            ],
+        },
 
-    const gimmickDesc = {
-        shield:   "🛡️[鉄壁] DEF大幅上昇",
-        evasive:  "💨[高機動] 回避率大幅上昇",
-        regen:    "💚[再生] 毎秒HP回復",
-        berserk:  "🔥[暴走] HP50%以下でATK2倍",
-        reflect:  "🔁[反射] 物理ダメージ20%軽減&跳ね返し",
-        poison:   "☠️[猛毒] 毎秒プレイヤーHP削り",
-        mresist:  "✨[魔障壁] 魔法耐性+60%",
-        nullphys: "🚫[物理無効] 物理攻撃が当たらない",
-        copydef:  "🪞[模倣] プレイヤーDEFをコピー",
-        poison_normal: "☠️[毒付与] 攻撃時15%で毒を付与",
-        poison_boss: "☠️[猛毒領主] 攻撃時100%で毒を付与",
-        darkness_normal: "🌑[暗闇付与] 攻撃時15%で暗闇を付与",
-        darkness_boss: "🌑[暗黒王] 攻撃時100%で暗闇を付与",
-        paralysis_normal: "⚡[麻痺付与] 攻撃時15%で麻痺を付与",
-        paralysis_boss: "⚡[雷帝] 攻撃時100%で麻痺を付与",
-        chaos_random: "🌀[混沌] 攻撃時にランダムに状態異常を付与",
-        chaos_boss: "🌀[混沌魔王] 状態異常を頻繁に付与",
-        poison_burn_normal: "🔥[火傷付与] 攻撃時15%で火傷（毒）を付与",
-        poison_burn_boss: "🔥[焦熱の帝] 攻撃時100%で火傷（毒）を付与",
-        void_random_dual: "🌀[虚空の掌握] 暗闇または麻痺を20%で付与",
-        void_dual_boss: "🌀[虚空の王] 暗闇と麻痺の両方を100%で付与",
-        apocalypse_trio: "🌋[終焉の兆し] 3つの状態異常を同時に15%で付与",
-        apocalypse_final: "💀[終焉の神] すべての状態異常を25%で付与・貫通攻撃あり",
-    };
+    }; // end GAME_DATA
 
-    const awakenCosts = { warrior: { gold: 5000, stone: 20 }, rogue: { gold: 5000, stone: 20 }, mage: { gold: 5000, stone: 20 } };
-    const awakenNames = { warrior: "覚醒剣士【ソードセイント】", rogue: "覚醒暗殺者【シャドウロード】", mage: "覚醒魔導士【グランウィザード】" };
+    // 後方互換エイリアス（既存コードが参照する短い変数名を維持）
+    const { prefixes, slotNames, slotMarkers, slotColors, slotJpNames } = GAME_DATA.equipment;
+    const jobNamesEngJp  = GAME_DATA.jobs.namesJp;
+    const treeMeta       = GAME_DATA.skills.treeMeta;
+    const awakenCosts    = GAME_DATA.skills.awakenCosts;
+    const awakenNames    = GAME_DATA.skills.awakenNames;
+    const worldEnemyTables = GAME_DATA.enemies.worldTables;
+    const worldBossData    = GAME_DATA.enemies.worldBosses;
+    const stageBossData    = GAME_DATA.enemies.stageBosses;
+    const gimmickDesc      = GAME_DATA.enemies.gimmickDesc;
+    const facilityMeta     = GAME_DATA.facility.facilityMeta;
+    const questDefs        = GAME_DATA.quests.questDefs;
 
     // =========================================
     // 2. STATE MANAGEMENT
@@ -934,11 +915,6 @@
     let playerDarkness = 0, darknessDuration = 0;   
     let playerParalysis = 0, paralysisDuration = 0; 
     
-    // プレイヤー状態異常フラグ
-    let playerPoisoned = 0;      
-    let playerBlinded = 0;       
-    let playerParalyzed = 0;     
-
     let bgmAudio = null;
 
     // =========================================
@@ -990,7 +966,7 @@
                 localStorage.clear();
                 sessionStorage.clear();
                 gameState = null;
-                window.location.href = window.location.href;
+                location.reload();
             } catch (error) {
                 console.error("データ初期化エラー:", error);
                 alert("データの削除に失敗しました。\nブラウザのキャッシュをクリアしてから再度お試しください。");
@@ -1248,73 +1224,111 @@
         updateDisplay();
     }
 
-    function spawnEnemy() {
-        const enemyBox = document.getElementById('enemy-box'); 
-        enemyBox.className = "";
-        enemyDef = 0; 
-        enemyMres = 0; 
-        enemyEva = 0; 
-        enemyGimmick = null;
-        let s = gameState.stage, w = gameState.world || 1;
-        
-        let wMult;
-        if (w <= 7) {
-            wMult = 1 + (w - 1) * 1.8;
-        } else {
-            let baseW7 = 1 + (7 - 1) * 1.8;
-            let extraMult = Math.pow(2.5, w - 7);
-            wMult = baseW7 * extraMult;
+    /** ワールド倍率を計算する純粋関数 */
+    function calcWorldMult(w) {
+        if (w <= 7) return 1 + (w - 1) * 1.8;
+        const baseW7 = 1 + (7 - 1) * 1.8;
+        return baseW7 * Math.pow(2.5, w - 7);
+    }
+
+    /**
+     * 敵データを計算して返す純粋関数。
+     * グローバル変数・DOMには一切触らない。
+     * @returns {{ name, gimmick, maxHp, atk, def, mres, eva, type: 'world_boss'|'stage_boss'|'normal' }}
+     */
+    function createEnemy(w, s, killsInStage) {
+        const wMult = calcWorldMult(w);
+
+        // ワールドボス（ステージ10・5体目）
+        if (s === 10 && killsInStage === 4) {
+            const bd = worldBossData[w] || worldBossData[1];
+            let def  = Math.floor(15 * wMult * 0.6);
+            let mres = 20 + (w - 1) * 12;
+            let eva  = 15 + (w - 1) * 6;
+            if (bd.gimmick === "shield")  def  += 30;
+            if (bd.gimmick === "mresist") mres  = Math.min(85, mres + 60);
+            if (bd.gimmick === "evasive") eva   = Math.min(70, eva  + 30);
+            return {
+                name:   bd.name,
+                gimmick: bd.gimmick,
+                maxHp:  Math.floor(bd.hpBase  * wMult),
+                atk:    Math.floor(bd.atkBase * wMult),
+                def, mres, eva,
+                type: 'world_boss',
+            };
         }
 
-        if (s === 10 && gameState.killsInStage === 4) {
-            let bd = worldBossData[w] || worldBossData[1];
-            enemyName = bd.name; 
-            enemyGimmick = bd.gimmick;
-            enemyMaxHp = Math.floor(bd.hpBase * wMult);
-            enemyAtk = Math.floor(bd.atkBase * wMult);
-            enemyDef = Math.floor(15 * wMult * 0.6);
-            enemyMres = 20 + (w-1) * 12;
-            enemyEva = 15 + (w-1) * 6;
-            if (enemyGimmick === "shield")   enemyDef += 30;
-            if (enemyGimmick === "mresist")  enemyMres = Math.min(85, enemyMres + 60);
-            if (enemyGimmick === "evasive")  enemyEva  = Math.min(70, enemyEva + 30);
-            enemyBox.classList.add('maou-active');
-        } else if (gameState.killsInStage === 4) {
-            let bTable = stageBossData[w] || stageBossData[1];
-            let bd = bTable[Math.min(s - 1, bTable.length - 1)];
-            enemyName = `【階層BOSS】${bd.name} (W${w}-${s})`; 
-            enemyGimmick = bd.gimmick;
-            let stageAtk = 15 + s * 15;
-            let stageHp = 200 + s * 150;
-            enemyMaxHp = Math.floor(stageHp * wMult);
-            enemyAtk = Math.floor(stageAtk * wMult * 0.7);
-            
-            if (enemyGimmick === "shield")   enemyDef  = Math.floor((s * 2 + 15) * wMult * 0.6);
-            else if (enemyGimmick === "evasive") enemyEva = Math.min(55, s * 5 + (w-1)*5);
-            else if (enemyGimmick === "mresist") enemyMres = Math.min(75, s * 6 + (w-1)*8);
-            else if (s % 3 === 1) enemyDef  = Math.floor(s * 1.2 * wMult * 0.6);
-            else if (s % 3 === 2) enemyEva  = Math.min(40, s * 4 + (w-1)*5);
-            else                  enemyMres = Math.min(45, s * 4 + (w-1)*8);
-            enemyBox.classList.add('boss-active');
-        } else {
-            let table = worldEnemyTables[w] || worldEnemyTables[1];
-            let entry = table[gameState.killsInStage % 4];
-            enemyName = entry.name + ` (W${w}-${s})`; 
-            enemyGimmick = entry.gimmick;
-            let normalAtk = (w <= 3) ? (5 + s * 3) : (10 + s * 3.5);
-            let normalHp = (w <= 3) ? (30 + s * 25) : (60 + s * 35);
-            enemyMaxHp = Math.floor(normalHp * wMult);
-            enemyAtk = Math.floor(normalAtk * wMult * 0.7);
-            if (enemyGimmick === "shield")   enemyDef  = Math.floor(s * 1.0 * wMult * 0.5);
-            if (enemyGimmick === "evasive")  enemyEva  = Math.min(45, s * 4 + (w-1)*4);
-            if (enemyGimmick === "mresist")  enemyMres = Math.min(60, s * 5 + (w-1)*6);
+        // 階層ボス（5体目、ただしワールドボス以外）
+        if (killsInStage === 4) {
+            const bTable = stageBossData[w] || stageBossData[1];
+            const bd     = bTable[Math.min(s - 1, bTable.length - 1)];
+            let def = 0, mres = 0, eva = 0;
+            if      (bd.gimmick === "shield")  def  = Math.floor((s * 2 + 15) * wMult * 0.6);
+            else if (bd.gimmick === "evasive") eva  = Math.min(55, s * 5 + (w - 1) * 5);
+            else if (bd.gimmick === "mresist") mres = Math.min(75, s * 6 + (w - 1) * 8);
+            else if (s % 3 === 1) def  = Math.floor(s * 1.2 * wMult * 0.6);
+            else if (s % 3 === 2) eva  = Math.min(40, s * 4 + (w - 1) * 5);
+            else                  mres = Math.min(45, s * 4 + (w - 1) * 8);
+            return {
+                name:    `【階層BOSS】${bd.name} (W${w}-${s})`,
+                gimmick: bd.gimmick,
+                maxHp:   Math.floor((200 + s * 150) * wMult),
+                atk:     Math.floor((15  + s * 15)  * wMult * 0.7),
+                def, mres, eva,
+                type: 'stage_boss',
+            };
         }
-        enemyHp = enemyMaxHp;
 
-        let gEl = document.getElementById('enemy-gimmick-label');
+        // 通常敵
+        const table = worldEnemyTables[w] || worldEnemyTables[1];
+        const entry = table[killsInStage % 4];
+        let def = 0, mres = 0, eva = 0;
+        if (entry.gimmick === "shield")  def  = Math.floor(s * 1.0 * wMult * 0.5);
+        if (entry.gimmick === "evasive") eva  = Math.min(45, s * 4 + (w - 1) * 4);
+        if (entry.gimmick === "mresist") mres = Math.min(60, s * 5 + (w - 1) * 6);
+        return {
+            name:    `${entry.name} (W${w}-${s})`,
+            gimmick: entry.gimmick,
+            maxHp:   Math.floor(((w <= 3 ? 30 + s * 25 : 60 + s * 35)) * wMult),
+            atk:     Math.floor(((w <= 3 ?  5 + s *  3 : 10 + s * 3.5)) * wMult * 0.7),
+            def, mres, eva,
+            type: 'normal',
+        };
+    }
+
+    /** createEnemy の結果をグローバル変数に反映する */
+    function applyEnemy(enemy) {
+        enemyName   = enemy.name;
+        enemyGimmick = enemy.gimmick;
+        enemyMaxHp  = enemy.maxHp;
+        enemyHp     = enemy.maxHp;
+        enemyAtk    = enemy.atk;
+        enemyDef    = enemy.def;
+        enemyMres   = enemy.mres;
+        enemyEva    = enemy.eva;
+    }
+
+    /** 敵情報をDOMに反映する */
+    function renderEnemy(enemy) {
+        const enemyBox = document.getElementById('enemy-box');
+        enemyBox.className = '';
+        if (enemy.type === 'world_boss') enemyBox.classList.add('maou-active');
+        if (enemy.type === 'stage_boss') enemyBox.classList.add('boss-active');
+
+        const gEl = document.getElementById('enemy-gimmick-label');
         if (gEl) {
-            gEl.innerHTML = enemyGimmick ? `<span style="color:#ff9800; font-size:0.85em;">${gimmickDesc[enemyGimmick] || ''}</span>` : '';
+            gEl.innerHTML = enemy.gimmick
+                ? gimmickDesc[enemy.gimmick] || ''
+                : '';
         }
+    }
+
+    /** 敵をスポーンする（オーケストレーター） */
+    function spawnEnemy() {
+        const w = gameState.world || 1;
+        const enemy = createEnemy(w, gameState.stage, gameState.killsInStage);
+        applyEnemy(enemy);
+        renderEnemy(enemy);
     }
 
     function winBattle() {
@@ -1586,12 +1600,13 @@
     // =========================================
     // 7. MAIN GAME LOOP
     // =========================================
-    setInterval(() => {
+    function gameTick() {
         if (!gameState.isJobSelected) return;
         let stats = calcPartyAllStats();
         let leader = gameState.party[gameState.currentLeaderIndex];
         let lStats = calcSingleCharStats(leader);
         
+        // --- 自動攻撃（放置DPS）---
         let totalDps = stats.dps + Math.floor(lStats.atk * 0.1) + (stats.idleDmg || 0);
         let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0) ? 1 + (gameState.treeSkills.berserker * 0.2) : 1.0;
         let arcaneAmpMult = 1 + (gameState.treeSkills.arcaneamp||0) * 0.10;
@@ -1607,6 +1622,7 @@
         if (playerDarkness > 0) dpsInfo += ` <span style="color:#424242;">[暗闇-50%]</span>`;
         document.getElementById('m-p-dps').innerHTML = dpsInfo;
         
+        // --- プレイヤーへの毒ダメージ ---
         if (playerPoison > 0) {
             let maxHp = calcPartyAllStats().maxHp;
             playerPoisonDmg = Math.max(1, Math.floor(maxHp * 0.03 * playerPoison));
@@ -1614,173 +1630,21 @@
             document.getElementById('m-p-skill1').innerHTML = `☠️ <span style="color:#8bc34a;">毒ダメ ${playerPoisonDmg} (毒Lv${playerPoison})</span>`;
         }
 
+        // --- 敵の毒ダメージ ---
         if (enemyPoisoned > 0) {
             enemyHp -= enemyPoisonDmg;
             enemyPoisoned--;
         }
 
+        // --- 自動回復 ---
         if (stats.regen > 0 && playerHp < stats.maxHp) {
             playerHp = Math.min(stats.maxHp, playerHp + stats.regen);
         }
 
-        if (enemyHp > 0 && shadowstepActive <= 0) {
-            let baseDmg = Math.max(1, Math.floor(enemyAtk * (150 / (150 + stats.def)) * (1 - stats.eva / 100)));
-            let isCritical = Math.random() < 0.12 && gameState.killsInStage === 4;
-            let dmg = baseDmg;
-            
-            if (isCritical) {
-                let critMultiplier = 1.5 + Math.random() * 0.5;
-                dmg = Math.max(1, Math.floor(baseDmg * critMultiplier));
-                playerHp -= dmg;
-                document.getElementById('m-e-atk').innerHTML = `全体に <span class="c-boss-flash">${dmg}💥 痛恨</span>`;
-            } else {
-                if (enemyGimmick === "regen") {
-                    let eRegen = Math.floor(enemyMaxHp * 0.02);
-                    enemyHp = Math.min(enemyMaxHp, enemyHp + eRegen);
-                }
-                playerHp -= dmg;
-                
-                let gimmickNote = enemyGimmick === "regen" ? " <span style='color:#4caf50;'>[再生]</span>" : 
-                                  enemyGimmick === "counter" ? " <span style='color:#ff5722;'>[反撃型]</span>" : "";
-                let displayText = `全体に <span class="c-red">${dmg}</span> ダメ${gimmickNote}`;
-                let w = gameState.world || 1;
+        // --- 敵の攻撃 ---
+        tickEnemyAttack(stats);
 
-                if ((enemyGimmick === "poison_normal" || enemyGimmick === "poison_boss") && w <= 7 && playerPoison === 0) {
-                    let inflictChance = enemyGimmick === "poison_boss" ? 100 : 15;
-                    if (Math.random() * 100 > stats.poisonRes) {
-                        playerPoison = 1;
-                        playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.03));
-                        displayText += ` <span style="color:#8bc34a; font-weight:bold;">☠️【毒付与】</span>`;
-                    }
-                }
-                if ((enemyGimmick === "darkness_normal" || enemyGimmick === "darkness_boss") && w <= 7 && playerDarkness === 0) {
-                    let inflictChance = enemyGimmick === "darkness_boss" ? 100 : 15;
-                    if (Math.random() * 100 > stats.darknessRes) {
-                        playerDarkness = 1;
-                        darknessDuration = 10;
-                        displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
-                    }
-                }
-                if ((enemyGimmick === "paralysis_normal" || enemyGimmick === "paralysis_boss") && w <= 7 && playerParalysis === 0) {
-                    let inflictChance = enemyGimmick === "paralysis_boss" ? 100 : 15;
-                    if (Math.random() * 100 > stats.paralysisRes) {
-                        playerParalysis = 1;
-                        paralysisDuration = 10;
-                        displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
-                    }
-                }
-                if ((enemyGimmick === "chaos_random" || enemyGimmick === "chaos_boss") && w <= 7) {
-                    let chaosChance = enemyGimmick === "chaos_boss" ? 50 : 15;
-                    let ailmentType = Math.floor(Math.random() * 3); 
-                    if (ailmentType === 0 && playerPoison === 0 && Math.random() * 100 > stats.poisonRes) {
-                        playerPoison = 1;
-                        playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.03));
-                        displayText += ` <span style="color:#8bc34a; font-weight:bold;">☠️【毒付与】</span>`;
-                    } else if (ailmentType === 1 && playerDarkness === 0 && Math.random() * 100 > stats.darknessRes) {
-                        playerDarkness = 1;
-                        darknessDuration = 10;
-                        displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
-                    } else if (ailmentType === 2 && playerParalysis === 0 && Math.random() * 100 > stats.paralysisRes) {
-                        playerParalysis = 1;
-                        paralysisDuration = 10;
-                        displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
-                    }
-                }
-                if ((enemyGimmick === "poison_burn_normal" || enemyGimmick === "poison_burn_boss") && w === 8 && playerPoison === 0) {
-                    let inflictChance = enemyGimmick === "poison_burn_boss" ? 100 : 15;
-                    if (Math.random() * 100 > stats.poisonRes) {
-                        playerPoison = 1;
-                        playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.05)); 
-                        displayText += ` <span style="color:#ff6f00; font-weight:bold;">🔥【火傷付与】</span>`;
-                    }
-                }
-                if ((enemyGimmick === "void_random_dual" || enemyGimmick === "void_dual_boss") && w === 9) {
-                    if (enemyGimmick === "void_dual_boss") {
-                        if (playerDarkness === 0) {
-                            playerDarkness = 1;
-                            darknessDuration = 5;
-                            displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
-                        }
-                        if (playerParalysis === 0) {
-                            playerParalysis = 1;
-                            paralysisDuration = 5;
-                            displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
-                        }
-                        displayText += ` <span style="color:#9c27b0; font-weight:bold;">【虚空の掌握発動！】</span>`;
-                    } else {
-                        let dualChance = Math.random() * 100;
-                        if (dualChance < 20) {
-                            let ailmentType = Math.random() < 0.5 ? 0 : 1; 
-                            if (ailmentType === 0 && playerDarkness === 0 && Math.random() * 100 > stats.darknessRes) {
-                                playerDarkness = 1;
-                                darknessDuration = 10;
-                                displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
-                            } else if (ailmentType === 1 && playerParalysis === 0 && Math.random() * 100 > stats.paralysisRes) {
-                                playerParalysis = 1;
-                                paralysisDuration = 10;
-                                displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
-                            }
-                        }
-                    }
-                }
-                if ((enemyGimmick === "apocalypse_trio" || enemyGimmick === "apocalypse_final") && w === 10) {
-                    if (enemyGimmick === "apocalypse_final") {
-                        let finalChance = Math.random() * 100;
-                        let isBossHalfHp = enemyHp <= (enemyMaxHp * 0.5);
-                        
-                        if (finalChance < 25 || isBossHalfHp) {
-                            let finalRes = { poison: stats.poisonRes, darkness: stats.darknessRes, paralysis: stats.paralysisRes };
-                            if (isBossHalfHp) {
-                                finalRes.poison = Math.max(0, stats.poisonRes - 30);
-                                finalRes.darkness = Math.max(0, stats.darknessRes - 30);
-                                finalRes.paralysis = Math.max(0, stats.paralysisRes - 30);
-                            }
-                            
-                            if (playerPoison === 0 && Math.random() * 100 > finalRes.poison) {
-                                playerPoison = 1;
-                                playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.03));
-                                displayText += ` <span style="color:#8bc34a; font-weight:bold;">☠️【毒付与】</span>`;
-                            }
-                            if (playerDarkness === 0 && Math.random() * 100 > finalRes.darkness) {
-                                playerDarkness = 1;
-                                darknessDuration = 5;
-                                displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
-                            }
-                            if (playerParalysis === 0 && Math.random() * 100 > finalRes.paralysis) {
-                                playerParalysis = 1;
-                                paralysisDuration = 5;
-                                displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
-                            }
-                            if (isBossHalfHp) {
-                                displayText += ` <span style="color:#ff1744; font-weight:bold; text-shadow: 0 0 8px #ff1744;">【警告】ルシファーの終焉の宣告！耐性を貫通して全状態異常が押し寄せる！</span>`;
-                            }
-                        }
-                    } else {
-                        if (Math.random() * 100 < 15) {
-                            if (playerPoison === 0 && Math.random() * 100 > stats.poisonRes) {
-                                playerPoison = 1;
-                                playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.03));
-                                displayText += ` <span style="color:#8bc34a; font-weight:bold;">☠️【毒付与】</span>`;
-                            }
-                            if (playerDarkness === 0 && Math.random() * 100 > stats.darknessRes) {
-                                playerDarkness = 1;
-                                darknessDuration = 10;
-                                displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
-                            }
-                            if (playerParalysis === 0 && Math.random() * 100 > stats.paralysisRes) {
-                                playerParalysis = 1;
-                                paralysisDuration = 10;
-                                displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
-                            }
-                        }
-                    }
-                }
-                document.getElementById('m-e-atk').innerHTML = displayText;
-            }
-        } else if (shadowstepActive > 0) {
-            document.getElementById('m-e-atk').innerHTML = `<span style="color:#9c27b0;">🌑 シャドウステップ中！無敵(${shadowstepActive}s)</span>`;
-        }
-        
+        // --- 敗北判定 ---
         if (playerHp <= 0) {
             playerHp = stats.maxHp; 
             gameState.killsInStage = 0;
@@ -1794,14 +1658,136 @@
             saveGame();
         }
 
+        // --- クールタイム・バフ減算 ---
         Object.keys(coolTimes).forEach(k => { if (coolTimes[k] > 0) coolTimes[k]--; });
         if (warcryActive > 0) warcryActive--;
         if (shadowstepActive > 0) shadowstepActive--;
+
+        // --- 敵討伐判定（DPSトドメ）---
         if (enemyHp <= 0) winBattle();
         
         checkQuestsTick();
         updateDisplay();
-    }, 1000);
+    }
+
+    function tickEnemyAttack(stats) {
+        let w = gameState.world || 1;
+        if (enemyHp <= 0) return;
+
+        if (shadowstepActive > 0) {
+            document.getElementById('m-e-atk').innerHTML = `<span style="color:#9c27b0;">🌑 シャドウステップ中！無敵(${shadowstepActive}s)</span>`;
+            return;
+        }
+
+        let baseDmg = Math.max(1, Math.floor(enemyAtk * (150 / (150 + stats.def)) * (1 - stats.eva / 100)));
+        let isCritical = Math.random() < 0.12 && gameState.killsInStage === 4;
+        let dmg = isCritical ? Math.max(1, Math.floor(baseDmg * (1.5 + Math.random() * 0.5))) : baseDmg;
+        
+        playerHp -= dmg;
+
+        if (isCritical) {
+            document.getElementById('m-e-atk').innerHTML = `全体に <span class="c-boss-flash">${dmg}💥 痛恨</span>`;
+            return;
+        }
+
+        // 敵の再生ギミック
+        if (enemyGimmick === "regen") {
+            let eRegen = Math.floor(enemyMaxHp * 0.02);
+            enemyHp = Math.min(enemyMaxHp, enemyHp + eRegen);
+        }
+        
+        let gimmickNote = enemyGimmick === "regen"   ? " <span style='color:#4caf50;'>[再生]</span>" :
+                          enemyGimmick === "counter" ? " <span style='color:#ff5722;'>[反撃型]</span>" : "";
+        let displayText = `全体に <span class="c-red">${dmg}</span> ダメ${gimmickNote}`;
+        
+        // 状態異常付与ギミック
+        displayText = applyEnemyAilments(displayText, stats, w);
+
+        document.getElementById('m-e-atk').innerHTML = displayText;
+    }
+
+    function applyEnemyAilments(displayText, stats, w) {
+        const g = enemyGimmick;
+
+        if ((g === "poison_normal" || g === "poison_boss") && w <= 7 && playerPoison === 0) {
+            if (Math.random() * 100 > stats.poisonRes) {
+                playerPoison = 1;
+                playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.03));
+                displayText += ` <span style="color:#8bc34a; font-weight:bold;">☠️【毒付与】</span>`;
+            }
+        }
+        if ((g === "darkness_normal" || g === "darkness_boss") && w <= 7 && playerDarkness === 0) {
+            if (Math.random() * 100 > stats.darknessRes) {
+                playerDarkness = 1; darknessDuration = 10;
+                displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
+            }
+        }
+        if ((g === "paralysis_normal" || g === "paralysis_boss") && w <= 7 && playerParalysis === 0) {
+            if (Math.random() * 100 > stats.paralysisRes) {
+                playerParalysis = 1; paralysisDuration = 10;
+                displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
+            }
+        }
+        if ((g === "chaos_random" || g === "chaos_boss") && w <= 7) {
+            let ailmentType = Math.floor(Math.random() * 3); 
+            if (ailmentType === 0 && playerPoison === 0 && Math.random() * 100 > stats.poisonRes) {
+                playerPoison = 1; playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.03));
+                displayText += ` <span style="color:#8bc34a; font-weight:bold;">☠️【毒付与】</span>`;
+            } else if (ailmentType === 1 && playerDarkness === 0 && Math.random() * 100 > stats.darknessRes) {
+                playerDarkness = 1; darknessDuration = 10;
+                displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
+            } else if (ailmentType === 2 && playerParalysis === 0 && Math.random() * 100 > stats.paralysisRes) {
+                playerParalysis = 1; paralysisDuration = 10;
+                displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
+            }
+        }
+        if ((g === "poison_burn_normal" || g === "poison_burn_boss") && w === 8 && playerPoison === 0) {
+            if (Math.random() * 100 > stats.poisonRes) {
+                playerPoison = 1;
+                playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.05)); 
+                displayText += ` <span style="color:#ff6f00; font-weight:bold;">🔥【火傷付与】</span>`;
+            }
+        }
+        if ((g === "void_random_dual" || g === "void_dual_boss") && w === 9) {
+            if (g === "void_dual_boss") {
+                if (playerDarkness === 0) { playerDarkness = 1; darknessDuration = 5; displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`; }
+                if (playerParalysis === 0) { playerParalysis = 1; paralysisDuration = 5; displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`; }
+                displayText += ` <span style="color:#9c27b0; font-weight:bold;">【虚空の掌握発動！】</span>`;
+            } else if (Math.random() * 100 < 20) {
+                let ailmentType = Math.random() < 0.5 ? 0 : 1; 
+                if (ailmentType === 0 && playerDarkness === 0 && Math.random() * 100 > stats.darknessRes) {
+                    playerDarkness = 1; darknessDuration = 10;
+                    displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`;
+                } else if (ailmentType === 1 && playerParalysis === 0 && Math.random() * 100 > stats.paralysisRes) {
+                    playerParalysis = 1; paralysisDuration = 10;
+                    displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`;
+                }
+            }
+        }
+        if ((g === "apocalypse_trio" || g === "apocalypse_final") && w === 10) {
+            if (g === "apocalypse_final") {
+                let isBossHalfHp = enemyHp <= (enemyMaxHp * 0.5);
+                if (Math.random() * 100 < 25 || isBossHalfHp) {
+                    let res = {
+                        poison:    isBossHalfHp ? Math.max(0, stats.poisonRes - 30)    : stats.poisonRes,
+                        darkness:  isBossHalfHp ? Math.max(0, stats.darknessRes - 30)  : stats.darknessRes,
+                        paralysis: isBossHalfHp ? Math.max(0, stats.paralysisRes - 30) : stats.paralysisRes
+                    };
+                    if (playerPoison === 0 && Math.random() * 100 > res.poison)       { playerPoison = 1; playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.03)); displayText += ` <span style="color:#8bc34a; font-weight:bold;">☠️【毒付与】</span>`; }
+                    if (playerDarkness === 0 && Math.random() * 100 > res.darkness)   { playerDarkness = 1; darknessDuration = 5; displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`; }
+                    if (playerParalysis === 0 && Math.random() * 100 > res.paralysis) { playerParalysis = 1; paralysisDuration = 5; displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`; }
+                    if (isBossHalfHp) displayText += ` <span style="color:#ff1744; font-weight:bold; text-shadow: 0 0 8px #ff1744;">【警告】ルシファーの終焉の宣告！耐性を貫通して全状態異常が押し寄せる！</span>`;
+                }
+            } else if (Math.random() * 100 < 15) {
+                if (playerPoison === 0 && Math.random() * 100 > stats.poisonRes)       { playerPoison = 1; playerPoisonDmg = Math.max(1, Math.floor(stats.maxHp * 0.03)); displayText += ` <span style="color:#8bc34a; font-weight:bold;">☠️【毒付与】</span>`; }
+                if (playerDarkness === 0 && Math.random() * 100 > stats.darknessRes)   { playerDarkness = 1; darknessDuration = 10; displayText += ` <span style="color:#424242; font-weight:bold;">🌑【暗闇付与】</span>`; }
+                if (playerParalysis === 0 && Math.random() * 100 > stats.paralysisRes) { playerParalysis = 1; paralysisDuration = 10; displayText += ` <span style="color:#9575cd; font-weight:bold;">⚡【麻痺付与】</span>`; }
+            }
+        }
+        return displayText;
+    }
+
+    setInterval(gameTick, 1000);
 
     // =========================================
     // 8. INVENTORY & EQUIPMENT
@@ -2343,7 +2329,8 @@
     }
 
     function calcPartyAllStats() {
-        let dps = 5 + ((gameState.treeSkills.dps || 0) * 6);
+        let baseDps = 5 + ((gameState.treeSkills.dps || 0) * 6);
+        let dps = baseDps;
         let maxHp = 100 + ((gameState.treeSkills.maxHp || 0) * 30);
         let facRegen = (gameState.facilities?.templeLevel || 0) * 3;
         let regen = ((gameState.treeSkills.regen || 0) * 2) + facRegen;
@@ -2360,32 +2347,32 @@
         let darknessRes = (gameState.treeSkills.darknessRes || 0) * 10;
         let paralysisRes = (gameState.treeSkills.paralysisRes || 0) * 10;
 
-        if (gameState.party.length > 1) { 
-            for (let i = 1; i < gameState.party.length; i++) { 
-                maxHp += 30; dps += 3; 
-            } 
+        // 仲間加入ごとの基礎ボーナス（リーダー以外）
+        for (let i = 1; i < gameState.party.length; i++) {
+            maxHp += 30;
+            dps += 3;
         }
         
+        // 各キャラの装備ボーナスと覚醒DPSを計算
+        let dpsFromEquip = 0;
         gameState.party.forEach(char => {
             if (!char.isUnlocked || !char.currentEquip) return;
-            let charHasBowBonus = false;
+            let charHasBowBonus = char.job === "rogue" && char.currentEquip.weapon?.weaponType === "Bow";
             let awakenMult = char.awakened ? 1.3 : 1.0;
+            let charEquipDps = 0;
             
-            Object.keys(char.currentEquip).forEach(slot => {
-                let item = char.currentEquip[slot]; 
+            Object.values(char.currentEquip).forEach(item => {
                 if (!item) return;
-                
                 if (item.type === "def") def += item.value; 
-                if (item.type === "dps") dps += item.value;  
+                if (item.type === "dps") { charEquipDps += item.value; }
                 if (item.type === "mag") mag += item.value;  
-                if (slot === "weapon" && item.weaponType === "Bow") charHasBowBonus = true;
                 
                 if (item.options) {
                     item.options.forEach(opt => {
                         if (opt.type === "def") def += opt.val;
                         if (opt.type === "regen") regen += opt.val;
-                        if (opt.type === "idleDmg") idleDmg += opt.val;  
-                        if (opt.type === "magPenetration") magPenetration += opt.val;  
+                        if (opt.type === "idleDmg") idleDmg += opt.val;
+                        if (opt.type === "magPenetration") magPenetration += opt.val;
                         if (opt.type === "exp") bonus += opt.val;
                         if (opt.type === "mres") mres += opt.val;
                         if (opt.type === "eva") eva += opt.val;
@@ -2395,9 +2382,22 @@
                     });
                 }
             });
-            if (char.job === "rogue" && charHasBowBonus) dps = Math.floor(dps * 1.5 * awakenMult);
-            else if (char.awakened) dps = Math.floor(dps * awakenMult);
+
+            // ローグ+弓の場合は全DPSに1.5倍（覚醒も乗せる）
+            if (charHasBowBonus) {
+                dpsFromEquip += Math.floor(charEquipDps * 1.5 * awakenMult);
+            } else {
+                dpsFromEquip += Math.floor(charEquipDps * awakenMult);
+            }
         });
+
+        // ベースDPSに覚醒ボーナスを適用（パーティ全体の覚醒は最大倍率で1回のみ）
+        let maxAwakenMult = gameState.party.reduce((m, c) => {
+            if (!c.isUnlocked || !c.awakened) return m;
+            let isBow = c.job === "rogue" && c.currentEquip?.weapon?.weaponType === "Bow";
+            return Math.max(m, isBow ? 1.5 * 1.3 : 1.3);
+        }, 1.0);
+        dps = Math.floor(dps * maxAwakenMult) + dpsFromEquip;
         
         maxHp += (gameState.statusBonus?.hp || 0);
         dps += (gameState.statusBonus?.atk || 0);
@@ -2450,10 +2450,9 @@
     // =========================================
     // 11. UI UPDATES
     // =========================================
-    function updateDisplay() {
-        if (!gameState.isJobSelected) return;
-        let pStats = calcPartyAllStats();
-        
+
+    /** HUD（HP/ゴールド/EXP/敵情報/ステージ表示）の更新 */
+    function updateHUD(pStats) {
         document.getElementById('stage-title').innerText = `ワールド ${gameState.world || 1} - ステージ ${gameState.stage}`;
         document.getElementById('world-label').innerText = `W${gameState.world || 1}`;
         document.getElementById('stage-progress').innerText = `進行度(${gameState.killsInStage+1}/5) [最高: W${gameState.maxReachedWorld||1}-${gameState.maxReachedStage}]`;
@@ -2466,7 +2465,6 @@
         document.getElementById('exp').innerText = gameState.exp; 
         document.getElementById('gold').innerText = gameState.gold; 
         document.getElementById('dust-count').innerText = gameState.upgradeStone;
-        
         document.getElementById('e-stat-def').innerText = enemyDef; 
         document.getElementById('e-stat-mres').innerText = enemyMres; 
         document.getElementById('e-stat-eva').innerText = enemyEva;
@@ -2477,11 +2475,13 @@
         document.getElementById('stat-poison-res').innerText = pStats.poisonRes; 
         document.getElementById('stat-darkness-res').innerText = pStats.darknessRes; 
         document.getElementById('stat-paralysis-res').innerText = pStats.paralysisRes;
-        
         document.getElementById('bonus-hp-display').innerText = gameState.statusBonus?.hp || 0;
         document.getElementById('bonus-atk-display').innerText = gameState.statusBonus?.atk || 0;
         document.getElementById('bonus-def-display').innerText = gameState.statusBonus?.def || 0;
+    }
 
+    /** リーダー選択ボタンの更新 */
+    function updateLeaderButtons() {
         for (let i = 0; i < 3; i++) {
             let btn = document.getElementById(`btn-leader-${i}`);
             let nameSpan = document.getElementById(`leader-name-${i}`);
@@ -2498,7 +2498,10 @@
                 lbl.innerText = "未加入"; 
             }
         }
+    }
 
+    /** スキルツリータブの更新 */
+    function updateTreeTab() {
         let unlockedJobs = gameState.party.map(c => c.job);
         ["warrior", "rogue", "mage"].forEach(jKey => { 
             document.getElementById(`branch-${jKey}`).classList[unlockedJobs.includes(jKey) ? 'remove' : 'add']('locked-branch'); 
@@ -2514,16 +2517,17 @@
             
             let isBranchLocked = !unlockedJobs.includes(meta.job);
             let isPrevLocked = meta.req && (gameState.treeSkills[meta.req] || 0) < 1;
+            let nodeEl = document.getElementById(`node-t-${key}`);
 
             if (isBranchLocked || isPrevLocked) {
-                if(document.getElementById(`node-t-${key}`)) document.getElementById(`node-t-${key}`).classList.add('locked'); 
-                if(btnEl) { 
+                if (nodeEl) nodeEl.classList.add('locked'); 
+                if (btnEl) { 
                     btnEl.innerText = isBranchLocked ? "未解放職" : "ロック"; 
                     btnEl.disabled = true; 
                 }
             } else {
-                if(document.getElementById(`node-t-${key}`)) document.getElementById(`node-t-${key}`).classList.remove('locked');
-                if(btnEl) {
+                if (nodeEl) nodeEl.classList.remove('locked');
+                if (btnEl) {
                     if (lv >= meta.max) { 
                         btnEl.innerText = "MAX"; 
                         btnEl.disabled = true; 
@@ -2535,7 +2539,10 @@
                 }
             }
         });
+    }
 
+    /** アクティブスキル・解除スキルボタンの更新 */
+    function updateSkillButtons() {
         let currentLeader = gameState.party[gameState.currentLeaderIndex];
         let activeKeys = { warrior: ['bash', 'rush', 'warcry'], rogue: ['rain', 'coin', 'shadowstep'], mage: ['heal', 'blizzard', 'meteor'] }[currentLeader.job] || [];
         const skillLabels = { bash: "💥 パワフルバッシュ", rush: "⚡ ラッシュブレイド", warcry: "🔥 ウォークライ", rain: "🏹 アローレイン", coin: "💰 コインディグ", shadowstep: "🌑 シャドウステップ", heal: "✨ 聖なるヒール", blizzard: "❄️ ブリザード", meteor: "☄️ メテオ" };
@@ -2558,21 +2565,17 @@
 
         let cureButtonHTML = "";
         const cureSkills = [
-            { key: 'poisonCure', name: '💊アンチドート', color: '#8bc34a' },
-            { key: 'darknessCure', name: '👁️クリーンアイ', color: '#424242' },
-            { key: 'paralysisCure', name: '✨リフレッシュ', color: '#9575cd' }
+            { key: 'poisonCure',    name: '💊アンチドート', color: '#8bc34a' },
+            { key: 'darknessCure',  name: '👁️クリーンアイ',  color: '#424242' },
+            { key: 'paralysisCure', name: '✨リフレッシュ',   color: '#9575cd' }
         ];
         cureSkills.forEach(cure => {
             if ((gameState.treeSkills[cure.key] || 0) > 0) {
-                let enabled = (cure.key === 'poisonCure' && playerPoison > 0 && coolTimes.poisonCure <= 0) ||
-                              (cure.key === 'darknessCure' && playerDarkness > 0 && coolTimes.darknessCure <= 0) ||
+                let enabled = (cure.key === 'poisonCure'    && playerPoison > 0    && coolTimes.poisonCure <= 0)    ||
+                              (cure.key === 'darknessCure'  && playerDarkness > 0  && coolTimes.darknessCure <= 0)  ||
                               (cure.key === 'paralysisCure' && playerParalysis > 0 && coolTimes.paralysisCure <= 0);
-                
-                let cdText = (cure.key === 'poisonCure' && coolTimes.poisonCure > 0) ? `(${coolTimes.poisonCure}s)` :
-                             (cure.key === 'darknessCure' && coolTimes.darknessCure > 0) ? `(${coolTimes.darknessCure}s)` :
-                             (cure.key === 'paralysisCure' && coolTimes.paralysisCure > 0) ? `(${coolTimes.paralysisCure}s)` : '';
-                
-                cureButtonHTML += `<button onclick="${enabled ? `castCureSkill('${cure.key}')` : 'void(0)'}" style="padding:6px 10px; background:${cure.color}; color:white; border:none; border-radius:3px; font-size:0.75em; font-weight:bold; cursor:${enabled ? 'pointer' : 'not-allowed'}; opacity:${enabled ? '1' : '0.4'}; white-space:nowrap;">${cure.name}${cdText}</button>`;
+                let cd = coolTimes[cure.key] > 0 ? `(${coolTimes[cure.key]}s)` : '';
+                cureButtonHTML += `<button onclick="${enabled ? `castCureSkill('${cure.key}')` : 'void(0)'}" style="padding:6px 10px; background:${cure.color}; color:white; border:none; border-radius:3px; font-size:0.75em; font-weight:bold; cursor:${enabled ? 'pointer' : 'not-allowed'}; opacity:${enabled ? '1' : '0.4'}; white-space:nowrap;">${cure.name}${cd}</button>`;
             }
         });
         
@@ -2580,7 +2583,10 @@
         if (cureArea) {
             cureArea.innerHTML = cureButtonHTML || '<small style="color:#999;">解除スキルなし</small>';
         }
+    }
 
+    /** 倉庫タブ（装備・施設・採用）の更新 */
+    function updateEquipTab() {
         let hireZone = document.getElementById('hire-action-zone'); 
         hireZone.innerHTML = "";
         let unlockedCompanions = gameState.party.map(c => c.job);
@@ -2626,14 +2632,25 @@
                 slotBox.className = "eq-slot-box";
                 let optHtml = item.options && item.options.length ? `<div class="opt-text">${item.options.map(o => o.text).join(", ")}</div>` : "";
 
+                let maxLevel = gameState.upgradeMaxLevel || 20;
+                let neededStone = (item.level + 1) * 2;
+                let neededGold  = (item.level + 1) * 200;
+                let upgradeDisabled = (
+                    item.name === "なし" ||
+                    item.level >= maxLevel ||
+                    gameState.upgradeStone < neededStone ||
+                    gameState.gold < neededGold
+                ) ? "disabled" : "";
+
                 slotBox.innerHTML = `
-                    <div class="eq-info-area" onclick="upgradeEquipped(${cIndex}, '${slot}')" title="クリックで強化石を消費して強化">
+                    <div class="eq-info-area">
                         <span class="rarity-${item.rarity}">${slotMarkers[slot]} ${item.name} +${item.level} (+${item.value} ${item.type.toUpperCase()})</span>
                         ${optHtml}
                     </div>
                     <div class="eq-control-btns">
                         <button class="eq-btn-sub btn-change" onclick="openEquipPicker(${cIndex}, '${slot}')">変更</button>
-                        <button class="eq-btn-sub btn-remove" ${(item.name === "なし") ? "disabled style='opacity:0.4;'" : ""} onclick="removeEquip(${cIndex}, '${slot}')">外す</button>
+                        <button class="eq-btn-sub btn-upgrade" ${upgradeDisabled} onclick="upgradeEquipped(${cIndex}, '${slot}')">強化</button>
+                        <button class="eq-btn-sub btn-remove" ${(item.name === "なし") ? "disabled" : ""} onclick="removeEquip(${cIndex}, '${slot}')">外す</button>
                     </div>`;
                 grid.appendChild(slotBox);
             });
@@ -2645,7 +2662,7 @@
         document.getElementById('inv-max-capacity').innerText = gameState.maxInventorySlots;
         
         let expandBtn = document.getElementById('btn-expand-inv');
-        if(gameState.maxInventorySlots >= 50) { 
+        if (gameState.maxInventorySlots >= 50) { 
             expandBtn.innerText = "最大枠"; 
             expandBtn.disabled = true; 
         } else { 
@@ -2654,47 +2671,63 @@
         }
 
         updateInvDisplay();
+    }
 
+    /** 施設タブの更新 */
+    function updateFacilityTab() {
         let facZone = document.getElementById('facility-zone');
-        if (facZone) {
-            facZone.innerHTML = "";
-            Object.keys(facilityMeta).forEach(key => {
-                let f = facilityMeta[key], lv = gameState.facilities[key] || 0;
-                let cost = f.baseCost * (lv + 1);
-                let div = document.createElement('div');
-                div.style.cssText = "background:#fff; border:1px solid #ddd; border-radius:6px; padding:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);";
-                div.innerHTML = `
-                    <div>
-                        <strong style="font-size:1em;">${f.name}</strong> 
-                        <span style="background:#eceff1; padding:1px 6px; border-radius:3px; font-size:0.8em; color:#455a64;">Lv.${lv}/${f.maxLevel}</span><br>
-                        <span style="font-size:0.83em; color:#666; display:block; margin-top:2px;">${f.desc}</span>
-                    </div>
-                    <button onclick="upgradeFacility('${key}')" style="width:auto; padding:8px 14px; background:${lv>=f.maxLevel?'#ccc':'#e65100'}; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap;" ${lv>=f.maxLevel?'disabled':''}>
-                        ${lv>=f.maxLevel?'MAX':`強化 ${cost}G`}
-                    </button>`;
-                facZone.appendChild(div);
-            });
-        }
+        if (!facZone) return;
+        facZone.innerHTML = "";
+        Object.keys(facilityMeta).forEach(key => {
+            let f = facilityMeta[key], lv = gameState.facilities[key] || 0;
+            let cost = f.baseCost * (lv + 1);
+            let div = document.createElement('div');
+            div.style.cssText = "background:#fff; border:1px solid #ddd; border-radius:6px; padding:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);";
+            div.innerHTML = `
+                <div>
+                    <strong style="font-size:1em;">${f.name}</strong> 
+                    <span style="background:#eceff1; padding:1px 6px; border-radius:3px; font-size:0.8em; color:#455a64;">Lv.${lv}/${f.maxLevel}</span><br>
+                    <span style="font-size:0.83em; color:#666; display:block; margin-top:2px;">${f.desc}</span>
+                </div>
+                <button onclick="upgradeFacility('${key}')" style="width:auto; padding:8px 14px; background:${lv>=f.maxLevel?'#ccc':'#e65100'}; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap;" ${lv>=f.maxLevel?'disabled':''}>
+                    ${lv>=f.maxLevel?'MAX':`強化 ${cost}G`}
+                </button>`;
+            facZone.appendChild(div);
+        });
+    }
 
+    /** クエストタブの更新 */
+    function updateQuestTab() {
         let questList = document.getElementById('quest-list');
         let killsDisp = document.getElementById('total-kills-disp');
         if (killsDisp) killsDisp.innerText = gameState.totalKills || 0;
         
-        if (questList) {
-            questList.innerHTML = "";
-            questDefs.forEach(q => {
-                let done = gameState.quests[q.key];
-                let r = q.reward;
-                let rewardStr = [r.exp?`EXP+${r.exp}`:'', r.gold?`G+${r.gold}`:'', r.stone?`強化石+${r.stone}`:''].filter(Boolean).join(' / ');
-                let div = document.createElement('div');
-                div.style.cssText = `background:${done?'#e8f5e9':'#fff'}; border:1px solid ${done?'#4caf50':'#ddd'}; border-radius:5px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-size:0.87em;`;
-                div.innerHTML = `
-                    <div>${done?'✅':'⬜'} <strong>${q.label}</strong><br><span style="color:#888;">報酬: ${rewardStr}</span></div>
-                    <div style="font-size:1.4em;">${done?'🏆':''}</div>`;
-                questList.appendChild(div);
-            });
-        }
+        if (!questList) return;
+        questList.innerHTML = "";
+        questDefs.forEach(q => {
+            let done = gameState.quests[q.key];
+            let r = q.reward;
+            let rewardStr = [r.exp?`EXP+${r.exp}`:'', r.gold?`G+${r.gold}`:'', r.stone?`強化石+${r.stone}`:''].filter(Boolean).join(' / ');
+            let div = document.createElement('div');
+            div.style.cssText = `background:${done?'#e8f5e9':'#fff'}; border:1px solid ${done?'#4caf50':'#ddd'}; border-radius:5px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-size:0.87em;`;
+            div.innerHTML = `
+                <div>${done?'✅':'⬜'} <strong>${q.label}</strong><br><span style="color:#888;">報酬: ${rewardStr}</span></div>
+                <div style="font-size:1.4em;">${done?'🏆':''}</div>`;
+            questList.appendChild(div);
+        });
+    }
+
+    function updateDisplay() {
+        if (!gameState.isJobSelected) return;
+        let pStats = calcPartyAllStats();
         
+        updateHUD(pStats);
+        updateLeaderButtons();
+        updateTreeTab();
+        updateSkillButtons();
+        updateEquipTab();
+        updateFacilityTab();
+        updateQuestTab();
         updateBGMSEButtons();
     }
 
