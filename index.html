@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=680, initial-scale=0.5, minimum-scale=0.5, maximum-scale=0.5, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>STハクスラ</title>
     <style>
         /* =========================================
@@ -91,7 +91,7 @@
         /* Enemy Info */
         #enemy-box { padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 6px; background: #fafafa; }
         .boss-active { background-color: #ffcdd2 !important; border: 2px solid #b71c1c !important; }
-        .maou-active { background-color: #e1bee7 !important; border: 3px double #4a148c !important; }
+        .maou-active { background-color: #e1bee7 !important; border: 2px solid #4a148c !important; }
 
         /* Leader Select */
         .leader-select-zone {
@@ -2825,5 +2825,25 @@
     }
 
 </script>
+    <script>
+        // スマホ時のみ画面幅に合わせてスケールを自動調整
+        (function() {
+            const GAME_WIDTH = 680;
+            const INNER_WIDTH = 636; // padding(40px) + border(4px) を除いた内側幅
+            function adjustScale() {
+                const vp = document.querySelector('meta[name="viewport"]');
+                if (!vp) return;
+                const screenW = window.screen.width;
+                if (screenW < GAME_WIDTH) {
+                    // 内側コンテンツが画面幅にぴったり収まるスケールで表示
+                    const scale = (screenW / INNER_WIDTH).toFixed(3);
+                    vp.content = `width=device-width, initial-scale=${scale}, maximum-scale=${scale}, user-scalable=no`;
+                } else {
+                    vp.content = `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no`;
+                }
+            }
+            adjustScale();
+        })();
+    </script>
 </body>
 </html>
