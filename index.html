@@ -570,29 +570,33 @@
                 <div style="background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); border: 2px solid #81d4fa; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                     <h4 style="color: #81d4fa; margin: 0 0 12px 0; font-size: 1.1em;">🔊 BGM/SE設定</h4>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                        <button style="
-                            background: ${gameState.bgmEnabled ? '#4caf50' : '#999'};
+                        <button id="bgm-toggle" style="
+                            background: #999;
                             color: white;
                             border: none;
-                            padding: 10px;
-                            font-size: 0.95em;
+                            padding: 12px;
+                            font-size: 1em;
                             font-weight: bold;
                             border-radius: 4px;
                             cursor: pointer;
+                            transition: all 0.3s ease;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
                         " onclick="toggleBGM()">
-                            🎵 BGM: ${gameState.bgmEnabled ? 'ON' : 'OFF'}
+                            🎵 BGM: OFF
                         </button>
-                        <button style="
-                            background: ${gameState.seEnabled ? '#4caf50' : '#999'};
+                        <button id="se-toggle" style="
+                            background: #999;
                             color: white;
                             border: none;
-                            padding: 10px;
-                            font-size: 0.95em;
+                            padding: 12px;
+                            font-size: 1em;
                             font-weight: bold;
                             border-radius: 4px;
                             cursor: pointer;
+                            transition: all 0.3s ease;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
                         " onclick="toggleSE()">
-                            🔈 SE: ${gameState.seEnabled ? 'ON' : 'OFF'}
+                            🔈 SE: OFF
                         </button>
                     </div>
                     
@@ -744,6 +748,7 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         seVolume: 0.7,      // === SE音量（0.0～1.0） ===
         upgradeMaxLevel: 20,  // === 装備強化上限（W10クリアで30に） ===
         worldClearCount: 0,
+        // attackCooldown: 0,  // === クリック攻撃のクールタイム（秒）※後で実装予定 ===
     };
 
     let activePickerCharIndex = null, activePickerSlot = null;
@@ -935,7 +940,25 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         }
         playerHp = calcPartyAllStats().maxHp;
     }
-    function resetGame() { if (confirm("データを完全初期化しますか？最初の職業選択に戻ります。")) { localStorage.removeItem(SAVE_KEY); location.reload(); } }
+    function resetGame() { 
+        if (confirm("⚠️ ゲームデータをすべて削除します。\nこの操作は取り消せません。本当によろしいですか？")) {
+            try {
+                // ローカルストレージから完全削除
+                localStorage.removeItem(SAVE_KEY);
+                localStorage.clear();  // === すべてのローカルストレージをクリア ===
+                sessionStorage.clear();  // === セッションストレージもクリア ===
+                
+                // gameState をリセット
+                gameState = null;
+                
+                // ページをリロード
+                window.location.href = window.location.href;  // === より確実なリロード ===
+            } catch (error) {
+                console.error("データ初期化エラー:", error);
+                alert("データの削除に失敗しました。\nブラウザのキャッシュをクリアしてから再度お試しください。");
+            }
+        }
+    }
 
     // === BGM/SE 制御関数 ===
     let bgmAudio = null;  // BGM用audio要素
@@ -944,7 +967,10 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         if (!bgmAudio) {
             bgmAudio = new Audio('st-bgm.mp3');
             bgmAudio.loop = true;
-            bgmAudio.volume = gameState.bgmVolume;
+            // === bgmVolume が NaN の場合、デフォルト値を使用 ===
+            let volume = gameState.bgmVolume;
+            if (isNaN(volume) || volume === undefined) volume = 0.5;
+            bgmAudio.volume = Math.max(0, Math.min(1, volume));  // === 0～1 の範囲に制限 ===
         }
     }
 
@@ -982,28 +1008,24 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
     function playSE(seFile) {
         if (!gameState.seEnabled) return;
         const audio = new Audio(seFile);
-        audio.volume = gameState.seVolume;  // === 固定値 → gameState.seVolume ===
+        // === seVolume が NaN の場合、デフォルト値を使用 ===
+        let volume = gameState.seVolume;
+        if (isNaN(volume) || volume === undefined) volume = 0.7;
+        audio.volume = Math.max(0, Math.min(1, volume));  // === 0～1 の範囲に制限 ===
         audio.play().catch(() => console.log("SE再生失敗: " + seFile));
     }
     // === BGM/SE再生関数 ===
-    let currentBGM = null;
     
     function playBGM() {
         if (!gameState.bgmEnabled) return;
-        if (currentBGM) {
-            currentBGM.pause();
-            currentBGM.currentTime = 0;
-        }
-        currentBGM = new Audio('st-bgm.mp3');
-        currentBGM.loop = true;
-        currentBGM.volume = gameState.bgmVolume;  // === 固定値 0.5 → gameState.bgmVolume ===
-        currentBGM.play().catch(err => console.log('BGM再生エラー:', err));
+        initBGM();  // === bgmAudio を初期化してから再生 ===
+        bgmAudio.play().catch(err => console.log('BGM再生エラー:', err));
     }
 
     function stopBGM() {
-        if (currentBGM) {
-            currentBGM.pause();
-            currentBGM.currentTime = 0;
+        if (bgmAudio) {
+            bgmAudio.pause();
+            bgmAudio.currentTime = 0;
         }
     }
 
@@ -1493,9 +1515,16 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
     }
 
     function attack() {
-        if (!gameState.isJobSelected) return;
-        let leader = gameState.party[gameState.currentLeaderIndex], lStats = calcSingleCharStats(leader);
-        let stats = calcPartyAllStats();  // === stats を定義（魔法耐性貫通アクセス用） ===
+        try {
+            if (!gameState.isJobSelected) return;
+            let leader = gameState.party[gameState.currentLeaderIndex], lStats = calcSingleCharStats(leader);
+            let stats = calcPartyAllStats();  // === stats を定義（魔法耐性貫通アクセス用） ===
+            
+            // === デバッグ：stats に必要な値があるか確認 ===
+            if (!stats || stats.mag === undefined || stats.magPenetration === undefined) {
+                console.error("stats エラー:", stats);
+                return;
+            }
         let arcaneBoost = 1 + (gameState.treeSkills.arcane||0) * 0.15;
         let arcaneAmpMult = 1 + (gameState.treeSkills.arcaneamp||0) * 0.10;
         let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0)
@@ -1536,6 +1565,9 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
         }
         if (enemyHp <= 0) winBattle();
         updateDisplay();
+        } catch (error) {
+            console.error("attack() エラー:", error);
+        }
     }
 
     function useTreeSkill(skillKey) {
@@ -2634,6 +2666,27 @@ const SAVE_KEY = 'haksla_party_idle_v6_evolved';
                 div.innerHTML = `<div>${done?'✅':'⬜'} <strong>${q.label}</strong><br><span style="color:#888;">報酬: ${rewardStr}</span></div><div style="font-size:1.4em;">${done?'🏆':''}</div>`;
                 questList.appendChild(div);
             });
+        }
+        
+        // === BGM/SEボタンを更新 ===
+        updateBGMSEButtons();
+    }
+    
+    // === BGM/SEボタンを動的更新する関数 ===
+    function updateBGMSEButtons() {
+        let bgmBtn = document.getElementById('bgm-toggle');
+        let seBtn = document.getElementById('se-toggle');
+        
+        if (bgmBtn) {
+            bgmBtn.textContent = `🎵 BGM: ${gameState.bgmEnabled ? 'ON' : 'OFF'}`;
+            bgmBtn.style.background = gameState.bgmEnabled ? '#4caf50' : '#999';
+            bgmBtn.style.boxShadow = gameState.bgmEnabled ? '0 2px 12px rgba(76, 175, 80, 0.6)' : '0 2px 8px rgba(0,0,0,0.2)';
+        }
+        
+        if (seBtn) {
+            seBtn.textContent = `🔈 SE: ${gameState.seEnabled ? 'ON' : 'OFF'}`;
+            seBtn.style.background = gameState.seEnabled ? '#4caf50' : '#999';
+            seBtn.style.boxShadow = gameState.seEnabled ? '0 2px 12px rgba(76, 175, 80, 0.6)' : '0 2px 8px rgba(0,0,0,0.2)';
         }
     }
 
