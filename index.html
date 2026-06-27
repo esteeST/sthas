@@ -166,6 +166,8 @@
         .inv-item.favorite { border-left: 4px solid #ffd700; }
         .inv-favorite-star { cursor: pointer; font-size: 1.2em; margin-left: 6px; color: #ccc; user-select: none; }
         .inv-favorite-star.active { color: #ffd700; }
+        .inv-item-check { width: 18px; height: 18px; cursor: pointer; margin: 0 8px; flex-shrink: 0; accent-color: #4caf50; }
+        .inv-item.selected { background: #f1f8e9; border-color: #4caf50; }
         
         .opt-text { font-size: 0.8em; color: #666; display: block; margin-top: 2px; }
         .item-btns { display: flex; gap: 4px; padding-right: 8px; }
@@ -552,7 +554,9 @@
                     <strong style="font-size: 1.05em; color: #2e7d32;">🎒 倉庫 (<span id="inv-count">0</span> / <span id="inv-max-capacity">10</span>)</strong>
                     <div style="display:flex; gap: 4px;">
                         <button id="btn-expand-inv" onclick="expandInventory()" style="width: auto; margin: 0; padding: 4px 8px; font-size: 0.8em; background: #0288d1; color: white; border: none; border-radius: 3px;">＋枠拡張 (500G)</button>
-                        <button onclick="bulkScrapNormal()" style="width: auto; margin: 0; padding: 4px 8px; font-size: 0.8em; background: #37474f; color: white; border: none; border-radius: 3px;">Normal全分解</button>
+                        <button onclick="selectAllFiltered()" style="width: auto; margin: 0; padding: 4px 8px; font-size: 0.8em; background: #4caf50; color: white; border: none; border-radius: 3px;">全選択</button>
+                        <button onclick="bulkScrapSelected()" style="width: auto; margin: 0; padding: 4px 8px; font-size: 0.8em; background: #e53935; color: white; border: none; border-radius: 3px;">全分解</button>
+                        <button onclick="bulkSellSelected()" style="width: auto; margin: 0; padding: 4px 8px; font-size: 0.8em; background: #ff9800; color: white; border: none; border-radius: 3px;">全売却</button>
                     </div>
                 </div>
                 <div class="inv-grid" id="inv-grid"></div>
@@ -901,6 +905,7 @@
     };
 
     let activePickerCharIndex = null, activePickerSlot = null;
+    let selectedItemIds = new Set();
     let coolTimes = { bash: 0, rush: 0, rain: 0, coin: 0, heal: 0, blizzard: 0, warcry: 0, shadowstep: 0, meteor: 0, poisonCure: 0, darknessCure: 0, paralysisCure: 0 };
     
     // 戦闘関連の一時ステータス
@@ -1865,14 +1870,16 @@
         invGrid.innerHTML = "";
         filtered.forEach((item) => {
             let itemDiv = document.createElement('div');
-            itemDiv.className = `inv-item${item.isFavorite ? ' favorite' : ''}`;
+            let isSelected = selectedItemIds.has(item.id);
+            itemDiv.className = `inv-item${item.isFavorite ? ' favorite' : ''}${isSelected ? ' selected' : ''}`;
             let optStrings = item.options ? item.options.map(o => `🔹${o.text}`).join(" | ") : "";
             let favoriteIcon = item.isFavorite ? '⭐' : '☆';
             
             itemDiv.innerHTML = `
+                <input type="checkbox" class="inv-item-check" ${isSelected ? 'checked' : ''} ${item.isFavorite ? 'disabled title="お気に入りは選択できません"' : ''} onchange="toggleItemSelect('${item.id}', this.checked)">
                 <div class="inv-item-content" style="border-left: 5px solid ${slotColors[item.slot] || "#ccc"};">
                     <div>
-                        <span class="rarity-${item.rarity}">${slotMarkers[item.slot] || "🎒"} ${item.name} (+${item.value}${item.type === "atk" ? "A" : "D"})</span>
+                        <span class="rarity-${item.rarity}">${slotMarkers[item.slot] || "🎒"} ${item.name}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value}${item.type === "atk" ? "A" : "D"})</span>
                         <span style="font-size:0.75em; background:#eee; color:#333; padding:1px 4px; border-radius:3px; margin-left:5px;">${slotJpNames[item.slot] || item.slot}</span>
                         ${optStrings ? `<span class="opt-text">${optStrings}</span>` : ""}
                     </div>
@@ -1909,7 +1916,7 @@
                 
                 let optText = item.options ? item.options.map(o => o.text).join(", ") : "";
 
-                div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${item.name} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
+                div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${item.name}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
                 
                 let btn = document.createElement('button'); 
                 btn.className = "picker-btn";
@@ -1992,23 +1999,74 @@
         
         gameState.upgradeStone += count;
         appendLog('log-drop-area', `${getLogTime()} 🛠️ 分解: ${item.name} ➡ <span style="color:#0288d1;">強化石+${count}</span>${smithBonus>0?` <span style="color:#ff9800;">(鍛冶屋+${smithBonus})</span>`:''}`, "c-gray");
-        gameState.inventory.splice(invIndex, 1); 
+        gameState.inventory.splice(invIndex, 1);
+        selectedItemIds.delete(itemId);
         saveGame(); 
         updateDisplay();
     }
 
-    function bulkScrapNormal() {
-        let before = gameState.inventory.length;
-        gameState.inventory = gameState.inventory.filter(item => { 
-            if (item.rarity === "Normal" && !item.isFavorite) { 
-                gameState.upgradeStone += 1; 
-                return false; 
-            } 
-            return true; 
+    function toggleItemSelect(itemId, checked) {
+        if (checked) selectedItemIds.add(itemId);
+        else selectedItemIds.delete(itemId);
+        updateInvDisplay();
+    }
+
+    function selectAllFiltered() {
+        let filtered = getFilteredInventory();
+        let selectableIds = filtered.filter(i => !i.isFavorite).map(i => i.id);
+        // 全選択済みなら全解除、それ以外は全選択
+        let allSelected = selectableIds.every(id => selectedItemIds.has(id));
+        if (allSelected) {
+            selectableIds.forEach(id => selectedItemIds.delete(id));
+        } else {
+            selectableIds.forEach(id => selectedItemIds.add(id));
+        }
+        updateInvDisplay();
+    }
+
+    function bulkScrapSelected() {
+        if (selectedItemIds.size === 0) return alert("アイテムが選択されていません。");
+        let targets = gameState.inventory.filter(i => selectedItemIds.has(i.id) && !i.isFavorite);
+        if (targets.length === 0) return alert("分解できるアイテムがありません。");
+        if (!confirm(`選択中の ${targets.length} 個を分解しますか？`)) return;
+
+        let totalStone = 0;
+        let smithBonus = gameState.facilities?.smithLevel || 0;
+        targets.forEach(item => {
+            let base = { Normal: 1, Rare: 3, Epic: 8, Legendary: 25 }[item.rarity] || 1;
+            totalStone += base + smithBonus;
         });
-        let diff = before - gameState.inventory.length;
-        if(diff > 0) appendLog('log-drop-area', `${getLogTime()} 🛠️ Normal一括分解 ➡ <span style="color:#0288d1;">強化石+${diff}</span>`, "c-gray");
-        saveGame(); 
+
+        let targetIds = new Set(targets.map(i => i.id));
+        gameState.inventory = gameState.inventory.filter(i => !targetIds.has(i.id));
+        gameState.upgradeStone += totalStone;
+        selectedItemIds.clear();
+
+        appendLog('log-drop-area', `${getLogTime()} 🛠️ 一括分解 ${targets.length}個 ➡ <span style="color:#0288d1;">強化石+${totalStone}</span>`, "c-gray");
+        saveGame();
+        updateDisplay();
+    }
+
+    function bulkSellSelected() {
+        if (selectedItemIds.size === 0) return alert("アイテムが選択されていません。");
+        let targets = gameState.inventory.filter(i => selectedItemIds.has(i.id) && !i.isFavorite);
+        if (targets.length === 0) return alert("売却できるアイテムがありません。");
+        if (!confirm(`選択中の ${targets.length} 個を売却しますか？`)) return;
+
+        let alchMult = 1 + (gameState.facilities?.alchemyLevel || 0) * 0.15;
+        let totalGold = 0;
+        targets.forEach(item => {
+            let basePrice = item.value * 6 + (item.options.length * 35);
+            totalGold += Math.floor(basePrice * alchMult);
+        });
+
+        let targetIds = new Set(targets.map(i => i.id));
+        gameState.inventory = gameState.inventory.filter(i => !targetIds.has(i.id));
+        gameState.gold += totalGold;
+        selectedItemIds.clear();
+
+        appendLog('log-exp-area', `${getLogTime()} 💰 一括売却 ${targets.length}個 ➡ <span class="c-gold">+${totalGold} G</span>${alchMult > 1 ? ` <span style="color:#ff9800;">(錬金x${alchMult.toFixed(2)})</span>` : ''}`, "c-gray");
+        saveGame();
         updateDisplay();
     }
 
@@ -2025,7 +2083,8 @@
         
         gameState.gold += price;
         appendLog('log-exp-area', `${getLogTime()} 💰 売却: ${item.name} ➡ <span class="c-gold">+${price} G</span>${alchMult>1?` <span style="color:#ff9800;">(錬金x${alchMult.toFixed(2)})</span>`:''}`, "c-gray");
-        gameState.inventory.splice(invIndex, 1); 
+        gameState.inventory.splice(invIndex, 1);
+        selectedItemIds.delete(itemId);
         saveGame(); 
         updateDisplay();
     }
