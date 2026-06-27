@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>STハクスラ</title>
     <style>
         /* =========================================
@@ -14,7 +15,7 @@
             padding-bottom: 50px;
             margin: 0;
             padding-top: 20px;
-            touch-action: pan-x pan-y pinch-zoom;
+            touch-action: pan-x pan-y;
         }
         #game-box {
             margin: 0 auto;
@@ -25,7 +26,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             position: relative;
-            touch-action: pan-x pan-y pinch-zoom;
+            touch-action: pan-x pan-y;
         }
 
         /* =========================================
@@ -42,7 +43,7 @@
             border-radius: 4px;
             border: 1px solid #ccc;
             font-weight: bold;
-            touch-action: pan-x pan-y pinch-zoom;
+            touch-action: manipulation;
         }
         button:disabled {
             background: #ccc !important;
@@ -220,6 +221,14 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.02); }
         }
+        /* スマホではシークバーを非表示（音量JS制御不可のため） */
+        @media (hover: none) and (pointer: coarse) {
+            #bgm-volume-row,
+            #se-volume-row { display: none !important; }
+            #volume-mobile-note { display: block !important; }
+            #attack-label-pc { display: none; }
+            #attack-label-sp { display: inline !important; }
+        }
     </style>
 </head>
 <body>
@@ -293,7 +302,7 @@
             
             <div style="margin-bottom:8px;">
                 <button onclick="attack()" style="width:100%; padding:12px; background:#4caf50; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.1em;">
-                    【敵をタップして攻撃】
+                    <span id="attack-label-pc">【敵をクリックして攻撃】</span><span id="attack-label-sp" style="display:none;">【敵をタップして攻撃】</span>
                 </button>
             </div>
             
@@ -633,15 +642,17 @@
                         </button>
                     </div>
                     
-                    <div style="margin-bottom: 10px;">
+                    <div id="bgm-volume-row" style="margin-bottom: 10px;">
                         <label style="color: #81d4fa; font-size: 0.9em;">🎵 BGM音量: <span id="bgm-volume-display">50%</span></label>
                         <input type="range" id="bgm-volume" min="0" max="100" value="50" style="width: 100%; cursor: pointer;" oninput="setBGMVolume(this.value)">
                     </div>
                     
-                    <div style="margin-bottom: 10px;">
+                    <div id="se-volume-row" style="margin-bottom: 10px;">
                         <label style="color: #81d4fa; font-size: 0.9em;">🔈 SE音量: <span id="se-volume-display">50%</span></label>
                         <input type="range" id="se-volume" min="0" max="100" value="50" style="width: 100%; cursor: pointer;" oninput="setSEVolume(this.value)">
                     </div>
+
+                    <p id="volume-mobile-note" style="display:none; color:#90caf9; font-size:0.8em; margin:0;">📱 スマホでは音量はシステム設定で調整してください。</p>
                 </div>
 
                 <div style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); border: 2px solid #64b5f6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
@@ -741,10 +752,10 @@
                 maxHp:       { baseCost: 40,  max: 5, req: null,          job: "mage",    label: "① HP最大値UP",             desc: "最大HP +30/Lv" },
                 heal:        { baseCost: 130, max: 1, req: "maxHp",       job: "mage",    label: "② 聖なるヒール",           desc: "HP40%回復 (CT:9s)" },
                 regen:       { baseCost: 90,  max: 5, req: "heal",        job: "mage",    label: "③ 自動再生",               desc: "毎秒回復 +2/Lv" },
-                arcane:      { baseCost: 140, max: 3, req: "regen",       job: "mage",    label: "④ ✨アーケインチャージ",   desc: "魔法クリックダメ +15%/Lv" },
+                arcane:      { baseCost: 140, max: 3, req: "regen",       job: "mage",    label: "④ ✨アーケインチャージ",   desc: "MAG +15/Lv（最大+45）" },
                 blizzard:    { baseCost: 240, max: 1, req: "arcane",      job: "mage",    label: "⑤ ブリザード",             desc: "必中ATK×4.5 (CT:8s)" },
                 mres:        { baseCost: 180, max: 5, req: "blizzard",    job: "mage",    label: "⑥ 反魔障壁",               desc: "魔法耐性 +5%/Lv" },
-                arcaneamp:   { baseCost: 280, max: 3, req: "mres",        job: "mage",    label: "⑦ 🌀魔力増幅",             desc: "全スキルダメ +10%/Lv" },
+                arcaneamp:   { baseCost: 280, max: 3, req: "mres",        job: "mage",    label: "⑦ 🌀魔力増幅",             desc: "魔法耐性貫通 +5%/Lv（最大+15%）" },
                 paralysisRes:{ baseCost: 200, max: 5, req: "arcaneamp",   job: "mage",    label: "⑧ ⚡麻痺耐性",             desc: "麻痺耐性 +10%/Lv（最大95%）" },
                 paralysisCure:{ baseCost: 150, max: 1, req: "paralysisRes", job: "mage",  label: "⑨ ✨リフレッシュ ★",      desc: "麻痺を即時解除 (CT:15s)" },
                 meteor:      { baseCost: 700, max: 1, req: "paralysisCure", job: "mage",  label: "⑩ ☄️メテオ ★最終スキル", desc: "必中ATK×8 (CT:15s)" },
@@ -1470,26 +1481,24 @@
                 return;
             }
             
-            let arcaneBoost = 1 + (gameState.treeSkills.arcane||0) * 0.15;
-            let arcaneAmpMult = 1 + (gameState.treeSkills.arcaneamp||0) * 0.10;
             let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0) ? 1 + (gameState.treeSkills.berserker * 0.2) : 1.0;
             let paralysisMult = playerParalysis > 0 ? 0.5 : 1.0;
 
             if (leader.job === "mage") {
                 let isCrit = Math.random() * 100 < lStats.crit;
-                let baseMagicDmg = Math.max(1, Math.floor((lStats.atk + stats.mag) * arcaneBoost * arcaneAmpMult * berserkMult * paralysisMult * (1 - Math.min(99, Math.max(0, enemyMres - stats.magPenetration)) / 100)));
+                let baseMagicDmg = Math.max(1, Math.floor((lStats.atk + stats.mag) * berserkMult * paralysisMult * (1 - Math.min(99, Math.max(0, enemyMres - stats.magPenetration)) / 100)));
                 let magicDmg = isCrit ? Math.max(1, Math.floor(baseMagicDmg * (lStats.critMultiplier / 100))) : baseMagicDmg;
                 
                 playSE('m0.mp3');
                 enemyHp -= magicDmg;
                 
                 document.getElementById('m-p-click').innerHTML = isCrit
-                    ? `⚔️ 会心 <span class="c-crit-flash">${magicDmg}💥</span>${arcaneBoost>1?` <span style="color:#ce93d8;">[アーケイン×${arcaneBoost.toFixed(1)}]</span>`:''} 必中魔法`
-                    : `🔮 [魔導士] <span class="c-purple">${magicDmg}</span> 必中魔法${arcaneBoost>1?` <span style="color:#ce93d8;">[アーケイン×${arcaneBoost.toFixed(1)}]</span>`:''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`;
+                    ? `⚔️ 会心 <span class="c-crit-flash">${magicDmg}💥</span> 必中魔法`
+                    : `🔮 [魔導士] <span class="c-purple">${magicDmg}</span> 必中魔法${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`;
             } else {
                 let isCrit = Math.random() * 100 < lStats.crit;
                 let baseDmg = lStats.atk - (isCrit ? 0 : enemyDef);
-                let dmg = Math.max(1, Math.floor((isCrit ? baseDmg * (lStats.critMultiplier / 100) : baseDmg) * (1 - (isCrit ? enemyEva * 0.5 : enemyEva) / 100) * berserkMult * arcaneAmpMult * paralysisMult));
+                let dmg = Math.max(1, Math.floor((isCrit ? baseDmg * (lStats.critMultiplier / 100) : baseDmg) * (1 - (isCrit ? enemyEva * 0.5 : enemyEva) / 100) * berserkMult * paralysisMult));
                 
                 if (isCrit && (gameState.treeSkills.deathmark||0) > 0 && leader.job === "rogue") {
                     dmg = Math.floor(dmg * (1 + gameState.treeSkills.deathmark * 0.15));
@@ -1614,7 +1623,6 @@
         // --- 自動攻撃（放置DPS）---
         let totalDps = stats.dps + Math.floor(lStats.atk * 0.1) + (stats.idleDmg || 0);
         let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0) ? 1 + (gameState.treeSkills.berserker * 0.2) : 1.0;
-        let arcaneAmpMult = 1 + (gameState.treeSkills.arcaneamp||0) * 0.10;
         let dpsBoost = warcryActive > 0 ? 1.5 : 1.0;
         let darknessMult = playerDarkness > 0 ? 0.5 : 1.0;
         
@@ -2396,8 +2404,8 @@
         let mres = ((gameState.treeSkills.mres || 0) * 5);
         let eva = ((gameState.treeSkills.eva || 0) * 4);
         let def = (gameState.treeSkills.ironwall || 0) * 4;
-        let mag = 0;  
-        let magPenetration = 0; 
+        let mag = (gameState.treeSkills.arcane || 0) * 15;
+        let magPenetration = (gameState.treeSkills.arcaneamp || 0) * 5;
         let idleDmg = 0;  
         let bonus = 0;
         let guildExpBonus = (gameState.facilities?.guildLevel || 0) * 10;
