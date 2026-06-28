@@ -279,7 +279,7 @@
         <div style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:10px;">
             <div style="font-weight:bold; color:#e65100; margin-bottom:6px;">🔍 敵の情報</div>
             <div id="enemy-box">
-                <div class="stat" style="font-weight: bold; font-size: 1.1em;"><span id="enemy-name">スライム</span></div>
+                <div class="stat" style="font-weight: bold; font-size: 1.1em;"><span id="enemy-name">野ウサギ</span></div>
                 <div class="stat">敵HP: <span id="enemy-hp">100</span> / <span id="enemy-max-hp">100</span></div>
                 <div style="font-size:0.8em; color:#555;">物理防御:<span id="e-stat-def">0</span> | 魔法耐性:<span id="e-stat-mres">0</span>% | 回避率:<span id="e-stat-eva">0</span>%</div>
                 <div style="font-size:0.8em; color:#555; margin-top:4px; height:1.4em; line-height:1.4em; overflow:hidden;" id="enemy-gimmick-label"></div>
@@ -301,7 +301,7 @@
             <div style="font-weight:bold; color:#1565c0; margin-bottom:8px;">⚔️ 戦闘操作</div>
             
             <div style="margin-bottom:8px;">
-                <button onclick="attack()" style="width:100%; padding:12px; background:#4caf50; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.1em;">
+                <button type="button" onclick="attack()" onkeydown="return false" tabindex="-1" style="width:100%; padding:12px; background:#4caf50; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.1em;">
                     <span id="attack-label-pc">【敵をクリックして攻撃】</span><span id="attack-label-sp" style="display:none;">【敵をタップして攻撃】</span>
                 </button>
             </div>
@@ -767,9 +767,9 @@
         // --- 敵・ギミック ---
         enemies: {
             worldTables: {
-                1:  [{ name: "スライム",      gimmick: null },             { name: "ゴブリン",      gimmick: "shield" },           { name: "ハーピィ",      gimmick: "evasive" },          { name: "スケルトン",    gimmick: "regen" }],
-                2:  [{ name: "溶岩虫",        gimmick: "reflect" },        { name: "炎の悪魔",      gimmick: "berserk" },          { name: "灼熱蛇",        gimmick: "poison" },           { name: "業火鳥",        gimmick: "mresist" }],
-                3:  [{ name: "虚空蟲",        gimmick: "nullphys" },       { name: "混沌の眷属",    gimmick: "copydef" },          { name: "次元ゾンビ",    gimmick: "regen" },            { name: "深淵の番人",    gimmick: "shield" }],
+                1:  [{ name: "野ウサギ",    gimmick: null },             { name: "猪",            gimmick: "shield" },           { name: "鷹",            gimmick: "evasive" },          { name: "狼",            gimmick: "regen" }],
+                2:  [{ name: "スライム",    gimmick: "reflect" },        { name: "ゴブリン",      gimmick: "berserk" },          { name: "コウモリ",      gimmick: "poison" },           { name: "ゾンビ",        gimmick: "mresist" }],
+                3:  [{ name: "見張りの盗賊",gimmick: "nullphys" },       { name: "盾持ち盗賊",    gimmick: "copydef" },          { name: "斥候",          gimmick: "regen" },            { name: "盗賊団員",      gimmick: "shield" }],
                 4:  [{ name: "沼蜘蛛",        gimmick: "poison_normal" },  { name: "毒ガスムシ",    gimmick: "poison_normal" },    { name: "毒沼の魚",      gimmick: "poison_normal" },    { name: "瘴気の蛙",      gimmick: "shield" }],
                 5:  [{ name: "霧幽霊",        gimmick: "darkness_normal" },{ name: "霧怪魔",        gimmick: "darkness_normal" },  { name: "亡霊の騎士",    gimmick: "evasive" },          { name: "幽体妖怪",      gimmick: "darkness_normal" }],
                 6:  [{ name: "雷電体",        gimmick: "paralysis_normal"},{ name: "帯電妖",        gimmick: "paralysis_normal" }, { name: "雷光竜",        gimmick: "berserk" },          { name: "電撃ゴーレム",  gimmick: "paralysis_normal" }],
@@ -779,9 +779,9 @@
                 10: [{ name: "終焉の獣",      gimmick: "apocalypse_trio" },{ name: "破滅の影",      gimmick: "apocalypse_trio" },  { name: "終末の怪",      gimmick: "apocalypse_trio" },  { name: "滅びの牙",      gimmick: "nullphys" }],
             },
             worldBosses: {
-                1:  { name: "【魔王】アブソリュート・ゼロ",    gimmick: "berserk",          hpBase: 800,   atkBase: 25 },
-                2:  { name: "【煉獄神】アインフェルノ",        gimmick: "reflect",          hpBase: 1600,  atkBase: 40 },
-                3:  { name: "【混沌龍】ヴォイドレクス",        gimmick: "nullphys",         hpBase: 3200,  atkBase: 60 },
+                1:  { name: "【群れの王】大狼ガルム",        gimmick: "berserk",          hpBase: 800,   atkBase: 25 },
+                2:  { name: "【魔物の親玉】キングスライム",  gimmick: "reflect",          hpBase: 1600,  atkBase: 40 },
+                3:  { name: "【盗賊団長】黒薔薇のジーク",    gimmick: "nullphys",         hpBase: 3200,  atkBase: 60 },
                 4:  { name: "【沼帝】毒の化身",                gimmick: "poison_boss",      hpBase: 5500,  atkBase: 85 },
                 5:  { name: "【霧王】暗黒の支配者",            gimmick: "darkness_boss",    hpBase: 8000,  atkBase: 110 },
                 6:  { name: "【雷帝】電撃の覇者",              gimmick: "paralysis_boss",   hpBase: 11000, atkBase: 135 },
@@ -791,9 +791,9 @@
                 10: { name: "【終焉の神】ルシファー",          gimmick: "apocalypse_final", hpBase: 80000, atkBase: 500 },
             },
             stageBosses: {
-                1:  [{ name: "ガーディアン",       gimmick: null },           { name: "岩の巨人",        gimmick: "shield" },       { name: "森の番人",        gimmick: "regen" },        { name: "影の騎士",        gimmick: "evasive" },      { name: "嵐の鷹",          gimmick: "berserk" },      { name: "毒の魔女",        gimmick: "poison" },       { name: "鉄壁の騎士",      gimmick: "shield" },       { name: "血塗れの剣士",    gimmick: "berserk" },      { name: "古代の竜",        gimmick: "reflect" },      { name: "魔王の右腕",      gimmick: "mresist" }],
-                2:  [{ name: "炎の守護者",         gimmick: "reflect" },      { name: "溶岩ゴーレム",    gimmick: "shield" },       { name: "地獄の将軍",      gimmick: "berserk" },      { name: "灼熱の僧侶",      gimmick: "mresist" },      { name: "業火の暴君",      gimmick: "poison" },       { name: "炎獄の魔王",      gimmick: "berserk" },      { name: "不死の炎鳥",      gimmick: "regen" },        { name: "業炎の巨神",      gimmick: "reflect" },      { name: "煉獄の支配者",    gimmick: "nullphys" },     { name: "煉獄神の使徒",    gimmick: "shield" }],
-                3:  [{ name: "虚無の門番",         gimmick: "nullphys" },     { name: "混沌の魔将",      gimmick: "regen" },        { name: "次元の歪み",      gimmick: "copydef" },      { name: "深淵の王",        gimmick: "evasive" },      { name: "虚空の暴君",      gimmick: "nullphys" },     { name: "混沌の神官",      gimmick: "mresist" },      { name: "次元喰い",        gimmick: "shield" },       { name: "深淵の魔竜",      gimmick: "berserk" },      { name: "宇宙の破壊者",    gimmick: "reflect" },      { name: "混沌龍の使徒",    gimmick: "nullphys" }],
+                1:  [{ name: "古老の熊",       gimmick: null },           { name: "巨大猪",          gimmick: "shield" },       { name: "森の主・大鹿",    gimmick: "regen" },        { name: "夜の猛禽",        gimmick: "evasive" },      { name: "嵐を呼ぶ鷹王",    gimmick: "berserk" },      { name: "山の主・大蛇",    gimmick: "poison" },       { name: "鉄皮の亀",        gimmick: "shield" },       { name: "傷ついた熊王",    gimmick: "berserk" },      { name: "古の大蜥蜴",      gimmick: "reflect" }],
+                2:  [{ name: "スライムの王",     gimmick: "reflect" },      { name: "ゴブリンリーダー",gimmick: "shield" },       { name: "オーク戦士",      gimmick: "berserk" },      { name: "コウモリの群れ",  gimmick: "mresist" },      { name: "ゾンビの大群",    gimmick: "poison" },       { name: "ホブゴブリン",    gimmick: "berserk" },      { name: "不死のゾンビ",    gimmick: "regen" },        { name: "オーガ",          gimmick: "reflect" },      { name: "魔物の巣の主",    gimmick: "nullphys" }],
+                3:  [{ name: "アジトの門番",     gimmick: "nullphys" },     { name: "盗賊の伍長",      gimmick: "regen" },        { name: "罠師の盗賊",      gimmick: "copydef" },      { name: "盗賊の小隊長",    gimmick: "evasive" },      { name: "略奪の暴君",      gimmick: "nullphys" },     { name: "呪術師の盗賊",    gimmick: "mresist" },      { name: "人喰い盗賊",      gimmick: "shield" },       { name: "盗賊団の猛者",    gimmick: "berserk" },      { name: "副団長・赤獅子",  gimmick: "reflect" }],
                 4:  [{ name: "沼の領主",           gimmick: "poison_normal" },{ name: "毒沼の巨人",      gimmick: "shield" },       { name: "瘴気の王",        gimmick: "poison_normal" },{ name: "毒液体生物",      gimmick: "regen" },        { name: "沼帝の眷属",      gimmick: "poison_normal" },{ name: "毒沼の化身",      gimmick: "poison_normal" },{ name: "腐敗の君主",      gimmick: "mresist" },      { name: "沼地の魔神",      gimmick: "poison_normal" },{ name: "瘴気の支配者",    gimmick: "poison_normal" },{ name: "沼帝の使徒",      gimmick: "poison_boss" }],
                 5:  [{ name: "霧の支配者",         gimmick: "darkness_normal"},{ name: "亡霊の王",       gimmick: "evasive" },      { name: "闇の騎士",        gimmick: "darkness_normal"},{ name: "幽鬼の王",       gimmick: "darkness_normal"},{ name: "暗黒の眼",        gimmick: "darkness_normal"},{ name: "霧の化身",       gimmick: "darkness_normal"},{ name: "影の神官",        gimmick: "mresist" },      { name: "暗黒の巨人",      gimmick: "shield" },       { name: "虚無の支配者",    gimmick: "darkness_normal"},{ name: "霧王の使徒",     gimmick: "darkness_boss" }],
                 6:  [{ name: "雷電の君主",         gimmick: "paralysis_normal"},{ name: "帯電の王",      gimmick: "paralysis_normal"},{ name: "電撃龍",         gimmick: "berserk" },      { name: "雷光の戦士",      gimmick: "paralysis_normal"},{ name: "電撃の魔神",     gimmick: "paralysis_normal"},{ name: "落雷の支配者",   gimmick: "paralysis_normal"},{ name: "雷電の化身",     gimmick: "paralysis_normal"},{ name: "電撃ゴーレム王", gimmick: "shield" },       { name: "高圧の君主",      gimmick: "paralysis_normal"},{ name: "雷帝の使徒",     gimmick: "paralysis_boss"}],
@@ -858,6 +858,29 @@
 
     }; // end GAME_DATA
 
+    // =========================================
+    // DUNGEON DEFINITIONS
+    // 新ダンジョン追加時はここに追記するだけ
+    // =========================================
+    GAME_DATA.dungeons = {
+        normal: {
+            id:       "normal",
+            label:    "ノーマル",
+            worlds:   10,
+            stages:   10,
+            progress: 5,
+            unlock:   null, // 最初から解放
+        },
+        // hard: {
+        //     id:       "hard",
+        //     label:    "ハード",
+        //     worlds:   10,
+        //     stages:   10,
+        //     progress: 5,
+        //     unlock:   "normal_clear", // ノーマルクリアで解放
+        // },
+    };
+
     // 後方互換エイリアス（既存コードが参照する短い変数名を維持）
     const { prefixes, slotNames, slotMarkers, slotColors, slotJpNames } = GAME_DATA.equipment;
     const jobNamesEngJp  = GAME_DATA.jobs.namesJp;
@@ -879,6 +902,10 @@
         party: [{ name: "主人公", job: "", isUnlocked: true, currentEquip: {}, awakened: false }],
         world: 1, stage: 1, maxReachedStage: 1, maxReachedWorld: 1, killsInStage: 0,
         gold: 0, exp: 0, upgradeStone: 0, maxInventorySlots: 10,
+        currentDungeon: "normal",
+        progress: {
+            normal: { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 },
+        },
         treeSkills: {
             atk: 0, bash: 0, crit: 0, ironwall: 0, rush: 0, critDmg: 0, berserker: 0, warcry: 0,
             dps: 0, rain: 0, goldBonus: 0, poison: 0, coin: 0, eva: 0, deathmark: 0, shadowstep: 0,
@@ -920,7 +947,7 @@
     let coolTimes = { bash: 0, rush: 0, rain: 0, coin: 0, heal: 0, blizzard: 0, warcry: 0, shadowstep: 0, meteor: 0, poisonCure: 0, darknessCure: 0, paralysisCure: 0 };
     
     // 戦闘関連の一時ステータス
-    let playerHp = 100, enemyName = "スライム", enemyHp = 100, enemyMaxHp = 100; 
+    let playerHp = 100, enemyName = "野ウサギ", enemyHp = 100, enemyMaxHp = 100; 
     let enemyAtk = 2, enemyDef = 0, enemyMres = 0, enemyEva = 0, expBonus = 0;
     let warcryActive = 0, shadowstepActive = 0;
     let enemyPoisoned = 0, enemyPoisonDmg = 0;
@@ -963,6 +990,14 @@
                     if (!gameState.treeSkills.arcane) gameState.treeSkills.arcane = 0;
                     if (!gameState.treeSkills.arcaneamp) gameState.treeSkills.arcaneamp = 0;
                     if (!gameState.inventoryFilter) gameState.inventoryFilter = { rarity: "all", slot: "all", sortBy: "entry" };
+                    if (!gameState.currentDungeon) gameState.currentDungeon = "normal";
+                    if (!gameState.progress) gameState.progress = {};
+                    if (!gameState.progress.normal) gameState.progress.normal = {
+                        world: gameState.world || 1,
+                        stage: gameState.stage || 1,
+                        maxReachedWorld: gameState.maxReachedWorld || 1,
+                        maxReachedStage: gameState.maxReachedStage || 1,
+                    };
                     gameState.party.forEach(c => { if (c.awakened === undefined) c.awakened = false; });
                     gameState.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
                     document.getElementById('start-job-select').style.display = 'none';
@@ -1375,7 +1410,7 @@
 
         if (s === 10 && isBoss) {
             let worldNames = { 
-                1: "魔王アブソリュート・ゼロ", 2: "煉獄神アインフェルノ", 3: "混沌龍ヴォイドレクス", 4: "沼帝毒の化身",
+                1: "大狼ガルム", 2: "キングスライム", 3: "黒薔薇のジーク", 4: "沼帝毒の化身",
                 5: "霧王暗黒の支配者", 6: "雷帝電撃の覇者", 7: "混沌魔王すべてを飲む者", 8: "焦熱帝溶岩の帝王",
                 9: "虚空の支配者無限の彼方", 10: "終焉の神ルシファー"
             };
@@ -2621,7 +2656,7 @@
                 let ct = coolTimes[key] || 0;
                 let enabled = ct <= 0;
                 let ctText = ct > 0 ? `${ct}s` : "ready";
-                skillButtonHTML += `<button onclick="${enabled ? `useTreeSkill('${key}')` : 'void(0)'}" style="padding:8px; background:${enabled ? skillColors[key] || '#2196f3' : '#ccc'}; color:white; border:none; border-radius:3px; font-weight:bold; cursor:${enabled ? 'pointer' : 'not-allowed'}; opacity:${enabled ? '1' : '0.6'};"><small>${skillLabels[key]}<br>${ctText}</small></button>`;
+                skillButtonHTML += `<button type="button" onkeydown="return false" tabindex="-1" onclick="${enabled ? `useTreeSkill('${key}')` : 'void(0)'}" style="padding:8px; background:${enabled ? skillColors[key] || '#2196f3' : '#ccc'}; color:white; border:none; border-radius:3px; font-weight:bold; cursor:${enabled ? 'pointer' : 'not-allowed'}; opacity:${enabled ? '1' : '0.6'};"><small>${skillLabels[key]}<br>${ctText}</small></button>`;
             }
         });
         
@@ -2642,7 +2677,7 @@
                               (cure.key === 'darknessCure'  && playerDarkness > 0  && coolTimes.darknessCure <= 0)  ||
                               (cure.key === 'paralysisCure' && playerParalysis > 0 && coolTimes.paralysisCure <= 0);
                 let cd = coolTimes[cure.key] > 0 ? `(${coolTimes[cure.key]}s)` : '';
-                cureButtonHTML += `<button onclick="${enabled ? `castCureSkill('${cure.key}')` : 'void(0)'}" style="padding:6px 10px; background:${cure.color}; color:white; border:none; border-radius:3px; font-size:0.75em; font-weight:bold; cursor:${enabled ? 'pointer' : 'not-allowed'}; opacity:${enabled ? '1' : '0.4'}; white-space:nowrap;">${cure.name}${cd}</button>`;
+                cureButtonHTML += `<button type="button" onkeydown="return false" tabindex="-1" onclick="${enabled ? `castCureSkill('${cure.key}')` : 'void(0)'}" style="padding:6px 10px; background:${cure.color}; color:white; border:none; border-radius:3px; font-size:0.75em; font-weight:bold; cursor:${enabled ? 'pointer' : 'not-allowed'}; opacity:${enabled ? '1' : '0.4'}; white-space:nowrap;">${cure.name}${cd}</button>`;
             }
         });
         
