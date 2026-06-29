@@ -67,26 +67,18 @@
         .job-card:hover { border-color: #4CAF50; background: #f1f8e9; }
 
         /* Stage Select */
-        .stage-select-zone {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #212121;
-            color: #fff;
-            padding: 8px 15px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-        .stage-nav-btn {
-            width: auto;
-            margin: 0;
-            padding: 5px 15px;
-            background: #424242;
-            color: white;
-            border: none;
-            font-size: 1em;
-        }
+        /* Dungeon Navigation */
+        .dungeon-nav { background: #212121; color: #fff; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+        .dungeon-tab-row { display: flex; border-bottom: 1px solid #424242; }
+        .dungeon-tab-btn { flex: 1; padding: 6px 4px; background: #2c2c2c; color: #aaa; border: none; cursor: pointer; font-size: 0.78em; font-weight: bold; margin: 0; border-radius: 0; }
+        .dungeon-tab-btn.active { background: #4caf50; color: white; }
+        .world-row { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid #333; }
+        .world-select { background: #424242; color: white; border: 1px solid #616161; border-radius: 4px; padding: 3px 8px; font-size: 0.85em; font-weight: bold; cursor: pointer; }
+        .stage-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #333; }
+        .stage-nav-btn { width: auto; margin: 0; padding: 4px 14px; background: #424242; color: white; border: none; font-size: 0.85em; border-radius: 3px; }
         .stage-nav-btn:hover { background: #616161; }
+        .stage-title-text { font-size: 0.95em; font-weight: bold; color: white; text-align: center; }
+        .progress-row { padding: 4px 12px; text-align: center; font-size: 0.78em; color: white; }
 
         /* Enemy Info */
         #enemy-box { padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 6px; background: #fafafa; }
@@ -262,18 +254,22 @@
 
     <div id="main-game-area" style="display: none;">
         
-        <div class="stage-select-zone">
-            <button class="stage-nav-btn" onclick="moveStage(-1)">◀ステージ</button>
-            <div style="text-align: center;">
-                <div style="font-size:0.8em; color:#aaa; margin-bottom:2px;">
-                    <button class="stage-nav-btn" onclick="moveWorld(-1)" style="padding:2px 8px; font-size:0.85em;">◀W</button>
-                    <span id="world-label" style="color:#ffeb3b; font-weight:bold;">W1</span>
-                    <button class="stage-nav-btn" onclick="moveWorld(1)" style="padding:2px 8px; font-size:0.85em;">W▶</button>
-                </div>
-                <strong id="stage-title" style="font-size: 1.2em;">ワールド 1 - ステージ 1</strong><br>
-                <small id="stage-progress">進行度(1/5)</small>
+        <div class="dungeon-nav">
+            <div class="dungeon-tab-row" id="dungeon-tab-row">
+                <!-- JS で描画 -->
             </div>
-            <button class="stage-nav-btn" onclick="moveStage(1)">ステージ▶</button>
+            <div class="world-row">
+                <select id="world-select" class="world-select" onchange="selectWorld(this.value)">
+                    <option value="1">ワールド1</option>
+                </select>
+                <span id="world-name-label" style="font-size:0.85em; color:white;">始まりの村</span>
+            </div>
+            <div class="stage-row">
+                <button class="stage-nav-btn" type="button" onkeydown="return false" tabindex="-1" onclick="moveStage(-1)">◀ 戻る</button>
+                <span class="stage-title-text" id="stage-title">ステージ 1</span>
+                <button class="stage-nav-btn" type="button" onkeydown="return false" tabindex="-1" onclick="moveStage(1)">進む ▶</button>
+            </div>
+            <div class="progress-row" id="stage-progress">進行度 1 / 5</div>
         </div>
 
         <div style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:10px;">
@@ -672,14 +668,6 @@
                     </div>
                 </div>
                 
-                <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 2px solid #ffd700; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                    <h4 style="color: #ffd700; margin: 0 0 10px 0; font-size: 1.2em;">🎖️ 次なる試練へ</h4>
-                    <p style="color: #e0e0e0; margin: 0 0 12px 0; font-size: 0.95em;">全世界制覇後、さらなる困難に挑戦します。</p>
-                    <button style="background: #999; color: #666; border: 2px solid #666; padding: 10px 20px; font-size: 1em; font-weight: bold; border-radius: 6px; cursor: not-allowed; opacity: 0.6;" disabled>
-                        ⚙️ ハードモードへ（未実装）
-                    </button>
-                </div>
-                
                 <p style="color:#888; font-size:0.82em; margin-bottom:8px;">ゲームデータをすべて消去して最初から始めます。</p>
                 <button class="reset-btn" onclick="resetGame()">データを完全に初期化して最初から</button>
             </div>
@@ -773,10 +761,10 @@
                 4:  [{ name: "沼蜘蛛",        gimmick: "poison_normal" },  { name: "毒ガスムシ",    gimmick: "poison_normal" },    { name: "毒沼の魚",      gimmick: "poison_normal" },    { name: "瘴気の蛙",      gimmick: "shield" }],
                 5:  [{ name: "霧幽霊",        gimmick: "darkness_normal" },{ name: "霧怪魔",        gimmick: "darkness_normal" },  { name: "亡霊の騎士",    gimmick: "evasive" },          { name: "幽体妖怪",      gimmick: "darkness_normal" }],
                 6:  [{ name: "雷電体",        gimmick: "paralysis_normal"},{ name: "帯電妖",        gimmick: "paralysis_normal" }, { name: "雷光竜",        gimmick: "berserk" },          { name: "電撃ゴーレム",  gimmick: "paralysis_normal" }],
-                7:  [{ name: "混沌獣",        gimmick: "chaos_random" },   { name: "魔界蟲",        gimmick: "chaos_random" },     { name: "深淵の眼",      gimmick: "chaos_random" },     { name: "虚無の牙",      gimmick: "nullphys" }],
-                8:  [{ name: "溶岩スライム",  gimmick: "poison_burn_normal"},{ name: "炎精霊",      gimmick: "poison_burn_normal"},{ name: "火の鳥",        gimmick: "berserk" },          { name: "火山竜",        gimmick: "poison_burn_normal" }],
-                9:  [{ name: "虚空の触手",    gimmick: "void_random_dual" },{ name: "無の怪物",     gimmick: "void_random_dual" }, { name: "奈落の騎士",    gimmick: "evasive" },          { name: "虚空の王",      gimmick: "void_random_dual" }],
-                10: [{ name: "終焉の獣",      gimmick: "apocalypse_trio" },{ name: "破滅の影",      gimmick: "apocalypse_trio" },  { name: "終末の怪",      gimmick: "apocalypse_trio" },  { name: "滅びの牙",      gimmick: "nullphys" }],
+                7:  [{ name: "魔族の番犬",    gimmick: "chaos_random" },   { name: "魔毒蟲",         gimmick: "chaos_random" },     { name: "森の魔眼",       gimmick: "chaos_random" },     { name: "魔族の狩人",    gimmick: "nullphys" }],
+                8:  [{ name: "魔族の兵士",    gimmick: "poison_burn_normal"},{ name: "魔族の炎使い",  gimmick: "poison_burn_normal"},{ name: "魔族の闘士",     gimmick: "berserk" },          { name: "魔族の竜騎兵",  gimmick: "poison_burn_normal" }],
+                9:  [{ name: "城の衛兵",      gimmick: "void_random_dual" },{ name: "魔王城の番人",  gimmick: "void_random_dual" }, { name: "黒騎士",         gimmick: "evasive" },          { name: "魔王の親衛隊",  gimmick: "void_random_dual" }],
+                10: [{ name: "魔王の使い魔",  gimmick: "apocalypse_trio" }, { name: "魔王の影武者",  gimmick: "apocalypse_trio" },  { name: "魔王の幻影",     gimmick: "apocalypse_trio" },  { name: "魔王の魔力の結晶", gimmick: "nullphys" }],
             },
             worldBosses: {
                 1:  { name: "【群れの王】大狼ガルム",        gimmick: "berserk",          hpBase: 800,   atkBase: 25 },
@@ -785,9 +773,9 @@
                 4:  { name: "【沼帝】毒の化身",                gimmick: "poison_boss",      hpBase: 5500,  atkBase: 85 },
                 5:  { name: "【霧王】暗黒の支配者",            gimmick: "darkness_boss",    hpBase: 8000,  atkBase: 110 },
                 6:  { name: "【雷帝】電撃の覇者",              gimmick: "paralysis_boss",   hpBase: 11000, atkBase: 135 },
-                7:  { name: "【混沌魔王】すべてを飲む者",      gimmick: "chaos_boss",       hpBase: 14500, atkBase: 160 },
-                8:  { name: "【焦熱帝】溶岩の帝王",            gimmick: "poison_burn_boss", hpBase: 25000, atkBase: 240 },
-                9:  { name: "【虚空の支配者】無限の彼方",      gimmick: "void_dual_boss",   hpBase: 45000, atkBase: 350 },
+                7:  { name: "【魔族の王】フォレスト・デーモン",  gimmick: "chaos_boss",       hpBase: 14500, atkBase: 160 },
+                8:  { name: "【魔族の覇王】イグニス",            gimmick: "poison_burn_boss", hpBase: 25000, atkBase: 240 },
+                9:  { name: "【魔王の忠臣】ダーク・セラフ",      gimmick: "void_dual_boss",   hpBase: 45000, atkBase: 350 },
                 10: { name: "【終焉の神】ルシファー",          gimmick: "apocalypse_final", hpBase: 80000, atkBase: 500 },
             },
             stageBosses: {
@@ -797,10 +785,10 @@
                 4:  [{ name: "沼の領主",           gimmick: "poison_normal" },{ name: "毒沼の巨人",      gimmick: "shield" },       { name: "瘴気の王",        gimmick: "poison_normal" },{ name: "毒液体生物",      gimmick: "regen" },        { name: "沼帝の眷属",      gimmick: "poison_normal" },{ name: "毒沼の化身",      gimmick: "poison_normal" },{ name: "腐敗の君主",      gimmick: "mresist" },      { name: "沼地の魔神",      gimmick: "poison_normal" },{ name: "瘴気の支配者",    gimmick: "poison_normal" },{ name: "沼帝の使徒",      gimmick: "poison_boss" }],
                 5:  [{ name: "霧の支配者",         gimmick: "darkness_normal"},{ name: "亡霊の王",       gimmick: "evasive" },      { name: "闇の騎士",        gimmick: "darkness_normal"},{ name: "幽鬼の王",       gimmick: "darkness_normal"},{ name: "暗黒の眼",        gimmick: "darkness_normal"},{ name: "霧の化身",       gimmick: "darkness_normal"},{ name: "影の神官",        gimmick: "mresist" },      { name: "暗黒の巨人",      gimmick: "shield" },       { name: "虚無の支配者",    gimmick: "darkness_normal"},{ name: "霧王の使徒",     gimmick: "darkness_boss" }],
                 6:  [{ name: "雷電の君主",         gimmick: "paralysis_normal"},{ name: "帯電の王",      gimmick: "paralysis_normal"},{ name: "電撃龍",         gimmick: "berserk" },      { name: "雷光の戦士",      gimmick: "paralysis_normal"},{ name: "電撃の魔神",     gimmick: "paralysis_normal"},{ name: "落雷の支配者",   gimmick: "paralysis_normal"},{ name: "雷電の化身",     gimmick: "paralysis_normal"},{ name: "電撃ゴーレム王", gimmick: "shield" },       { name: "高圧の君主",      gimmick: "paralysis_normal"},{ name: "雷帝の使徒",     gimmick: "paralysis_boss"}],
-                7:  [{ name: "混沌の獣",           gimmick: "chaos_random" }, { name: "虚無の騎士",      gimmick: "chaos_random" }, { name: "魔界の支配者",    gimmick: "nullphys" },     { name: "深淵の眼玉",      gimmick: "chaos_random" }, { name: "虚無の牙",        gimmick: "chaos_random" }, { name: "混沌の影",        gimmick: "chaos_random" }, { name: "破壊の化身",      gimmick: "berserk" },      { name: "虚空の魔竜",      gimmick: "chaos_random" }, { name: "無限の饗宴",      gimmick: "chaos_random" }, { name: "混沌魔王の使徒",  gimmick: "chaos_boss" }],
-                8:  [{ name: "溶岩地獄",           gimmick: "poison_burn_normal"},{ name: "炎の支配者",  gimmick: "poison_burn_normal"},{ name: "火山の心臓",    gimmick: "shield" },       { name: "溶岩の君主",      gimmick: "poison_burn_normal"},{ name: "炎の魔神",       gimmick: "poison_burn_normal"},{ name: "焦熱の王",       gimmick: "poison_burn_normal"},{ name: "溶岩の化身",     gimmick: "poison_burn_normal"},{ name: "火炎龍",         gimmick: "berserk" },      { name: "焦げ落とし",      gimmick: "poison_burn_normal"},{ name: "焦熱帝の使徒",   gimmick: "poison_burn_boss"}],
-                9:  [{ name: "虚空の魔",           gimmick: "void_random_dual"},{ name: "奈落の王",      gimmick: "evasive" },      { name: "無の騎士",        gimmick: "void_random_dual"},{ name: "虚空の眼",       gimmick: "void_random_dual"},{ name: "奈落の蟲",        gimmick: "void_random_dual"},{ name: "無限の淵",       gimmick: "void_random_dual"},{ name: "虚空の獣",        gimmick: "void_random_dual"},{ name: "奈落の竜",       gimmick: "void_random_dual"},{ name: "無の破壊者",      gimmick: "void_random_dual"},{ name: "虚空の支配者の使徒", gimmick: "void_dual_boss"}],
-                10: [{ name: "終焉の兆し",         gimmick: "apocalypse_trio"},{ name: "滅びの影",       gimmick: "apocalypse_trio"},{ name: "破滅の怪",        gimmick: "apocalypse_trio"},{ name: "終末の牙",        gimmick: "nullphys" },     { name: "消滅の王",        gimmick: "apocalypse_trio"},{ name: "終わりの象徴",   gimmick: "apocalypse_trio"},{ name: "黒き来訪者",      gimmick: "apocalypse_trio"},{ name: "滅びの龍",       gimmick: "apocalypse_trio"},{ name: "終焉の絶望",      gimmick: "apocalypse_trio"},{ name: "【終焉の神】ルシファー", gimmick: "apocalypse_final"}],
+                7:  [{ name: "森の魔族斥候",     gimmick: "chaos_random" }, { name: "魔族の猟犬",      gimmick: "chaos_random" }, { name: "魔界の蔦使い",    gimmick: "nullphys" },     { name: "魔族の小隊長",    gimmick: "chaos_random" }, { name: "森の混沌獣",      gimmick: "chaos_random" }, { name: "魔族の呪術師",    gimmick: "chaos_random" }, { name: "魔界樹の番人",    gimmick: "berserk" },      { name: "魔族の猛将",      gimmick: "chaos_random" }, { name: "森の魔王・影狼",  gimmick: "chaos_boss" }],
+                8:  [{ name: "街の門番兵",        gimmick: "poison_burn_normal"},{ name: "魔族の隊長",  gimmick: "poison_burn_normal"},{ name: "炎の魔族戦士",  gimmick: "shield" },       { name: "魔族の将軍補佐",  gimmick: "poison_burn_normal"},{ name: "魔族の焔使い",   gimmick: "poison_burn_normal"},{ name: "魔族の重騎兵",   gimmick: "poison_burn_normal"},{ name: "魔族の竜使い",   gimmick: "poison_burn_normal"},{ name: "魔族の総大将",   gimmick: "berserk" },      { name: "魔王の近衛隊長",  gimmick: "poison_burn_boss"}],
+                9:  [{ name: "城門の守護者",       gimmick: "void_random_dual"},{ name: "魔王城の衛兵長", gimmick: "evasive" },    { name: "影の刺客",        gimmick: "void_random_dual"},{ name: "魔王城の騎士団長",gimmick: "void_random_dual"},{ name: "闇の処刑人",      gimmick: "void_random_dual"},{ name: "魔王の軍師",     gimmick: "void_random_dual"},{ name: "魔王の右腕",      gimmick: "void_random_dual"},{ name: "魔王の左腕",     gimmick: "void_random_dual"},{ name: "魔王の四天王",    gimmick: "void_dual_boss"}],
+                10: [{ name: "魔王の守護像",       gimmick: "apocalypse_trio"},{ name: "魔王の尖兵",     gimmick: "apocalypse_trio"},{ name: "魔王の分身",      gimmick: "apocalypse_trio"},{ name: "魔王の怨念",      gimmick: "nullphys" },     { name: "魔王の試練",      gimmick: "apocalypse_trio"},{ name: "魔王の呪縛",     gimmick: "apocalypse_trio"},{ name: "魔王の絶望",      gimmick: "apocalypse_trio"},{ name: "魔王の終焉",     gimmick: "apocalypse_trio"},{ name: "魔王の真の姿",    gimmick: "apocalypse_final"}],
             },
             gimmickDesc: {
                 shield:              "🛡️[鉄壁] DEF大幅上昇",
@@ -842,17 +830,17 @@
         // --- クエスト ---
         quests: {
             questDefs: [
-                { key: "kill100",      label: "🗡️ 敵100体撃破",       reward: { exp: 500,   gold: 200 } },
-                { key: "kill500",      label: "⚔️ 敵500体撃破",       reward: { exp: 2000,  gold: 1000 } },
-                { key: "kill1000",     label: "💀 敵1000体撃破",      reward: { exp: 6000,  gold: 3000, stone: 10 } },
-                { key: "stage5",       label: "🏔️ W1ステージ5到達",   reward: { exp: 300,   gold: 500 } },
-                { key: "stage10",      label: "🏰 W1魔王討伐",        reward: { exp: 2000,  stone: 5 } },
-                { key: "world2",       label: "🌋 ワールド2到達",      reward: { exp: 5000,  gold: 2000 } },
-                { key: "world3",       label: "🌀 ワールド3到達",      reward: { exp: 15000, gold: 8000, stone: 20 } },
-                { key: "gold10k",      label: "💰 累計1万G所持",      reward: { exp: 800,   stone: 3 } },
-                { key: "eq_legendary", label: "⭐ Legendary装備入手", reward: { exp: 1500,  gold: 500 } },
-                { key: "awaken",       label: "✨ 誰かが覚醒",        reward: { exp: 3000,  stone: 8 } },
-                { key: "party3",       label: "👥 3人パーティ結成",   reward: { exp: 2000,  gold: 1500 } },
+                { key: "kill100",      label: "🗡️ 敵100体撃破",              reward: { exp: 500,   gold: 200 } },
+                { key: "kill500",      label: "⚔️ 敵500体撃破",              reward: { exp: 2000,  gold: 1000 } },
+                { key: "kill1000",     label: "💀 敵1000体撃破",             reward: { exp: 6000,  gold: 3000, stone: 10 } },
+                { key: "stage5",       label: "🏕️ 始まりの村 ステージ5到達", reward: { exp: 300,   gold: 500 } },
+                { key: "stage10",      label: "🐺 大狼ガルム討伐",           reward: { exp: 2000,  stone: 5 } },
+                { key: "world2",       label: "🌲 魔物の森へ到達",           reward: { exp: 5000,  gold: 2000 } },
+                { key: "world3",       label: "🗝️ 盗賊のアジトへ到達",       reward: { exp: 15000, gold: 8000, stone: 20 } },
+                { key: "gold10k",      label: "💰 累計1万G所持",             reward: { exp: 800,   stone: 3 } },
+                { key: "eq_legendary", label: "⭐ Legendary装備入手",        reward: { exp: 1500,  gold: 500 } },
+                { key: "awaken",       label: "✨ 誰かが覚醒",               reward: { exp: 3000,  stone: 8 } },
+                { key: "party3",       label: "👥 3人パーティ結成",          reward: { exp: 2000,  gold: 1500 } },
             ],
         },
 
@@ -869,7 +857,20 @@
             worlds:   10,
             stages:   10,
             progress: 5,
-            unlock:   null, // 最初から解放
+            unlock:   null,
+            unlocked: true,
+            worldNames: {
+                1:  "始まりの村",
+                2:  "魔物の森",
+                3:  "盗賊のアジト",
+                4:  "毒の沼地",
+                5:  "闇霧の廃墟",
+                6:  "雷鳴の荒野",
+                7:  "魔族領の深森",
+                8:  "魔族の要塞都市",
+                9:  "魔王城",
+                10: "魔王の間",
+            },
         },
         // hard: {
         //     id:       "hard",
@@ -1264,14 +1265,21 @@
         updateDisplay();
     }
 
-    function moveWorld(diff) {
-        let target = gameState.world + diff;
-        if (target < 1 || target > gameState.maxReachedWorld) return;
-        gameState.world = target;
-        gameState.stage = 1; 
+    function selectWorld(w) {
+        w = parseInt(w);
+        if (w < 1 || w > (gameState.maxReachedWorld || 1)) return;
+        gameState.world = w;
+        gameState.stage = 1;
         gameState.killsInStage = 0;
-        spawnEnemy(); 
-        saveGame(); 
+        spawnEnemy();
+        saveGame();
+        updateDisplay();
+    }
+
+    function switchDungeon(dungeonId) {
+        if (!GAME_DATA.dungeons[dungeonId]) return;
+        gameState.currentDungeon = dungeonId;
+        saveGame();
         updateDisplay();
     }
 
@@ -1411,8 +1419,8 @@
         if (s === 10 && isBoss) {
             let worldNames = { 
                 1: "大狼ガルム", 2: "キングスライム", 3: "黒薔薇のジーク", 4: "沼帝毒の化身",
-                5: "霧王暗黒の支配者", 6: "雷帝電撃の覇者", 7: "混沌魔王すべてを飲む者", 8: "焦熱帝溶岩の帝王",
-                9: "虚空の支配者無限の彼方", 10: "終焉の神ルシファー"
+                5: "霧王暗黒の支配者", 6: "雷帝電撃の覇者", 7: "フォレスト・デーモン", 8: "イグニス",
+                9: "ダーク・セラフ", 10: "終焉の神ルシファー"
             };
             alert(`🎉 ${worldNames[w] || '大ボス'}を討伐！ワールド${w}クリア！ 🎉`); 
             gameState.exp += 6000 * w; 
@@ -2555,9 +2563,41 @@
 
     /** HUD（HP/ゴールド/EXP/敵情報/ステージ表示）の更新 */
     function updateHUD(pStats) {
-        document.getElementById('stage-title').innerText = `ワールド ${gameState.world || 1} - ステージ ${gameState.stage}`;
-        document.getElementById('world-label').innerText = `W${gameState.world || 1}`;
-        document.getElementById('stage-progress').innerText = `進行度(${gameState.killsInStage+1}/5) [最高: W${gameState.maxReachedWorld||1}-${gameState.maxReachedStage}]`;
+        let dungeon = GAME_DATA.dungeons[gameState.currentDungeon] || GAME_DATA.dungeons.normal;
+        let worldName = (dungeon.worldNames && dungeon.worldNames[gameState.world]) || `ワールド${gameState.world}`;
+
+        // ダンジョンタブ（解放済みのみ表示）
+        let tabRow = document.getElementById('dungeon-tab-row');
+        if (tabRow) {
+            tabRow.innerHTML = '';
+            Object.values(GAME_DATA.dungeons).forEach(d => {
+                if (!d.unlocked && d.id !== 'normal') return; // 未解放は非表示
+                let btn = document.createElement('button');
+                btn.className = 'dungeon-tab-btn' + (gameState.currentDungeon === d.id ? ' active' : '');
+                btn.textContent = d.label;
+                btn.type = 'button';
+                btn.onclick = () => switchDungeon(d.id);
+                tabRow.appendChild(btn);
+            });
+        }
+
+        // Worldプルダウン（到達済みのみ表示）
+        let worldSelect = document.getElementById('world-select');
+        if (worldSelect) {
+            let maxW = gameState.maxReachedWorld || 1;
+            worldSelect.innerHTML = '';
+            for (let i = 1; i <= maxW; i++) {
+                let opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `ワールド${i}`;
+                if (i === gameState.world) opt.selected = true;
+                worldSelect.appendChild(opt);
+            }
+        }
+
+        document.getElementById('world-name-label').textContent = worldName;
+        document.getElementById('stage-title').innerText = `ステージ ${gameState.stage}`;
+        document.getElementById('stage-progress').innerText = `進行度 ${gameState.killsInStage + 1} / 5　[最高: W${gameState.maxReachedWorld || 1}-${gameState.maxReachedStage}]`;
         document.getElementById('player-hp').innerText = Math.max(0, playerHp); 
         document.getElementById('player-max-hp').innerText = pStats.maxHp; 
         document.getElementById('stat-regen').innerText = pStats.regen;
