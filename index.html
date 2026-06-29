@@ -170,6 +170,7 @@
         .filter-btn { background: #e0e0e0; color: #333; border: 1px solid #bbb; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 0.8em; white-space: nowrap; }
         .filter-btn:hover { background: #d0d0d0; }
         .filter-btn.active { background: #4CAF50; color: white; border-color: #45a049; }
+        .filter-btn.sort-type.active { background: #1565c0; border-color: #0d47a1; }
 
         .active-skill-zone { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
         .skill-trigger-btn { font-size: 0.95em; height: 40px; margin: 2px 0; border: none; color: white; border-radius: 4px; display: none; }
@@ -526,29 +527,29 @@
                     <div style="margin-bottom:14px;">
                         <div style="font-size:0.85em; color:#666; font-weight:bold; margin-bottom:6px;">📊 レアリティ</div>
                         <div style="display:flex; gap:5px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px;">
-                            <button onclick="setInvFilter('rarity', 'all')" id="filter-rarity-all" class="filter-btn active">すべて</button>
-                            <button onclick="setInvFilter('rarity', 'Normal')" id="filter-rarity-Normal" class="filter-btn">Normal</button>
-                            <button onclick="setInvFilter('rarity', 'Rare')" id="filter-rarity-Rare" class="filter-btn">Rare</button>
-                            <button onclick="setInvFilter('rarity', 'Epic')" id="filter-rarity-Epic" class="filter-btn">Epic</button>
-                            <button onclick="setInvFilter('rarity', 'Legendary')" id="filter-rarity-Legendary" class="filter-btn">Legend</button>
+                            <button onclick="setInvFilter('rarity', 'all')" id="filter-rarity-all" class="filter-btn filter-type rarity-filter active">すべて</button>
+                            <button onclick="setInvFilter('rarity', 'Normal')" id="filter-rarity-Normal" class="filter-btn filter-type rarity-filter">Normal</button>
+                            <button onclick="setInvFilter('rarity', 'Rare')" id="filter-rarity-Rare" class="filter-btn filter-type rarity-filter">Rare</button>
+                            <button onclick="setInvFilter('rarity', 'Epic')" id="filter-rarity-Epic" class="filter-btn filter-type rarity-filter">Epic</button>
+                            <button onclick="setInvFilter('rarity', 'Legendary')" id="filter-rarity-Legendary" class="filter-btn filter-type rarity-filter">Legend</button>
                         </div>
                     </div>
                     <div>
                         <div style="font-size:0.85em; color:#666; font-weight:bold; margin-bottom:6px;">📍 部位</div>
                         <div style="display:flex; gap:5px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px;">
-                            <button onclick="setInvFilter('slot', 'all')" id="filter-slot-all" class="filter-btn active">すべて</button>
-                            <button onclick="setInvFilter('slot', 'weapon')" id="filter-slot-weapon" class="filter-btn">⚔️武器</button>
-                            <button onclick="setInvFilter('slot', 'armor')" id="filter-slot-armor" class="filter-btn">🛡️防具</button>
-                            <button onclick="setInvFilter('slot', 'acc')" id="filter-slot-acc" class="filter-btn">💍装飾品</button>
+                            <button onclick="setInvFilter('slot', 'all')" id="filter-slot-all" class="filter-btn filter-type slot-filter active">すべて</button>
+                            <button onclick="setInvFilter('slot', 'weapon')" id="filter-slot-weapon" class="filter-btn filter-type slot-filter">⚔️武器</button>
+                            <button onclick="setInvFilter('slot', 'armor')" id="filter-slot-armor" class="filter-btn filter-type slot-filter">🛡️防具</button>
+                            <button onclick="setInvFilter('slot', 'acc')" id="filter-slot-acc" class="filter-btn filter-type slot-filter">💍装飾品</button>
                         </div>
                     </div>
                     <div style="border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px;">
                         <div style="font-size:0.85em; color:#666; font-weight:bold; margin-bottom:6px;">🔀 並び替え</div>
                         <div style="display:flex; gap:5px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px;">
-                            <button onclick="setSortBy('entry')" id="sort-entry" class="filter-btn active" style="min-width:70px;">入手順</button>
-                            <button onclick="setSortBy('favorite')" id="sort-favorite" class="filter-btn" style="min-width:70px;">⭐優先</button>
-                            <button onclick="setSortBy('rarity')" id="sort-rarity" class="filter-btn" style="min-width:70px;">レア度</button>
-                            <button onclick="setSortBy('slot')" id="sort-slot" class="filter-btn" style="min-width:70px;">部位別</button>
+                            <button onclick="setSortBy('entry')" id="sort-entry" class="filter-btn sort-type active" style="min-width:70px;">入手順</button>
+                            <button onclick="setSortBy('favorite')" id="sort-favorite" class="filter-btn sort-type" style="min-width:70px;">⭐優先</button>
+                            <button onclick="setSortBy('rarity')" id="sort-rarity" class="filter-btn sort-type" style="min-width:70px;">レア度</button>
+                            <button onclick="setSortBy('slot')" id="sort-slot" class="filter-btn sort-type" style="min-width:70px;">部位別</button>
                         </div>
                     </div>
                 </div>
@@ -653,19 +654,7 @@
 
                 <div style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); border: 2px solid #64b5f6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                     <h4 style="color: #64b5f6; margin: 0 0 10px 0; font-size: 1.2em;">💾 セーブコード（データ移行）</h4>
-                    <p style="color: #e0e0e0; margin: 0 0 12px 0; font-size: 0.9em;">PCとスマホ間でゲームデータを移行できます。</p>
-                    
-                    <div style="margin-bottom: 15px; text-align: left;">
-                        <label style="color: #64b5f6; font-weight: bold; display: block; margin-bottom: 5px;">📤 現在のセーブコード（書き出し）</label>
-                        <textarea id="export-save-code" style="width: 100%; height: 80px; padding: 8px; font-family: monospace; font-size: 0.85em; border: 1px solid #64b5f6; border-radius: 4px; background: #f5f5f5; color: #333; resize: vertical; box-sizing: border-box;" readonly placeholder="「コードを発行する」ボタンを押してください"></textarea>
-                        <button style="background: #42a5f5; color: white; border: none; padding: 8px 16px; font-size: 0.95em; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 8px; width: 100%;" onclick="exportSaveCode()">📋 コードを発行する</button>
-                    </div>
-                    
-                    <div style="text-align: left;">
-                        <label style="color: #64b5f6; font-weight: bold; display: block; margin-bottom: 5px;">📥 外部のセーブコード（読み込み）</label>
-                        <textarea id="import-save-code" style="width: 100%; height: 80px; padding: 8px; font-family: monospace; font-size: 0.85em; border: 1px solid #64b5f6; border-radius: 4px; background: white; color: #333; resize: vertical; box-sizing: border-box;" placeholder="セーブコードをここに貼り付けてください"></textarea>
-                        <button style="background: #ef5350; color: white; border: none; padding: 8px 16px; font-size: 0.95em; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 8px; width: 100%;" onclick="importSaveCode()">📂 コードを読み込む</button>
-                    </div>
+                    <p style="color: #e0e0e0; margin: 0 0 12px 0; font-size: 0.9em;">この機能は現在準備中です。</p>
                 </div>
                 
                 <p style="color:#888; font-size:0.82em; margin-bottom:8px;">ゲームデータをすべて消去して最初から始めます。</p>
@@ -682,6 +671,11 @@
     // 1. GAME DATA & CONFIGURATION
     // =========================================
     const SAVE_KEY = 'haksla_party_idle_v6_evolved';
+
+    /** 現在のダンジョン進行状態への参照を返すヘルパー */
+    function prog() {
+        return gameState.progress[gameState.currentDungeon] || gameState.progress.normal;
+    }
 
     // =========================================
     // GAME_DATA — すべての静的定数を一元管理
@@ -901,7 +895,7 @@
     let gameState = {
         isJobSelected: false,
         party: [{ name: "主人公", job: "", isUnlocked: true, currentEquip: {}, awakened: false }],
-        world: 1, stage: 1, maxReachedStage: 1, maxReachedWorld: 1, killsInStage: 0,
+        killsInStage: 0,
         gold: 0, exp: 0, upgradeStone: 0, maxInventorySlots: 10,
         currentDungeon: "normal",
         progress: {
@@ -975,8 +969,21 @@
                 let parsed = JSON.parse(savedData);
                 if (parsed.isJobSelected) {
                     gameState = parsed;
-                    if (!gameState.world) gameState.world = 1;
-                    if (!gameState.maxReachedWorld) gameState.maxReachedWorld = 1;
+                    // --- 後方互換：旧フラット値 → progress.normal へ移行 ---
+                    if (!gameState.currentDungeon) gameState.currentDungeon = "normal";
+                    if (!gameState.progress) gameState.progress = {};
+                    if (!gameState.progress.normal) gameState.progress.normal = {
+                        world:           gameState.world           || 1,
+                        stage:           gameState.stage           || 1,
+                        maxReachedWorld: gameState.maxReachedWorld || 1,
+                        maxReachedStage: gameState.maxReachedStage || 1,
+                    };
+                    // 旧フラット値を削除（progress.normalが正になったので不要）
+                    delete gameState.world;
+                    delete gameState.stage;
+                    delete gameState.maxReachedWorld;
+                    delete gameState.maxReachedStage;
+                    // --- その他の後方互換パッチ ---
                     if (!gameState.facilities) gameState.facilities = { smithLevel: 0, templeLevel: 0, guildLevel: 0, alchemyLevel: 0 };
                     if (!gameState.quests) gameState.quests = { kill100: false, kill500: false, kill1000: false, stage5: false, stage10: false, world2: false, world3: false, gold10k: false, eq_legendary: false, awaken: false, party3: false };
                     if (!gameState.totalKills) gameState.totalKills = 0;
@@ -991,14 +998,7 @@
                     if (!gameState.treeSkills.arcane) gameState.treeSkills.arcane = 0;
                     if (!gameState.treeSkills.arcaneamp) gameState.treeSkills.arcaneamp = 0;
                     if (!gameState.inventoryFilter) gameState.inventoryFilter = { rarity: "all", slot: "all", sortBy: "entry" };
-                    if (!gameState.currentDungeon) gameState.currentDungeon = "normal";
-                    if (!gameState.progress) gameState.progress = {};
-                    if (!gameState.progress.normal) gameState.progress.normal = {
-                        world: gameState.world || 1,
-                        stage: gameState.stage || 1,
-                        maxReachedWorld: gameState.maxReachedWorld || 1,
-                        maxReachedStage: gameState.maxReachedStage || 1,
-                    };
+                    if (!gameState.killsInStage) gameState.killsInStage = 0;
                     gameState.party.forEach(c => { if (c.awakened === undefined) c.awakened = false; });
                     gameState.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
                     document.getElementById('start-job-select').style.display = 'none';
@@ -1121,44 +1121,6 @@
         audio.play().catch(() => console.log("SE再生失敗: " + seFile));
     }
 
-    function exportSaveCode() {
-        try {
-            let jsonStr = JSON.stringify(gameState);
-            let encodedCode = btoa(unescape(encodeURIComponent(jsonStr)));
-            document.getElementById('export-save-code').value = encodedCode;
-            alert('✅ セーブコードを発行しました！\nコードをコピーして別の端末に貼り付けてください。');
-        } catch (err) {
-            alert('❌ セーブコードの発行に失敗しました。');
-            console.error('Export error:', err);
-        }
-    }
-
-    function importSaveCode() {
-        try {
-            let importedCode = document.getElementById('import-save-code').value.trim();
-            if (!importedCode) {
-                alert('❌ セーブコードを入力してください。');
-                return;
-            }
-            let jsonStr = decodeURIComponent(escape(atob(importedCode)));
-            let importedData = JSON.parse(jsonStr);
-            
-            if (!importedData.world || importedData.world < 1 || importedData.world > 10) {
-                throw new Error('Invalid world data');
-            }
-            if (!confirm('⚠️ 現在のデータをインポートしたコードで上書きします。\nよろしいですか？')) {
-                return;
-            }
-            Object.assign(gameState, importedData);
-            saveGame();
-            updateDisplay();
-            document.getElementById('import-save-code').value = '';
-            alert('✅ セーブデータを読み込みました！\nゲームを再読み込みしてください。');
-        } catch (err) {
-            alert('❌ 無効なセーブコードです。\nコードが正しく貼り付けられているか確認してください。');
-            console.error('Import error:', err);
-        }
-    }
 
     function renameChar(index) {
         let zone = document.getElementById('name-edit-zone');
@@ -1246,19 +1208,19 @@
     }
 
     function moveStage(diff) {
-        let target = gameState.stage + diff;
+        let target = prog().stage + diff;
         if (target < 1) {
-            if (gameState.world > 1) {
-                gameState.world--;
-                gameState.stage = 10;
+            if (prog().world > 1) {
+                prog().world--;
+                prog().stage = 10;
                 gameState.killsInStage = 0;
                 spawnEnemy(); saveGame(); updateDisplay();
             }
             return;
         }
-        let maxThisWorld = (gameState.world === gameState.maxReachedWorld) ? gameState.maxReachedStage : 10;
+        let maxThisWorld = (prog().world === prog().maxReachedWorld) ? prog().maxReachedStage : 10;
         if (target > maxThisWorld) return;
-        gameState.stage = target; 
+        prog().stage = target; 
         gameState.killsInStage = 0;
         spawnEnemy(); 
         saveGame(); 
@@ -1267,9 +1229,9 @@
 
     function selectWorld(w) {
         w = parseInt(w);
-        if (w < 1 || w > (gameState.maxReachedWorld || 1)) return;
-        gameState.world = w;
-        gameState.stage = 1;
+        if (w < 1 || w > (prog().maxReachedWorld || 1)) return;
+        prog().world = w;
+        prog().stage = 1;
         gameState.killsInStage = 0;
         spawnEnemy();
         saveGame();
@@ -1279,6 +1241,12 @@
     function switchDungeon(dungeonId) {
         if (!GAME_DATA.dungeons[dungeonId]) return;
         gameState.currentDungeon = dungeonId;
+        // 切替先のprogress未初期化なら初期化
+        if (!gameState.progress[dungeonId]) {
+            gameState.progress[dungeonId] = { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 };
+        }
+        gameState.killsInStage = 0;
+        spawnEnemy();
         saveGame();
         updateDisplay();
     }
@@ -1384,14 +1352,14 @@
 
     /** 敵をスポーンする（オーケストレーター） */
     function spawnEnemy() {
-        const w = gameState.world || 1;
-        const enemy = createEnemy(w, gameState.stage, gameState.killsInStage);
+        const w = prog().world || 1;
+        const enemy = createEnemy(w, prog().stage, gameState.killsInStage);
         applyEnemy(enemy);
         renderEnemy(enemy);
     }
 
     function winBattle() {
-        let isBoss = (gameState.killsInStage === 4), w = gameState.world, s = gameState.stage;
+        let isBoss = (gameState.killsInStage === 4), w = prog().world, s = prog().stage;
         let expGain = Math.floor((isBoss ? s * 50 * w : s * 10 * w) * (1 + expBonus / 100));
         gameState.exp += expGain;
         
@@ -1429,16 +1397,16 @@
             gameState.worldClearCount = (gameState.worldClearCount || 0) + 1;
             
             if (w < 10) {
-                gameState.world++;
-                gameState.maxReachedWorld = Math.max(gameState.maxReachedWorld, gameState.world);
-                gameState.stage = 1; 
-                gameState.maxReachedStage = 1;
-                appendLog('log-exp-area', `${getLogTime()} 🌍 <span style="color:#ff9800; font-weight:bold;">ワールド${gameState.world}に突入！</span>`, "c-yellow");
+                prog().world++;
+                prog().maxReachedWorld = Math.max(prog().maxReachedWorld, prog().world);
+                prog().stage = 1; 
+                prog().maxReachedStage = 1;
+                appendLog('log-exp-area', `${getLogTime()} 🌍 <span style="color:#ff9800; font-weight:bold;">ワールド${prog().world}に突入！</span>`, "c-yellow");
             } else {
-                gameState.stage = 10; 
-                gameState.maxReachedStage = 10;
+                prog().stage = 10; 
+                prog().maxReachedStage = 10;
                 gameState.upgradeMaxLevel = 30;
-                appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">全ワールドクリア！W${gameState.world}-10 に留まります。</span>`, "c-yellow");
+                appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">全ワールドクリア！W${prog().world}-10 に留まります。</span>`, "c-yellow");
                 appendLog('log-exp-area', `${getLogTime()} 💎 <span style="color:#ce93d8; font-weight:bold;">装備強化上限が+30に解放されました！</span>`, "c-yellow");
                 setTimeout(() => showGameClearDialog(), 500);
             }
@@ -1454,9 +1422,9 @@
         gameState.killsInStage++;
         if (gameState.killsInStage >= 5) {
             gameState.killsInStage = 0; 
-            gameState.stage++;
-            if (gameState.world === gameState.maxReachedWorld && gameState.stage > gameState.maxReachedStage) {
-                gameState.maxReachedStage = gameState.stage;
+            prog().stage++;
+            if (prog().world === prog().maxReachedWorld && prog().stage > prog().maxReachedStage) {
+                prog().maxReachedStage = prog().stage;
             }
         }
         checkQuests();
@@ -1598,7 +1566,7 @@
                 mLog.innerHTML = `アローレイン！敵に <span class="c-red">${dmg}</span> 矢の雨ダメージ${critMark}`; 
             } else if (skillKey === 'coin') {
                 playSE('r2.mp3'); 
-                let bonusGold = gameState.stage * 15 * gameState.world; 
+                let bonusGold = prog().stage * 15 * prog().world; 
                 gameState.gold += bonusGold; 
                 coolTimes.coin = 8;
                 mLog.innerHTML = `コインディグ！ <span class="c-red">${dmg}撃打</span> ＆ <span class="c-gold">+${bonusGold}G強奪</span>${critMark}`; 
@@ -1727,7 +1695,7 @@
     }
 
     function tickEnemyAttack(stats) {
-        let w = gameState.world || 1;
+        let w = prog().world || 1;
         if (enemyHp <= 0) return;
 
         if (shadowstepActive > 0) {
@@ -1850,7 +1818,7 @@
     // =========================================
     function setInvFilter(type, value) {
         gameState.inventoryFilter[type] = value;
-        document.querySelectorAll(`.filter-btn`).forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll(`.filter-btn.filter-type.${type}-filter`).forEach(btn => btn.classList.remove('active'));
         if (type === 'rarity') {
             document.getElementById(`filter-rarity-${value}`).classList.add('active');
         } else if (type === 'slot') {
@@ -1862,7 +1830,7 @@
 
     function setSortBy(sortType) {
         gameState.inventoryFilter.sortBy = sortType;
-        document.querySelectorAll(`#sort-entry, #sort-favorite, #sort-rarity, #sort-slot`).forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.filter-btn.sort-type').forEach(btn => btn.classList.remove('active'));
         document.getElementById(`sort-${sortType}`).classList.add('active');
         updateInvDisplay();
         saveGame();
@@ -1906,7 +1874,7 @@
             });
         } else if (sortBy === "slot") {
             filtered.sort((a, b) => {
-                let slotDiff = (slotOrder[a.slot] || 999) - (slotOrder[b.slot] || 999);
+                let slotDiff = (slotOrder[a.slot] ?? 999) - (slotOrder[b.slot] ?? 999);
                 if (slotDiff !== 0) return slotDiff;
                 return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
             });
@@ -2203,7 +2171,7 @@
         }
         
         let rand = Math.random(), rarity = "Normal", mult = 1, maxOpts = 0;
-        let w = gameState.world || 1;
+        let w = prog().world || 1;
         
         if (isBoss) {
             if (w <= 3) {
@@ -2267,12 +2235,12 @@
             
             let finalVal = isPercentageOption || isFixedValueOption
                 ? baseVal
-                : Math.floor(baseVal * mult * (1 + gameState.stage * 0.08)); 
+                : Math.floor(baseVal * mult * (1 + prog().stage * 0.08)); 
             
             options.push({ text: `${poolItem.name} +${finalVal}${poolItem.unit || ""}`, type: poolItem.type, val: finalVal });
         }
         
-        let baseValue = Math.floor((gameState.stage * 4 * w) * mult) + 1;
+        let baseValue = Math.floor((prog().stage * 4 * w) * mult) + 1;
         let finalValue = (["shield", "head", "body", "hands", "feet"].includes(selectedSlot)) 
             ? Math.floor(baseValue * 1.5)  
             : baseValue;
@@ -2351,7 +2319,7 @@
     function awakenChar(charIndex) {
         let char = gameState.party[charIndex];
         if (!char || char.awakened) return alert("すでに覚醒しています！");
-        if (gameState.world < 2) return alert("ワールド2到達後に覚醒できます！");
+        if (prog().world < 2) return alert("ワールド2到達後に覚醒できます！");
         
         let cost = awakenCosts[char.job];
         if (!cost) return;
@@ -2530,15 +2498,15 @@
         if ((gameState.totalKills || 0) >= 500 && !gameState.quests.kill500) { gameState.quests.kill500 = true; grantQuestReward("kill500"); }
         if ((gameState.totalKills || 0) >= 1000 && !gameState.quests.kill1000) { gameState.quests.kill1000 = true; grantQuestReward("kill1000"); }
         if (gameState.gold >= 10000 && !gameState.quests.gold10k) { gameState.quests.gold10k = true; grantQuestReward("gold10k"); }
-        if (gameState.stage >= 5 && gameState.world >= 1 && !gameState.quests.stage5) { gameState.quests.stage5 = true; grantQuestReward("stage5"); }
-        if (gameState.world >= 2 && !gameState.quests.world2) { gameState.quests.world2 = true; grantQuestReward("world2"); }
-        if (gameState.world >= 3 && !gameState.quests.world3) { gameState.quests.world3 = true; grantQuestReward("world3"); }
+        if (prog().stage >= 5 && prog().world >= 1 && !gameState.quests.stage5) { gameState.quests.stage5 = true; grantQuestReward("stage5"); }
+        if (prog().world >= 2 && !gameState.quests.world2) { gameState.quests.world2 = true; grantQuestReward("world2"); }
+        if (prog().world >= 3 && !gameState.quests.world3) { gameState.quests.world3 = true; grantQuestReward("world3"); }
         if (gameState.party.length >= 3 && !gameState.quests.party3) { gameState.quests.party3 = true; grantQuestReward("party3"); }
     }
 
     function checkQuests() {
         checkQuestsTick();
-        if (gameState.stage >= 10 && gameState.world >= 1 && !gameState.quests.stage10) { gameState.quests.stage10 = true; grantQuestReward("stage10"); }
+        if (prog().stage >= 10 && prog().world >= 1 && !gameState.quests.stage10) { gameState.quests.stage10 = true; grantQuestReward("stage10"); }
         if (gameState.inventory.some(i => i.rarity === "Legendary") && !gameState.quests.eq_legendary) { gameState.quests.eq_legendary = true; grantQuestReward("eq_legendary"); }
         if (gameState.party.some(c => c.awakened) && !gameState.quests.awaken) { gameState.quests.awaken = true; grantQuestReward("awaken"); }
     }
@@ -2564,7 +2532,7 @@
     /** HUD（HP/ゴールド/EXP/敵情報/ステージ表示）の更新 */
     function updateHUD(pStats) {
         let dungeon = GAME_DATA.dungeons[gameState.currentDungeon] || GAME_DATA.dungeons.normal;
-        let worldName = (dungeon.worldNames && dungeon.worldNames[gameState.world]) || `ワールド${gameState.world}`;
+        let worldName = (dungeon.worldNames && dungeon.worldNames[prog().world]) || `ワールド${prog().world}`;
 
         // ダンジョンタブ（解放済みのみ表示）
         let tabRow = document.getElementById('dungeon-tab-row');
@@ -2584,20 +2552,20 @@
         // Worldプルダウン（到達済みのみ表示）
         let worldSelect = document.getElementById('world-select');
         if (worldSelect) {
-            let maxW = gameState.maxReachedWorld || 1;
+            let maxW = prog().maxReachedWorld || 1;
             worldSelect.innerHTML = '';
             for (let i = 1; i <= maxW; i++) {
                 let opt = document.createElement('option');
                 opt.value = i;
                 opt.textContent = `ワールド${i}`;
-                if (i === gameState.world) opt.selected = true;
+                if (i === prog().world) opt.selected = true;
                 worldSelect.appendChild(opt);
             }
         }
 
         document.getElementById('world-name-label').textContent = worldName;
-        document.getElementById('stage-title').innerText = `ステージ ${gameState.stage}`;
-        document.getElementById('stage-progress').innerText = `進行度 ${gameState.killsInStage + 1} / 5　[最高: W${gameState.maxReachedWorld || 1}-${gameState.maxReachedStage}]`;
+        document.getElementById('stage-title').innerText = `ステージ ${prog().stage}`;
+        document.getElementById('stage-progress').innerText = `進行度 ${gameState.killsInStage + 1} / 5　[最高: W${prog().maxReachedWorld || 1}-${prog().maxReachedStage}]`;
         document.getElementById('player-hp').innerText = Math.max(0, playerHp); 
         document.getElementById('player-max-hp').innerText = pStats.maxHp; 
         document.getElementById('stat-regen').innerText = pStats.regen;
@@ -2757,7 +2725,7 @@
             let charBox = document.createElement('div');
             let lStats = calcSingleCharStats(char);
             let awakenBadge = char.awakened ? `<span style="color:#ffd700; text-shadow:0 0 5px #ffd700; font-size:0.85em;">✨覚醒済</span>` : '';
-            let awakenBtn = (!char.awakened && (gameState.world || 1) >= 2) ? `<button onclick="awakenChar(${cIndex})" style="background:#7b1fa2; color:white; border:none; padding:3px 8px; border-radius:3px; font-size:0.8em; cursor:pointer; margin-left:5px; width:auto; margin-top:0;">覚醒 (5000G/石20)</button>` : '';
+            let awakenBtn = (!char.awakened && (prog().world || 1) >= 2) ? `<button onclick="awakenChar(${cIndex})" style="background:#7b1fa2; color:white; border:none; padding:3px 8px; border-radius:3px; font-size:0.8em; cursor:pointer; margin-left:5px; width:auto; margin-top:0;">覚醒 (5000G/石20)</button>` : '';
             
             charBox.innerHTML = `
                 <div class="char-equip-header">
