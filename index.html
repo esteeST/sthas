@@ -866,14 +866,26 @@
                 10: "魔王の間",
             },
         },
-        // hard: {
-        //     id:       "hard",
-        //     label:    "ハード",
-        //     worlds:   10,
-        //     stages:   10,
-        //     progress: 5,
-        //     unlock:   "normal_clear", // ノーマルクリアで解放
-        // },
+        hard: {
+            id:       "hard",
+            label:    "ハード",
+            worlds:   10,
+            stages:   10,
+            progress: 5,
+            unlock:   "normal_clear", // ノーマルW10-10クリアで解放
+            worldNames: {
+                1:  "始まりの村【H】",
+                2:  "魔物の森【H】",
+                3:  "盗賊のアジト【H】",
+                4:  "毒の沼地【H】",
+                5:  "闇霧の廃墟【H】",
+                6:  "雷鳴の荒野【H】",
+                7:  "魔族領の深森【H】",
+                8:  "魔族の要塞都市【H】",
+                9:  "魔王城【H】",
+                10: "魔王の間【H】",
+            },
+        },
     };
 
     // 後方互換エイリアス（既存コードが参照する短い変数名を維持）
@@ -898,6 +910,7 @@
         killsInStage: 0,
         gold: 0, exp: 0, upgradeStone: 0, maxInventorySlots: 10,
         currentDungeon: "normal",
+        unlockedDungeons: { normal: true, hard: false },
         progress: {
             normal: { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 },
         },
@@ -999,6 +1012,7 @@
                     if (!gameState.treeSkills.arcaneamp) gameState.treeSkills.arcaneamp = 0;
                     if (!gameState.inventoryFilter) gameState.inventoryFilter = { rarity: "all", slot: "all", sortBy: "entry" };
                     if (!gameState.killsInStage) gameState.killsInStage = 0;
+                    if (!gameState.unlockedDungeons) gameState.unlockedDungeons = { normal: true, hard: false };
                     gameState.party.forEach(c => { if (c.awakened === undefined) c.awakened = false; });
                     gameState.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
                     document.getElementById('start-job-select').style.display = 'none';
@@ -1240,6 +1254,7 @@
 
     function switchDungeon(dungeonId) {
         if (!GAME_DATA.dungeons[dungeonId]) return;
+        if (!gameState.unlockedDungeons || !gameState.unlockedDungeons[dungeonId]) return;
         gameState.currentDungeon = dungeonId;
         // 切替先のprogress未初期化なら初期化
         if (!gameState.progress[dungeonId]) {
@@ -1259,12 +1274,77 @@
     }
 
     /**
+     * worldBossData に存在しないワールド番号(11以降)のボスの「最終ステータス」を
+     * calcWorldMult の指数式から外挿して返す。
+     * W10ワールドボスの最終ステータス(hpBase * calcWorldMult(10))を基準に、
+     * calcWorldMultの比率でスケールする。
+     * 戻り値の finalHp / finalAtk は最終値そのもの（呼び出し側で追加の倍率を掛けない）。
+     */
+    function getExtendedWorldBoss(w) {
+        if (worldBossData[w]) {
+            const bd = worldBossData[w];
+            return {
+                name: bd.name, gimmick: bd.gimmick,
+                finalHp:  bd.hpBase  * calcWorldMult(w),
+                finalAtk: bd.atkBase * calcWorldMult(w),
+            };
+        }
+        const base = worldBossData[10];
+        const baseFinalHp  = base.hpBase  * calcWorldMult(10);
+        const baseFinalAtk = base.atkBase * calcWorldMult(10);
+        const ratio = calcWorldMult(w) / calcWorldMult(10);
+        return {
+            name:     base.name,
+            gimmick:  base.gimmick,
+            finalHp:  baseFinalHp  * ratio,
+            finalAtk: baseFinalAtk * ratio,
+        };
+    }
+
+    /**
      * 敵データを計算して返す純粋関数。
      * グローバル変数・DOMには一切触らない。
      * @returns {{ name, gimmick, maxHp, atk, def, mres, eva, type: 'world_boss'|'stage_boss'|'normal' }}
      */
-    function createEnemy(w, s, killsInStage) {
+    function createEnemy(w, s, killsInStage, dungeonId) {
         const wMult = calcWorldMult(w);
+
+        // ===== ハードモード：名前/ギミックは本来のワールド・種別のものを使用し、
+        //       数値（HP/ATK/DEF/MRES/EVA）だけノーマルのワールドボス級(+9/+10/+11ワールド分)に差し替える =====
+        if (dungeonId === "hard") {
+            let refW, entry, namePrefix, type;
+            if (s === 10 && killsInStage === 4) {
+                // ワールドボス：本来のワールドボスデータを使用
+                refW = w + 11; namePrefix = ""; type = 'world_boss';
+                entry = worldBossData[w] || worldBossData[1];
+            } else if (killsInStage === 4) {
+                // ステージボス：本来のステージボスデータを使用
+                refW = w + 10; namePrefix = `【階層BOSS】`; type = 'stage_boss';
+                const bTable = stageBossData[w] || stageBossData[1];
+                entry = bTable[Math.min(s - 1, bTable.length - 1)];
+            } else {
+                // 通常敵：本来のワールド敵テーブルを使用
+                refW = w + 9; namePrefix = ""; type = 'normal';
+                const table = worldEnemyTables[w] || worldEnemyTables[1];
+                entry = table[killsInStage % 4];
+            }
+            const refBd = getExtendedWorldBoss(refW); // 数値（最終ステータス）だけ参照
+            const refMult = calcWorldMult(refW);
+            let def  = Math.floor(15 * refMult * 0.6);
+            let mres = 20 + (refW - 1) * 12;
+            let eva  = 15 + (refW - 1) * 6;
+            if (entry.gimmick === "shield")  def  += 30;
+            if (entry.gimmick === "mresist") mres  = Math.min(85, mres + 60);
+            if (entry.gimmick === "evasive") eva   = Math.min(70, eva  + 30);
+            return {
+                name:    `${namePrefix}${entry.name} (H・W${w}-${s})`,
+                gimmick: entry.gimmick,
+                maxHp:   Math.floor(refBd.finalHp),
+                atk:     Math.floor(refBd.finalAtk),
+                def, mres, eva,
+                type,
+            };
+        }
 
         // ワールドボス（ステージ10・5体目）
         if (s === 10 && killsInStage === 4) {
@@ -1353,7 +1433,7 @@
     /** 敵をスポーンする（オーケストレーター） */
     function spawnEnemy() {
         const w = prog().world || 1;
-        const enemy = createEnemy(w, prog().stage, gameState.killsInStage);
+        const enemy = createEnemy(w, prog().stage, gameState.killsInStage, gameState.currentDungeon);
         applyEnemy(enemy);
         renderEnemy(enemy);
     }
@@ -1390,7 +1470,8 @@
                 5: "霧王暗黒の支配者", 6: "雷帝電撃の覇者", 7: "フォレスト・デーモン", 8: "イグニス",
                 9: "ダーク・セラフ", 10: "終焉の神ルシファー"
             };
-            alert(`🎉 ${worldNames[w] || '大ボス'}を討伐！ワールド${w}クリア！ 🎉`); 
+            const isHard = gameState.currentDungeon === "hard";
+            alert(`🎉 ${worldNames[w] || '大ボス'}を討伐！${isHard ? '【ハード】' : ''}ワールド${w}クリア！ 🎉`); 
             gameState.exp += 6000 * w; 
             gameState.gold += 3000 * w; 
             dropEquipment(true);
@@ -1401,14 +1482,24 @@
                 prog().maxReachedWorld = Math.max(prog().maxReachedWorld, prog().world);
                 prog().stage = 1; 
                 prog().maxReachedStage = 1;
-                appendLog('log-exp-area', `${getLogTime()} 🌍 <span style="color:#ff9800; font-weight:bold;">ワールド${prog().world}に突入！</span>`, "c-yellow");
+                appendLog('log-exp-area', `${getLogTime()} 🌍 <span style="color:#ff9800; font-weight:bold;">${isHard ? '【ハード】' : ''}ワールド${prog().world}に突入！</span>`, "c-yellow");
             } else {
                 prog().stage = 10; 
                 prog().maxReachedStage = 10;
-                gameState.upgradeMaxLevel = 30;
-                appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">全ワールドクリア！W${prog().world}-10 に留まります。</span>`, "c-yellow");
-                appendLog('log-exp-area', `${getLogTime()} 💎 <span style="color:#ce93d8; font-weight:bold;">装備強化上限が+30に解放されました！</span>`, "c-yellow");
-                setTimeout(() => showGameClearDialog(), 500);
+                if (!isHard) {
+                    gameState.upgradeMaxLevel = 30;
+                    appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">全ワールドクリア！W${prog().world}-10 に留まります。</span>`, "c-yellow");
+                    appendLog('log-exp-area', `${getLogTime()} 💎 <span style="color:#ce93d8; font-weight:bold;">装備強化上限が+30に解放されました！</span>`, "c-yellow");
+                    // ハードモード解放
+                    if (!gameState.unlockedDungeons) gameState.unlockedDungeons = { normal: true, hard: false };
+                    if (!gameState.unlockedDungeons.hard) {
+                        gameState.unlockedDungeons.hard = true;
+                        appendLog('log-exp-area', `${getLogTime()} 🔥 <span style="color:#ff5252; font-weight:bold;">ハードモードが解放されました！</span>`, "c-yellow");
+                    }
+                    setTimeout(() => showGameClearDialog(), 500);
+                } else {
+                    appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">【ハード】全ワールドクリア！W${prog().world}-10 に留まります。</span>`, "c-yellow");
+                }
             }
             gameState.killsInStage = 0; 
             spawnEnemy(); 
@@ -2539,7 +2630,7 @@
         if (tabRow) {
             tabRow.innerHTML = '';
             Object.values(GAME_DATA.dungeons).forEach(d => {
-                if (!d.unlocked && d.id !== 'normal') return; // 未解放は非表示
+                if (!gameState.unlockedDungeons || !gameState.unlockedDungeons[d.id]) return; // 未解放は非表示
                 let btn = document.createElement('button');
                 btn.className = 'dungeon-tab-btn' + (gameState.currentDungeon === d.id ? ' active' : '');
                 btn.textContent = d.label;
