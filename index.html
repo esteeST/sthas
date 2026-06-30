@@ -2867,6 +2867,38 @@
         updateDisplay(); 
     }
 
+    // =========================================
+    // SHORTCUT KEYS (1/2/3: switch leader, Q/W/E: use skill)
+    // =========================================
+    document.addEventListener('keydown', function(e) {
+        // テキスト入力中（名前入力など）は発火しない
+        const tag = e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+        if (!gameState.isJobSelected) return;
+
+        const key = e.key;
+
+        // 1,2,3: リーダー切替
+        if (['1', '2', '3'].includes(key)) {
+            switchLeader(Number(key) - 1);
+            return;
+        }
+
+        // Q,W,E: 選択中リーダーのスキル発動（activeKeysの並びに対応）
+        const qweMap = { 'q': 0, 'Q': 0, 'w': 1, 'W': 1, 'e': 2, 'E': 2 };
+        if (key in qweMap) {
+            const leader = gameState.party[gameState.currentLeaderIndex];
+            if (!leader || !leader.job) return;
+            const activeKeys = { warrior: ['bash', 'rush', 'warcry'], rogue: ['rain', 'coin', 'shadowstep'], mage: ['heal', 'blizzard', 'meteor'] }[leader.job] || [];
+            const skillKey = activeKeys[qweMap[key]];
+            if (!skillKey) return;
+            // 未取得スキルはガード（クールタイムチェックと同じ条件）
+            if ((gameState.treeSkills[skillKey] || 0) <= 0) return;
+            if (coolTimes[skillKey] > 0) return;
+            useTreeSkill(skillKey);
+        }
+    });
+
 </script>
     <script>
         // スマホ時のみ画面幅に合わせてスケールを自動調整
