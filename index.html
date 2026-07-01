@@ -331,7 +331,7 @@
             <button class="tab-btn" onclick="switchTab('tab-status', this)">⚡ 強化</button>
             <button class="tab-btn" onclick="switchTab('tab-equip', this)">🎒 倉庫</button>
             <button class="tab-btn" onclick="switchTab('tab-town', this)">🏘️ 街</button>
-            <button class="tab-btn" onclick="switchTab('tab-quest', this)">📜 クエスト</button>
+            <button class="tab-btn" onclick="switchTab('tab-quest', this)">📔 手帳</button>
             <button class="tab-btn" onclick="switchTab('tab-config', this)">⚙️ 設定</button>
         </div>
 
@@ -635,10 +635,26 @@
         </div>
 
         <div id="tab-quest" class="tab-content">
-            <h3 style="margin-top:0;">📜 クエスト・実績</h3>
-            <p style="color:#555; font-size:0.88em;">達成すると自動的に報酬が付与されます。</p>
-            <div style="font-size:0.85em; color:#37474f; margin-bottom:8px;">総撃破数: <strong id="total-kills-disp">0</strong></div>
-            <div id="quest-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+            <!-- 手帳タブ内サブタブ -->
+            <div class="enhance-tab-row" id="notebook-tab-row">
+                <button class="enhance-tab-btn active" onclick="switchEnhanceTab('notebook-quest', this)">📜 クエスト</button>
+            </div>
+
+            <!-- クエストサブタブ -->
+            <div id="notebook-quest" class="enhance-tab-content active">
+                <h3 style="margin-top:0;">📜 クエスト・実績</h3>
+                <p style="color:#555; font-size:0.88em;">達成すると自動的に報酬が付与されます。</p>
+                <div style="font-size:0.85em; color:#37474f; margin-bottom:8px;">総撃破数: <strong id="total-kills-disp">0</strong></div>
+                <div id="quest-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+            </div>
+
+            <!-- 図鑑サブタブ -->
+            <div id="notebook-zukan" class="enhance-tab-content">
+                <h3 style="margin-top:0;">📖 図鑑</h3>
+                <div style="color:#aaa; font-size:0.9em; text-align:center; padding:20px;">
+                    ⚙️ 図鑑は近日公開予定
+                </div>
+            </div>
         </div>
 
         <div id="tab-config" class="tab-content">
@@ -1073,6 +1089,20 @@
         if(btnElement) btnElement.classList.add('active');
         if (tabId === 'tab-config') {
             renderNameEditZone();
+        }
+        // サブタブの初期activeを復元
+        const defaultSubTab = {
+            'tab-status': 'enhance-skill-tree',
+            'tab-quest':  'notebook-quest',
+        };
+        if (defaultSubTab[tabId]) {
+            // 対象タブ内のサブタブを全リセットしてデフォルトを復元
+            const parent = document.getElementById(tabId);
+            parent.querySelectorAll('.enhance-tab-content, .enhance-tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(defaultSubTab[tabId]).classList.add('active');
+            // 対応するボタンも復元
+            const btns = parent.querySelectorAll('.enhance-tab-btn');
+            if (btns[0]) btns[0].classList.add('active');
         }
     }
 
@@ -3021,6 +3051,18 @@
             btn.textContent = '🔥 ハードポイント';
             btn.onclick = () => switchEnhanceTab('enhance-hard-point', btn);
             tabRow.appendChild(btn);
+        }
+
+        // 図鑑タブボタンの表示制御（ハード解放後）
+        const notebookTabRow = document.getElementById('notebook-tab-row');
+        const existingZukanBtn = document.getElementById('notebook-tab-btn-zukan');
+        if (hardUnlocked && notebookTabRow && !existingZukanBtn) {
+            const btn = document.createElement('button');
+            btn.className = 'enhance-tab-btn';
+            btn.id = 'notebook-tab-btn-zukan';
+            btn.textContent = '📖 図鑑';
+            btn.onclick = () => switchEnhanceTab('notebook-zukan', btn);
+            notebookTabRow.appendChild(btn);
         }
 
         // ハードポイント数値更新
