@@ -72,6 +72,12 @@
         .dungeon-tab-row { display: flex; border-bottom: 1px solid #424242; }
         .dungeon-tab-btn { flex: 1; padding: 6px 4px; background: #2c2c2c; color: #aaa; border: none; cursor: pointer; font-size: 0.78em; font-weight: bold; margin: 0; border-radius: 0; }
         .dungeon-tab-btn.active { background: #4caf50; color: white; }
+        /* 強化タブ内サブタブ */
+        .enhance-tab-row { display: flex; border-bottom: 2px solid #555; margin-bottom: 12px; }
+        .enhance-tab-btn { flex: 1; padding: 7px 4px; background: #424242; color: #bbb; border: none; cursor: pointer; font-size: 0.85em; font-weight: bold; margin: 0; border-radius: 4px 4px 0 0; }
+        .enhance-tab-btn.active { background: #1565c0; color: white; }
+        .enhance-tab-content { display: none; }
+        .enhance-tab-content.active { display: block; }
         .world-row { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid #333; }
         .world-select { background: #424242; color: white; border: 1px solid #616161; border-radius: 4px; padding: 3px 8px; font-size: 0.85em; font-weight: bold; cursor: pointer; }
         .stage-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #333; }
@@ -130,7 +136,7 @@
         /* =========================================
            4. Game Specifics (Inventory, Trees)
            ========================================= */
-        .tree-container { display: flex; flex-direction: column; gap: 15px; background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; max-height: 450px; overflow-y: auto; }
+        .tree-container { display: flex; flex-direction: column; gap: 15px; background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; max-height: 800px; overflow-y: auto; }
         .tree-branch { border-left: 4px solid #ccc; padding-left: 12px; margin-bottom: 5px; }
         .tree-branch.locked-branch { opacity: 0.4; background: #eee; pointer-events: none; }
         .branch-title { font-weight: bold; font-size: 0.95em; margin-bottom: 6px; padding: 2px 6px; border-radius: 3px; color: #fff; display: inline-block; }
@@ -320,7 +326,7 @@
 
         <div class="tab-menu">
             <button class="tab-btn active" onclick="switchTab('tab-battle', this)">⚔️ 戦闘</button>
-            <button class="tab-btn" onclick="switchTab('tab-status', this)">🌲 ツリー</button>
+            <button class="tab-btn" onclick="switchTab('tab-status', this)">⚡ 強化</button>
             <button class="tab-btn" onclick="switchTab('tab-equip', this)">🎒 倉庫</button>
             <button class="tab-btn" onclick="switchTab('tab-town', this)">🏘️ 街</button>
             <button class="tab-btn" onclick="switchTab('tab-quest', this)">📜 クエスト</button>
@@ -363,8 +369,15 @@
         </div>
 
         <div id="tab-status" class="tab-content">
-            <h3 style="margin-top: 0; margin-bottom:10px;">🌲 ルート別スキルツリー</h3>
-            <div class="tree-container">
+            <!-- 強化タブ内サブタブ -->
+            <div class="enhance-tab-row" id="enhance-tab-row">
+                <button class="enhance-tab-btn active" onclick="switchEnhanceTab('enhance-skill-tree', this)">🌲 スキルツリー</button>
+            </div>
+
+            <!-- スキルツリーサブタブ -->
+            <div id="enhance-skill-tree" class="enhance-tab-content active">
+                <h3 style="margin-top: 0; margin-bottom:10px;">🌲 ルート別スキルツリー</h3>
+                <div class="tree-container">
                 <div class="tree-branch" id="branch-warrior">
                     <div class="branch-title bg-warrior">⚔️ 戦士ルート（物理・会心・ゴリ押し）</div>
                     <div class="tree-node" id="node-t-atk">
@@ -497,19 +510,18 @@
                     </div>
                 </div>
             </div>
+            </div><!-- /enhance-skill-tree -->
 
-            <h4 style="margin: 10px 0 5px 0; border-left:4px solid #333; padding-left:5px;">🛡️ 現在のパーティ総合ステータス補正値</h4>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size:0.95em; background:#fff; padding:8px; border:1px solid #ccc; border-radius:4px;">
-                <div>⚔️ 総DPS(放置自動): <span id="stat-p-dps" style="font-weight:bold;">0</span></div>
-                <div>🛡️ 総物理防御(DEF): <span id="stat-p-def" style="font-weight:bold;">0</span></div>
-                <div>🔮 総魔法耐性(MRES): <span id="stat-p-mres" style="font-weight:bold;">0</span>%</div>
-                <div>🍃 総回避率(EVA): <span id="stat-p-eva" style="font-weight:bold;">0</span>%</div>
-                <div>☠️ 毒耐性: <span id="stat-poison-res" style="font-weight:bold;">0</span>%</div>
-                <div>🌑 暗闇耐性: <span id="stat-darkness-res" style="font-weight:bold;">0</span>%</div>
-                <div>⚡ 麻痺耐性: <span id="stat-paralysis-res" style="font-weight:bold;">0</span>%</div>
-                <div style="grid-column: span 2; border-top: 1px solid #ddd; margin-top:2px; padding-top:2px; color:#555;">※クリック攻撃力、会心率は選んだリーダー固有の値になります。</div>
-            </div>
-        </div>
+            <!-- ハードポイントサブタブ（ハード解放後に表示） -->
+            <div id="enhance-hard-point" class="enhance-tab-content">
+                <h3 style="margin-top: 0; margin-bottom:10px;">🔥 ハードポイント強化</h3>
+                <div style="background:#1a1a2e; border:2px solid #e53935; border-radius:8px; padding:12px; margin-bottom:12px; color:#fff;">
+                    <div style="font-size:1.1em; font-weight:bold;">🔥 所持ハードポイント: <span id="hard-point-display" style="color:#ff7043; font-size:1.3em;">0</span> pt</div>
+                    <div style="font-size:0.8em; color:#aaa; margin-top:4px;">ハードモードの敵を倒すと獲得（通常+1 / 階層ボス+5 / ワールドボス+20）</div>
+                </div>
+                <div id="hard-upgrade-list"></div>
+            </div><!-- /enhance-hard-point -->
+        </div><!-- /tab-status -->
 
         <div id="tab-equip" class="tab-content">
             <div style="display:grid; grid-template-columns: 1fr 1fr; background: #e3f2fd; padding: 8px; border-radius: 4px; margin-bottom:15px; font-weight: bold; font-size:0.95em; text-align:left; padding-left:15px;">
@@ -518,7 +530,16 @@
                 <div style="grid-column: span 2; border-top:1px dashed #90caf9; margin-top:5px; padding-top:5px;">✨ 強化石: <span id="dust-count" style="color:#0288d1;">0</span> 個</div>
             </div>
             
-            <h3 style="margin-top: 0; margin-bottom:5px;">🛡️ キャラクター装備スロット</h3>
+            <h4 style="margin: 10px 0 5px 0; border-left:4px solid #333; padding-left:5px;">🛡️ 現在のパーティ総合ステータス補正値</h4>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size:0.95em; background:#fff; padding:8px; border:1px solid #ccc; border-radius:4px; margin-bottom:10px;">
+                <div>🛡️ 総物理防御(DEF): <span id="stat-p-def" style="font-weight:bold;">0</span></div>
+                <div>🔮 総魔法耐性(MRES): <span id="stat-p-mres" style="font-weight:bold;">0</span>%</div>
+                <div>🍃 総回避率(EVA): <span id="stat-p-eva" style="font-weight:bold;">0</span>%</div>
+                <div>☠️ 毒耐性: <span id="stat-poison-res" style="font-weight:bold;">0</span>%</div>
+                <div>🌑 暗闇耐性: <span id="stat-darkness-res" style="font-weight:bold;">0</span>%</div>
+                <div>⚡ 麻痺耐性: <span id="stat-paralysis-res" style="font-weight:bold;">0</span>%</div>
+                <div style="grid-column: span 2; border-top: 1px solid #ddd; margin-top:2px; padding-top:2px; color:#555;">※クリック攻撃力、会心率は選んだリーダー固有の値になります。</div>
+            </div>
             <div id="party-equipment-container"></div>
 
             <div style="background:#f5f5f5; border:1px solid #ddd; border-radius:6px; padding:12px; margin-bottom:15px;">
@@ -911,6 +932,8 @@
         gold: 0, exp: 0, upgradeStone: 0, maxInventorySlots: 10,
         currentDungeon: "normal",
         unlockedDungeons: { normal: true, hard: false },
+        hardPoint: 0,
+        hardUpgrades: { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 },
         progress: {
             normal: { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 },
         },
@@ -1013,6 +1036,8 @@
                     if (!gameState.inventoryFilter) gameState.inventoryFilter = { rarity: "all", slot: "all", sortBy: "entry" };
                     if (!gameState.killsInStage) gameState.killsInStage = 0;
                     if (!gameState.unlockedDungeons) gameState.unlockedDungeons = { normal: true, hard: false };
+                    if (gameState.hardPoint === undefined) gameState.hardPoint = 0;
+                    if (!gameState.hardUpgrades) gameState.hardUpgrades = { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 };
                     gameState.party.forEach(c => { if (c.awakened === undefined) c.awakened = false; });
                     gameState.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
                     document.getElementById('start-job-select').style.display = 'none';
@@ -1053,6 +1078,31 @@
         document.querySelectorAll('.log-pane, .log-sub-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(`pane-${logType}`).classList.add('active');
         document.getElementById(`btn-log-${logType}`).classList.add('active');
+    }
+
+    function switchEnhanceTab(tabId, btn) {
+        document.querySelectorAll('.enhance-tab-content, .enhance-tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if (btn) btn.classList.add('active');
+    }
+
+    const HARD_UPGRADE_MAX = 20;
+    const HARD_UPGRADE_N   = 20; // nextLvCost = nextLv × N
+
+    function hardUpgradeCost(currentLv) {
+        return (currentLv + 1) * HARD_UPGRADE_N;
+    }
+
+    function buyHardUpgrade(key) {
+        const hu = gameState.hardUpgrades;
+        const currentLv = hu[key] || 0;
+        if (currentLv >= HARD_UPGRADE_MAX) return;
+        const cost = hardUpgradeCost(currentLv);
+        if ((gameState.hardPoint || 0) < cost) return;
+        gameState.hardPoint -= cost;
+        hu[key] = currentLv + 1;
+        saveGame();
+        updateDisplay();
     }
 
     function getLogTime() { 
@@ -1442,6 +1492,13 @@
         let isBoss = (gameState.killsInStage === 4), w = prog().world, s = prog().stage;
         let expGain = Math.floor((isBoss ? s * 50 * w : s * 10 * w) * (1 + expBonus / 100));
         gameState.exp += expGain;
+
+        // ハードポイント加算
+        if (gameState.currentDungeon === "hard") {
+            const isWorldBoss = (s === 10 && isBoss);
+            const hp = isWorldBoss ? 20 : isBoss ? 5 : 1;
+            gameState.hardPoint = (gameState.hardPoint || 0) + hp;
+        }
         
         let equipGoldBonus = 0;
         gameState.party.forEach(char => {
@@ -2497,7 +2554,11 @@
                 }
             });
         }
-        return { atk, crit, critMultiplier };
+        return { 
+            atk: Math.floor(atk * (1 + ((gameState.hardUpgrades?.atk || 0) * 0.01))),
+            crit, 
+            critMultiplier 
+        };
     }
 
     function calcPartyAllStats() {
@@ -2575,6 +2636,13 @@
         dps += (gameState.statusBonus?.atk || 0);
         def += (gameState.statusBonus?.def || 0);
         expBonus = bonus + guildExpBonus;
+
+        // ハードポイント強化倍率（各Lv +1%、最大Lv20=+20%）
+        const hu = gameState.hardUpgrades || {};
+        if (hu.hp)  maxHp   = Math.floor(maxHp   * (1 + (hu.hp  || 0) * 0.01));
+        if (hu.def) def     = Math.floor(def     * (1 + (hu.def || 0) * 0.01));
+        if (hu.mag) mag     = Math.floor(mag     * (1 + (hu.mag || 0) * 0.01));
+        if (hu.dps) idleDmg = Math.floor(idleDmg * (1 + (hu.dps || 0) * 0.01));
         
         return { 
             dps, def, regen, maxHp, 
@@ -2672,7 +2740,6 @@
         document.getElementById('e-stat-def').innerText = enemyDef; 
         document.getElementById('e-stat-mres').innerText = enemyMres; 
         document.getElementById('e-stat-eva').innerText = enemyEva;
-        document.getElementById('stat-p-dps').innerText = pStats.dps; 
         document.getElementById('stat-p-def').innerText = pStats.def; 
         document.getElementById('stat-p-mres').innerText = pStats.mres; 
         document.getElementById('stat-p-eva').innerText = pStats.eva;
@@ -2933,6 +3000,55 @@
         updateFacilityTab();
         updateQuestTab();
         updateBGMSEButtons();
+        updateEnhanceTab();
+    }
+
+    function updateEnhanceTab() {
+        const hardUnlocked = gameState.unlockedDungeons && gameState.unlockedDungeons.hard;
+        const tabRow = document.getElementById('enhance-tab-row');
+        if (!tabRow) return;
+
+        // ハードポイントタブボタンの表示制御
+        const existingBtn = document.getElementById('enhance-tab-btn-hard');
+        if (hardUnlocked && !existingBtn) {
+            const btn = document.createElement('button');
+            btn.className = 'enhance-tab-btn';
+            btn.id = 'enhance-tab-btn-hard';
+            btn.textContent = '🔥 ハードポイント';
+            btn.onclick = () => switchEnhanceTab('enhance-hard-point', btn);
+            tabRow.appendChild(btn);
+        }
+
+        // ハードポイント数値更新
+        const display = document.getElementById('hard-point-display');
+        if (display) display.textContent = gameState.hardPoint || 0;
+
+        // ハードポイント強化ボタン描画
+        if (!hardUnlocked) return;
+        const container = document.getElementById('hard-upgrade-list');
+        if (!container) return;
+
+        const hu = gameState.hardUpgrades || {};
+        const labels = { hp: '❤️ HP', atk: '⚔️ ATK(クリック)', def: '🛡️ DEF', mag: '🔮 MAG', dps: '⚡ DPS(放置)' };
+        container.innerHTML = '';
+        Object.entries(labels).forEach(([key, label]) => {
+            const lv = hu[key] || 0;
+            const maxed = lv >= HARD_UPGRADE_MAX;
+            const cost = maxed ? '-' : hardUpgradeCost(lv);
+            const pct = lv;
+            container.innerHTML += `
+                <div style="display:flex; align-items:center; justify-content:space-between; background:#1e1e3a; border:1px solid #444; border-radius:6px; padding:8px 10px; margin-bottom:8px;">
+                    <div>
+                        <span style="color:#fff; font-weight:bold;">${label}</span>
+                        <span style="color:#ff7043; margin-left:8px;">+${pct}%</span>
+                        <span style="color:#888; font-size:0.8em; margin-left:6px;">Lv${lv}/${HARD_UPGRADE_MAX}</span>
+                    </div>
+                    <button onclick="buyHardUpgrade('${key}')"
+                        style="background:${maxed ? '#555' : '#c62828'}; color:white; border:none; border-radius:4px; padding:5px 10px; font-weight:bold; cursor:${maxed ? 'default' : 'pointer'}; font-size:0.85em; min-width:80px;">
+                        ${maxed ? 'MAX' : `🔥${cost}pt`}
+                    </button>
+                </div>`;
+        });
     }
 
     function updateBGMSEButtons() {
