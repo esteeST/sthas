@@ -192,6 +192,8 @@
         .rarity-Rare { color: #0070dd; font-weight: bold; }
         .rarity-Epic { color: #a335ee; font-weight: bold; }
         .rarity-Legendary { color: #ff8000; font-weight: bold; text-shadow: 0 0 2px #ffca28; }
+        .inv-item.from-hard { background: #ffe4e8; border-color: #f48fb1; }
+        .picker-item.from-hard { background: #ffe4e8; border-color: #f48fb1; }
 
         .c-yellow { color: #ffeb3b; }
         .c-gold { color: #ffd700; font-weight: bold; }
@@ -2038,7 +2040,7 @@
         filtered.forEach((item) => {
             let itemDiv = document.createElement('div');
             let isSelected = selectedItemIds.has(item.id);
-            itemDiv.className = `inv-item${item.isFavorite ? ' favorite' : ''}${isSelected ? ' selected' : ''}`;
+            itemDiv.className = `inv-item${item.isFavorite ? ' favorite' : ''}${isSelected ? ' selected' : ''}${item.fromHard ? ' from-hard' : ''}`;
             let optStrings = item.options ? item.options.map(o => `🔹${o.text}`).join(" | ") : "";
             let favoriteIcon = item.isFavorite ? '⭐' : '☆';
             
@@ -2046,7 +2048,7 @@
                 <input type="checkbox" class="inv-item-check" ${isSelected ? 'checked' : ''} ${item.isFavorite ? 'disabled title="お気に入りは選択できません"' : ''} onchange="toggleItemSelect('${item.id}', this.checked)">
                 <div class="inv-item-content" style="border-left: 5px solid ${slotColors[item.slot] || "#ccc"};">
                     <div>
-                        <span class="rarity-${item.rarity}">${slotMarkers[item.slot] || "🎒"} ${item.name}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value}${item.type === "atk" ? "A" : "D"})</span>
+                        <span class="rarity-${item.rarity}">${slotMarkers[item.slot] || "🎒"} ${item.fromHard ? '🔥' : ''}${item.name}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value}${item.type === "atk" ? "A" : "D"})</span>
                         <span style="font-size:0.75em; background:#eee; color:#333; padding:1px 4px; border-radius:3px; margin-left:5px;">${slotJpNames[item.slot] || item.slot}</span>
                         ${optStrings ? `<span class="opt-text">${optStrings}</span>` : ""}
                     </div>
@@ -2077,13 +2079,13 @@
         } else {
             filtered.forEach(item => {
                 let div = document.createElement('div'); 
-                div.className = "picker-item";
+                div.className = `picker-item${item.fromHard ? ' from-hard' : ''}`;
                 let isWeaponMismatched = (item.slot === "weapon" && ((char.job === "warrior" && item.weaponType !== "Sword") || (char.job === "rogue" && item.weaponType !== "Bow") || (char.job === "mage" && item.weaponType !== "Staff")))
                     || (item.slot === "shield" && ((char.job === "warrior" && item.weaponType !== "Shield") || (char.job === "rogue" && item.weaponType !== "Arrow") || (char.job === "mage" && item.weaponType !== "Orb"))); 
                 
                 let optText = item.options ? item.options.map(o => o.text).join(", ") : "";
 
-                div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${item.name}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
+                div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${item.fromHard ? '🔥' : ''}${item.name}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
                 
                 let btn = document.createElement('button'); 
                 btn.className = "picker-btn";
@@ -2322,7 +2324,7 @@
         let rand = Math.random(), rarity = "Normal", mult = 1, maxOpts = 0;
         let w = prog().world || 1;
         const wRarity = isHard ? w + 9 : w;  // レアリティ・倍率はハードW1=ノーマルW10相当
-        const wValue  = isHard ? w + 1 : w;  // 基礎値はハードW1=ノーマルW2相当（控えめ）
+        const wValue  = isHard ? w + 9 : w;  // 基礎値もハードW1=ノーマルW10相当
         
         if (isBoss) {
             if (wRarity <= 3) {
@@ -2415,7 +2417,8 @@
             type: itemType, 
             weaponType: wType, 
             options: options, 
-            isFavorite: false 
+            isFavorite: false,
+            fromHard: isHard,
         };
         
         gameState.inventory.push(newItem);
@@ -2915,7 +2918,7 @@
 
                 slotBox.innerHTML = `
                     <div class="eq-info-area">
-                        <span class="rarity-${item.rarity}">${slotMarkers[slot]} ${item.name} +${item.level} (+${item.value} ${item.type.toUpperCase()})</span>
+                        <span class="rarity-${item.rarity}">${slotMarkers[slot]} ${item.fromHard ? '🔥' : ''}${item.name} +${item.level} (+${item.value} ${item.type.toUpperCase()})</span>
                         ${optHtml}
                     </div>
                     <div class="eq-control-btns">
@@ -2923,6 +2926,7 @@
                         <button class="eq-btn-sub btn-upgrade" ${upgradeDisabled} onclick="upgradeEquipped(${cIndex}, '${slot}')">強化</button>
                         <button class="eq-btn-sub btn-remove" ${(item.name === "なし") ? "disabled" : ""} onclick="removeEquip(${cIndex}, '${slot}')">外す</button>
                     </div>`;
+                if (item.fromHard) slotBox.style.background = '#ffe4e8';
                 grid.appendChild(slotBox);
             });
             charBox.appendChild(grid); 
