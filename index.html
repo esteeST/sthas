@@ -651,9 +651,8 @@
             <!-- 図鑑サブタブ -->
             <div id="notebook-zukan" class="enhance-tab-content">
                 <h3 style="margin-top:0;">📖 図鑑</h3>
-                <div style="color:#aaa; font-size:0.9em; text-align:center; padding:20px;">
-                    ⚙️ 図鑑は近日公開予定
-                </div>
+                <p style="color:#555; font-size:0.88em;">ハードで一定数討伐後、100万EXPを消費してステータス強化を解放できます。</p>
+                <div id="zukan-list"></div>
             </div>
         </div>
 
@@ -710,6 +709,12 @@
     // 1. GAME DATA & CONFIGURATION
     // =========================================
     const SAVE_KEY = 'haksla_party_idle_v6_evolved';
+
+    /** 数値をカンマ区切り文字列に変換するユーティリティ */
+    function fmt(num) {
+        if (!Number.isFinite(num)) return "0";
+        return Math.floor(num).toLocaleString("ja-JP");
+    }
 
     /** 現在のダンジョン進行状態への参照を返すヘルパー */
     function prog() {
@@ -880,6 +885,35 @@
     }; // end GAME_DATA
 
     // =========================================
+    // ZUKAN TABLE
+    // 敵名 → { threshold, stat, label }
+    // stat: "magPenetration" | "idleDmg" | "crit" | "critDmg"
+    // =========================================
+    const ZUKAN_TABLE = (() => {
+        const table = {};
+        // 通常敵：W1〜W10の各ワールド4体、W奇数=魔法耐性貫通、W偶数=放置ダメージ
+        Object.entries(GAME_DATA.enemies.worldTables).forEach(([w, entries]) => {
+            const wNum = Number(w);
+            const stat = wNum % 2 === 1 ? "magPenetration" : "idleDmg";
+            const label = wNum % 2 === 1 ? "魔法耐性貫通+1%" : "放置ダメージ+1%";
+            entries.forEach(e => {
+                if (!table[e.name]) table[e.name] = { threshold: 500, stat, label, type: "normal" };
+            });
+        });
+        // ステージボス：会心率+1%、100体
+        Object.values(GAME_DATA.enemies.stageBosses).forEach(arr => {
+            arr.forEach(e => {
+                if (!table[e.name]) table[e.name] = { threshold: 100, stat: "crit", label: "会心率+1%", type: "stage_boss" };
+            });
+        });
+        // ワールドボス：会心ダメージ+1%、100体
+        Object.values(GAME_DATA.enemies.worldBosses).forEach(e => {
+            if (!table[e.name]) table[e.name] = { threshold: 100, stat: "critDmg", label: "会心ダメージ+1%", type: "world_boss" };
+        });
+        return table;
+    })();
+
+    // =========================================
     // DUNGEON DEFINITIONS
     // 新ダンジョン追加時はここに追記するだけ
     // =========================================
@@ -952,6 +986,8 @@
         unlockedDungeons: { normal: true, hard: false },
         hardPoint: 0,
         hardUpgrades: { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 },
+        zukanKills: {},
+        zukanUnlocked: {},
         progress: {
             normal: { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 },
         },
@@ -1056,6 +1092,8 @@
                     if (!gameState.unlockedDungeons) gameState.unlockedDungeons = { normal: true, hard: false };
                     if (gameState.hardPoint === undefined) gameState.hardPoint = 0;
                     if (!gameState.hardUpgrades) gameState.hardUpgrades = { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 };
+                    if (!gameState.zukanKills) gameState.zukanKills = {};
+                    if (!gameState.zukanUnlocked) gameState.zukanUnlocked = {};
                     gameState.party.forEach(c => { if (c.awakened === undefined) c.awakened = false; });
                     gameState.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
                     document.getElementById('start-job-select').style.display = 'none';
@@ -1104,6 +1142,9 @@
             const btns = parent.querySelectorAll('.enhance-tab-btn');
             if (btns[0]) btns[0].classList.add('active');
         }
+        // タブ内コンテンツは非表示中は更新をスキップしているため、
+        // 表示状態が変わった今のタイミングで一度だけ最新化する
+        updateDisplay();
     }
 
     function switchLogTab(logType) {
@@ -1116,6 +1157,37 @@
         document.querySelectorAll('.enhance-tab-content, .enhance-tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         if (btn) btn.classList.add('active');
+        // サブタブ内コンテンツは非表示中は更新をスキップしているため、
+        // 表示状態が変わった今のタイミングで一度だけ最新化する
+        updateDisplay();
+    }
+
+    /** 図鑑解放済み強化のボーナスを集計して返す */
+    function calcZukanBonus() {
+        const bonus = { magPenetration: 0, idleDmg: 0, crit: 0, critDmg: 0 };
+        Object.entries(gameState.zukanUnlocked || {}).forEach(([name, unlocked]) => {
+            if (!unlocked) return;
+            const def = ZUKAN_TABLE[name];
+            if (def) bonus[def.stat] = (bonus[def.stat] || 0) + 1;
+        });
+        return bonus;
+    }
+
+    /** 図鑑強化を解放する（EXP消費） */
+    function unlockZukan(name) {
+        const def = ZUKAN_TABLE[name];
+        if (!def) return;
+        if (gameState.zukanUnlocked[name]) return alert("既に解放済みです。");
+        const kills = gameState.zukanKills[name] || 0;
+        if (kills < def.threshold) return alert(`討伐数が足りません！\n必要: ${def.threshold}体 / 現在: ${kills}体`);
+        const cost = 1000000;
+        if (gameState.exp < cost) return alert(`経験値が足りません！\n必要: ${cost.toLocaleString('ja-JP')}EXP`);
+        if (!confirm(`${name}の図鑑強化を解放しますか？\n効果: ${def.label}\n消費: 100万EXP`)) return;
+        gameState.exp -= cost;
+        gameState.zukanUnlocked[name] = true;
+        saveGame();
+        updateDisplay();
+        appendLog('log-exp-area', `${getLogTime()} 📖 <span style="color:#ce93d8; font-weight:bold;">図鑑強化解放: [${name}] ${def.label}</span>`, "c-yellow");
     }
 
     const HARD_UPGRADE_MAX = 20;
@@ -1530,6 +1602,11 @@
             const isWorldBoss = (s === 10 && isBoss);
             const hp = isWorldBoss ? 20 : isBoss ? 5 : 1;
             gameState.hardPoint = (gameState.hardPoint || 0) + hp;
+
+            // 図鑑カウント（敵名からサフィックスを除去して記録）
+            const baseName = enemyName.replace(/\s*\(H・W\d+-\d+\)/, '').replace(/^【階層BOSS】/, '');
+            if (!gameState.zukanKills) gameState.zukanKills = {};
+            gameState.zukanKills[baseName] = (gameState.zukanKills[baseName] || 0) + 1;
         }
         
         let equipGoldBonus = 0;
@@ -1812,7 +1889,7 @@
         let lStats = calcSingleCharStats(leader);
         
         // --- 自動攻撃（放置DPS）---
-        let totalDps = stats.dps + Math.floor(lStats.atk * 0.1) + (stats.idleDmg || 0);
+        let totalDps = stats.dps + Math.floor(lStats.atk * 0.1);
         let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0) ? 1 + (gameState.treeSkills.berserker * 0.2) : 1.0;
         let dpsBoost = warcryActive > 0 ? 1.5 : 1.0;
         let darknessMult = playerDarkness > 0 ? 0.5 : 1.0;
@@ -1871,7 +1948,7 @@
         if (enemyHp <= 0) winBattle();
         
         checkQuestsTick();
-        updateDisplay();
+        updateDisplay(stats);
     }
 
     function tickEnemyAttack(stats) {
@@ -2332,15 +2409,17 @@
     }
 
     function expandInventory() {
-        if (gameState.maxInventorySlots >= 50) return alert("倉庫はこれ以上拡張できません。");
-        if (gameState.gold >= 500) {
-            gameState.gold -= 500; 
+        const slots = gameState.maxInventorySlots;
+        if (slots >= 100) return alert("倉庫はこれ以上拡張できません。");
+        const cost = slots >= 50 ? 1000000 : 500;
+        if (gameState.gold >= cost) {
+            gameState.gold -= cost;
             gameState.maxInventorySlots += 10;
             appendLog('log-exp-area', `${getLogTime()} 🎒 倉庫上限を <span class="c-green">${gameState.maxInventorySlots}枠</span> に拡張！`, "c-white");
-            saveGame(); 
+            saveGame();
             updateDisplay();
-        } else { 
-            alert("ゴールドが足りません！"); 
+        } else {
+            alert(`ゴールドが足りません！\n必要: ${cost.toLocaleString('ja-JP')}G`);
         }
     }
 
@@ -2401,7 +2480,7 @@
             { name: "会心", type: "critDmg", min: 1, max: 5, unit: "%" },
             { name: "金策", type: "goldBonus", min: 1, max: 5, unit: "%" },
             { name: "回復", type: "regen", min: 1, max: 3 },
-            { name: "放置ダメージ", type: "idleDmg", min: 1, max: 3 },
+            { name: "放置ダメージ", type: "idleDmg", unit: "%", min: 1, max: 5 },
             { name: "魔法耐性貫通", type: "magPenetration", min: 1, max: 3, unit: "%" },
             { name: "魔法耐性", type: "mres", min: 1, max: 5, unit: "%" },
             { name: "回避率", type: "eva", min: 1, max: 5, unit: "%" },
@@ -2414,7 +2493,7 @@
             let poolItem = optPool[Math.floor(Math.random() * optPool.length)];
             let baseVal = Math.floor(Math.random() * (poolItem.max - poolItem.min + 1)) + poolItem.min;
             let isPercentageOption = poolItem.unit === "%";
-            let isFixedValueOption = poolItem.type === "regen" || poolItem.type === "idleDmg";
+            let isFixedValueOption = poolItem.type === "regen";
             
             let finalVal = isPercentageOption || isFixedValueOption
                 ? baseVal
@@ -2587,10 +2666,11 @@
                 }
             });
         }
+        const zukanB = calcZukanBonus();
         return { 
             atk: Math.floor(atk * (1 + ((gameState.hardUpgrades?.atk || 0) * 0.01))),
-            crit, 
-            critMultiplier 
+            crit: crit + (zukanB.crit || 0),
+            critMultiplier: critMultiplier + (zukanB.critDmg || 0),
         };
     }
 
@@ -2605,7 +2685,7 @@
         let def = (gameState.treeSkills.ironwall || 0) * 4;
         let mag = (gameState.treeSkills.arcane || 0) * 15;
         let magPenetration = (gameState.treeSkills.arcaneamp || 0) * 5;
-        let idleDmg = 0;  
+        let idleDmgPct = 0;  // 放置ダメージオプションの%合計（装備の idleDmg オプション）
         let bonus = 0;
         let guildExpBonus = (gameState.facilities?.guildLevel || 0) * 10;
         
@@ -2637,7 +2717,7 @@
                     item.options.forEach(opt => {
                         if (opt.type === "def") def += opt.val;
                         if (opt.type === "regen") regen += opt.val;
-                        if (opt.type === "idleDmg") idleDmg += opt.val;
+                        if (opt.type === "idleDmg") idleDmgPct += opt.val;
                         if (opt.type === "magPenetration") magPenetration += opt.val;
                         if (opt.type === "exp") bonus += opt.val;
                         if (opt.type === "mres") mres += opt.val;
@@ -2675,13 +2755,19 @@
         if (hu.hp)  maxHp   = Math.floor(maxHp   * (1 + (hu.hp  || 0) * 0.01));
         if (hu.def) def     = Math.floor(def     * (1 + (hu.def || 0) * 0.01));
         if (hu.mag) mag     = Math.floor(mag     * (1 + (hu.mag || 0) * 0.01));
-        if (hu.dps) idleDmg = Math.floor(idleDmg * (1 + (hu.dps || 0) * 0.01));
+        if (hu.dps) dps = Math.floor(dps * (1 + (hu.dps || 0) * 0.01));
+        if (idleDmgPct > 0) dps = Math.floor(dps * (1 + idleDmgPct / 100));
+
+        // 図鑑ボーナス
+        const zukanBonus = calcZukanBonus();
+        magPenetration += zukanBonus.magPenetration || 0;
+        if (zukanBonus.idleDmg > 0) dps = Math.floor(dps * (1 + zukanBonus.idleDmg / 100));
         
         return { 
             dps, def, regen, maxHp, 
             mres: Math.min(75, mres), eva: Math.min(75, eva), 
             poisonRes: Math.min(95, poisonRes), darknessRes: Math.min(95, darknessRes), paralysisRes: Math.min(95, paralysisRes), 
-            idleDmg, mag, magPenetration 
+            idleDmg: 0, mag, magPenetration 
         };
     }
 
@@ -2804,8 +2890,9 @@
         }
     }
 
-    /** スキルツリータブの更新 */
+    /** スキルツリータブの更新（強化タブ＞スキルツリーサブタブが非表示の間はスキップ） */
     function updateTreeTab() {
+        if (!isVisible('enhance-skill-tree')) return;
         let unlockedJobs = gameState.party.map(c => c.job);
         ["warrior", "rogue", "mage"].forEach(jKey => { 
             document.getElementById(`branch-${jKey}`).classList[unlockedJobs.includes(jKey) ? 'remove' : 'add']('locked-branch'); 
@@ -2889,8 +2976,9 @@
         }
     }
 
-    /** 倉庫タブ（装備・施設・採用）の更新 */
+    /** 倉庫タブ（装備・施設・採用）の更新（倉庫タブが非表示の間はスキップ） */
     function updateEquipTab() {
+        if (!isVisible('tab-equip')) return;
         let hireZone = document.getElementById('hire-action-zone'); 
         hireZone.innerHTML = "";
         let unlockedCompanions = gameState.party.map(c => c.job);
@@ -2967,19 +3055,22 @@
         document.getElementById('inv-max-capacity').innerText = gameState.maxInventorySlots;
         
         let expandBtn = document.getElementById('btn-expand-inv');
-        if (gameState.maxInventorySlots >= 50) { 
-            expandBtn.innerText = "最大枠"; 
-            expandBtn.disabled = true; 
-        } else { 
-            expandBtn.innerText = `＋枠拡張 (500G)`; 
-            expandBtn.disabled = (gameState.gold < 500); 
+        if (gameState.maxInventorySlots >= 100) {
+            expandBtn.innerText = "最大枠";
+            expandBtn.disabled = true;
+        } else {
+            const cost = gameState.maxInventorySlots >= 50 ? 1000000 : 500;
+            const costLabel = gameState.maxInventorySlots >= 50 ? '100万G' : '500G';
+            expandBtn.innerText = `＋枠拡張 (${costLabel})`;
+            expandBtn.disabled = (gameState.gold < cost);
         }
 
         updateInvDisplay();
     }
 
-    /** 施設タブの更新 */
+    /** 施設タブの更新（街タブが非表示の間はスキップ） */
     function updateFacilityTab() {
+        if (!isVisible('tab-town')) return;
         let facZone = document.getElementById('facility-zone');
         if (!facZone) return;
         facZone.innerHTML = "";
@@ -3001,8 +3092,9 @@
         });
     }
 
-    /** クエストタブの更新 */
+    /** クエストタブの更新（手帳タブが非表示の間はスキップ） */
     function updateQuestTab() {
+        if (!isVisible('tab-quest')) return;
         let questList = document.getElementById('quest-list');
         let killsDisp = document.getElementById('total-kills-disp');
         if (killsDisp) killsDisp.innerText = gameState.totalKills || 0;
@@ -3022,21 +3114,78 @@
         });
     }
 
-    function updateDisplay() {
+    /**
+     * 要素が実際に画面に表示されているか（自身または祖先が display:none でないか）を判定する。
+     * 非表示タブでの重いinnerHTML再構築を毎秒スキップするためのガードに使う。
+     */
+    function isVisible(id) {
+        const el = document.getElementById(id);
+        return !!el && el.offsetParent !== null;
+    }
+
+    function updateDisplay(precomputedStats) {
         if (!gameState.isJobSelected) return;
-        let pStats = calcPartyAllStats();
-        
+        // gameTick側で既にcalcPartyAllStats()済みならそれを再利用し、毎秒の二重計算を避ける
+        let pStats = precomputedStats || calcPartyAllStats();
+
+        // --- 常時表示エリア（HP/EXP/スキルCTなど毎秒変化するため常に更新） ---
         updateHUD(pStats);
         updateLeaderButtons();
-        updateTreeTab();
         updateSkillButtons();
+
+        // --- タブ内コンテンツ（各関数内で表示中かどうかを判定し、非表示なら再描画をスキップ） ---
+        updateTreeTab();
         updateEquipTab();
         updateFacilityTab();
         updateQuestTab();
         updateBGMSEButtons();
         updateEnhanceTab();
+        updateNotebookZukan();
     }
 
+    /** 図鑑サブタブの更新（notebook-zukanが非表示の間はスキップ） */
+    function updateNotebookZukan() {
+        if (!isVisible('notebook-zukan')) return;
+        const container = document.getElementById('zukan-list');
+        if (!container) return;
+        const groups = [
+            { label: "🐾 通常敵", type: "normal" },
+            { label: "⚔️ ステージボス", type: "stage_boss" },
+            { label: "👑 ワールドボス", type: "world_boss" },
+        ];
+        // innerHTML += をループ内で繰り返すと毎回それまでの中身を再パースしてしまい重いため、
+        // 文字列を配列に貯めてから最後に一度だけ innerHTML へ書き込む
+        const htmlParts = [];
+        groups.forEach(g => {
+            const entries = Object.entries(ZUKAN_TABLE).filter(([, def]) => def.type === g.type);
+            if (!entries.length) return;
+            htmlParts.push(`<div style="font-weight:bold; color:#fff; background:#333; padding:6px 10px; border-radius:4px; margin:10px 0 6px 0;">${g.label}</div>`);
+            entries.forEach(([name, def]) => {
+                const kills = gameState.zukanKills[name] || 0;
+                const unlocked = gameState.zukanUnlocked[name] || false;
+                const ready = kills >= def.threshold && !unlocked;
+                const pct = Math.min(100, Math.floor(kills / def.threshold * 100));
+                htmlParts.push(`
+                <div style="background:${unlocked ? '#1a3a1a' : '#1e1e2e'}; border:1px solid ${unlocked ? '#4caf50' : '#444'}; border-radius:6px; padding:8px 10px; margin-bottom:6px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <span style="color:#fff; font-weight:bold;">${name}</span>
+                            <span style="color:#aaa; font-size:0.8em; margin-left:8px;">${def.label}</span>
+                        </div>
+                        <button onclick="unlockZukan('${name}')"
+                            style="background:${unlocked ? '#555' : ready ? '#1565c0' : '#555'}; color:white; border:none; border-radius:4px; padding:4px 10px; font-size:0.82em; font-weight:bold; cursor:${unlocked || !ready ? 'default' : 'pointer'}; min-width:90px;">
+                            ${unlocked ? '✅ 解放済み' : ready ? '💡 解放可能' : 'ロック'}
+                        </button>
+                    </div>
+                    <div style="margin-top:5px; background:#333; border-radius:3px; height:6px;">
+                        <div style="background:${unlocked ? '#4caf50' : '#1565c0'}; width:${pct}%; height:6px; border-radius:3px; transition:width 0.3s;"></div>
+                    </div>
+                    <div style="color:#888; font-size:0.78em; margin-top:2px;">${kills.toLocaleString('ja-JP')} / ${def.threshold}体</div>
+                </div>`);
+            });
+        });
+        container.innerHTML = htmlParts.join('');
+    }
     function updateEnhanceTab() {
         const hardUnlocked = gameState.unlockedDungeons && gameState.unlockedDungeons.hard;
         const tabRow = document.getElementById('enhance-tab-row');
@@ -3069,8 +3218,9 @@
         const display = document.getElementById('hard-point-display');
         if (display) display.textContent = gameState.hardPoint || 0;
 
-        // ハードポイント強化ボタン描画
+        // ハードポイント強化ボタン描画（サブタブが非表示の間は重い再描画をスキップ）
         if (!hardUnlocked) return;
+        if (!isVisible('enhance-hard-point')) return;
         const container = document.getElementById('hard-upgrade-list');
         if (!container) return;
 
@@ -3097,7 +3247,9 @@
         });
     }
 
+    /** BGM/SEボタンの見た目更新（設定タブが非表示の間はスキップ） */
     function updateBGMSEButtons() {
+        if (!isVisible('tab-config')) return;
         let bgmBtn = document.getElementById('bgm-toggle');
         let seBtn = document.getElementById('se-toggle');
         
