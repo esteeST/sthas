@@ -230,6 +230,33 @@
             #attack-label-pc { display: none; }
             #attack-label-sp { display: inline !important; }
         }
+        /* =========================================
+           6. Zukan (図鑑) Accordion
+           ========================================= */
+        .zukan-world-section { border: 1px solid #333; border-radius: 6px; margin-bottom: 8px; overflow: hidden; background: #1a1a1a; }
+        .zukan-world-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: #2a2a2a; cursor: pointer; user-select: none; }
+        .zukan-world-header:hover { background: #333; }
+        .zukan-world-title { flex: 1 1 auto; min-width: 0; color: #fff; font-weight: bold; font-size: 0.88em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .zukan-world-meta { display: flex; align-items: center; gap: 8px; flex: none; }
+        .zukan-world-count { color: #aaa; font-size: 0.76em; white-space: nowrap; }
+        .zukan-world-count.all-done { color: #81c784; }
+        .zukan-world-chevron { color: #999; font-size: 0.75em; transition: transform 0.2s; display: inline-block; }
+        .zukan-world-section.open .zukan-world-chevron { transform: rotate(90deg); }
+        .zukan-world-body { display: none; padding: 8px; }
+        .zukan-world-section.open .zukan-world-body { display: block; }
+        .zukan-group-label { color: #888; font-size: 0.7em; font-weight: bold; letter-spacing: 0.04em; margin: 6px 0 4px; }
+        .zukan-group-label:first-child { margin-top: 0; }
+        .zukan-card { background: #1e1e2e; border: 1px solid #444; border-radius: 6px; padding: 6px 8px; margin-bottom: 5px; }
+        .zukan-card.is-unlocked { background: #1a3a1a; border-color: #4caf50; }
+        .zukan-name { color: #fff; font-weight: bold; font-size: 0.85em; line-height: 1.3; word-break: break-word; }
+        .zukan-btn { flex: none; background: #555; color: white; border: none; border-radius: 4px; padding: 3px 7px; font-size: 0.7em; font-weight: bold; cursor: default; white-space: nowrap; }
+        .zukan-btn.is-ready { background: #1565c0; cursor: pointer; }
+        .zukan-card-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 4px; }
+        .zukan-tag { flex: none; color: #aaa; font-size: 0.7em; white-space: nowrap; }
+        .zukan-progress-track { flex: 1 1 60px; min-width: 40px; background: #333; border-radius: 3px; height: 5px; }
+        .zukan-progress-fill { height: 5px; border-radius: 3px; transition: width 0.3s; }
+        .zukan-count { flex: none; color: #888; font-size: 0.7em; white-space: nowrap; }
+
     </style>
 </head>
 <body>
@@ -897,18 +924,20 @@
             const stat = wNum % 2 === 1 ? "magPenetration" : "idleDmg";
             const label = wNum % 2 === 1 ? "魔法耐性貫通+1%" : "放置ダメージ+1%";
             entries.forEach(e => {
-                if (!table[e.name]) table[e.name] = { threshold: 500, stat, label, type: "normal" };
+                if (!table[e.name]) table[e.name] = { threshold: 500, stat, label, type: "normal", world: wNum };
             });
         });
-        // ステージボス：会心率+1%、100体
-        Object.values(GAME_DATA.enemies.stageBosses).forEach(arr => {
+        // ステージボス：会心ダメージ+1%、100体
+        Object.entries(GAME_DATA.enemies.stageBosses).forEach(([w, arr]) => {
+            const wNum = Number(w);
             arr.forEach(e => {
-                if (!table[e.name]) table[e.name] = { threshold: 100, stat: "crit", label: "会心率+1%", type: "stage_boss" };
+                if (!table[e.name]) table[e.name] = { threshold: 100, stat: "critDmg", label: "会心ダメージ+1%", type: "stage_boss", world: wNum };
             });
         });
-        // ワールドボス：会心ダメージ+1%、100体
-        Object.values(GAME_DATA.enemies.worldBosses).forEach(e => {
-            if (!table[e.name]) table[e.name] = { threshold: 100, stat: "critDmg", label: "会心ダメージ+1%", type: "world_boss" };
+        // ワールドボス：会心率+1%、100体
+        Object.entries(GAME_DATA.enemies.worldBosses).forEach(([w, e]) => {
+            const wNum = Number(w);
+            if (!table[e.name]) table[e.name] = { threshold: 100, stat: "crit", label: "会心率+1%", type: "world_boss", world: wNum };
         });
         return table;
     })();
@@ -1044,6 +1073,9 @@
     let playerParalysis = 0, paralysisDuration = 0; 
     
     let bgmAudio = null;
+
+    // 図鑑タブ：ワールド別アコーディオンの開閉状態（再描画をまたいで保持する）
+    let zukanOpenWorlds = null;
 
     // =========================================
     // 3. SYSTEM & CORE FUNCTIONS
@@ -3148,43 +3180,87 @@
         if (!isVisible('notebook-zukan')) return;
         const container = document.getElementById('zukan-list');
         if (!container) return;
-        const groups = [
+
+        const typeGroups = [
             { label: "🐾 通常敵", type: "normal" },
             { label: "⚔️ ステージボス", type: "stage_boss" },
             { label: "👑 ワールドボス", type: "world_boss" },
         ];
+
+        // ワールド番号ごとにエントリを振り分け
+        const worldMap = new Map(); // world番号 -> [[name, def], ...]
+        Object.entries(ZUKAN_TABLE).forEach(([name, def]) => {
+            const w = def.world || 1;
+            if (!worldMap.has(w)) worldMap.set(w, []);
+            worldMap.get(w).push([name, def]);
+        });
+        const worlds = [...worldMap.keys()].sort((a, b) => a - b);
+
+        // 初回のみ、現在の進行ワールドを自動的に開いた状態にする
+        if (zukanOpenWorlds === null) {
+            zukanOpenWorlds = new Set([prog().world || 1]);
+        }
+
+        const worldNames = (GAME_DATA.dungeons.normal && GAME_DATA.dungeons.normal.worldNames) || {};
+
         // innerHTML += をループ内で繰り返すと毎回それまでの中身を再パースしてしまい重いため、
         // 文字列を配列に貯めてから最後に一度だけ innerHTML へ書き込む
         const htmlParts = [];
-        groups.forEach(g => {
-            const entries = Object.entries(ZUKAN_TABLE).filter(([, def]) => def.type === g.type);
-            if (!entries.length) return;
-            htmlParts.push(`<div style="font-weight:bold; color:#fff; background:#333; padding:6px 10px; border-radius:4px; margin:10px 0 6px 0;">${g.label}</div>`);
-            entries.forEach(([name, def]) => {
-                const kills = gameState.zukanKills[name] || 0;
-                const unlocked = gameState.zukanUnlocked[name] || false;
-                const ready = kills >= def.threshold && !unlocked;
-                const pct = Math.min(100, Math.floor(kills / def.threshold * 100));
-                htmlParts.push(`
-                <div style="background:${unlocked ? '#1a3a1a' : '#1e1e2e'}; border:1px solid ${unlocked ? '#4caf50' : '#444'}; border-radius:6px; padding:8px 10px; margin-bottom:6px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <span style="color:#fff; font-weight:bold;">${name}</span>
-                            <span style="color:#aaa; font-size:0.8em; margin-left:8px;">${def.label}</span>
-                        </div>
-                        <button onclick="unlockZukan('${name}')"
-                            style="background:${unlocked ? '#555' : ready ? '#1565c0' : '#555'}; color:white; border:none; border-radius:4px; padding:4px 10px; font-size:0.82em; font-weight:bold; cursor:${unlocked || !ready ? 'default' : 'pointer'}; min-width:90px;">
-                            ${unlocked ? '✅ 解放済み' : ready ? '💡 解放可能' : 'ロック'}
-                        </button>
-                    </div>
-                    <div style="margin-top:5px; background:#333; border-radius:3px; height:6px;">
-                        <div style="background:${unlocked ? '#4caf50' : '#1565c0'}; width:${pct}%; height:6px; border-radius:3px; transition:width 0.3s;"></div>
-                    </div>
-                    <div style="color:#888; font-size:0.78em; margin-top:2px;">${kills.toLocaleString('ja-JP')} / ${def.threshold}体</div>
+        worlds.forEach(w => {
+            const entries = worldMap.get(w);
+            const total = entries.length;
+            const unlockedCount = entries.filter(([name]) => gameState.zukanUnlocked[name]).length;
+            const isOpen = zukanOpenWorlds.has(w);
+            const worldLabel = worldNames[w] || `ワールド${w}`;
+
+            htmlParts.push(`<div class="zukan-world-section${isOpen ? ' open' : ''}">`);
+            htmlParts.push(`
+                <div class="zukan-world-header" onclick="toggleZukanWorld(${w})">
+                    <span class="zukan-world-title"><span class="zukan-world-chevron">▶</span> W${w} ${worldLabel}</span>
+                    <span class="zukan-world-meta">
+                        <span class="zukan-world-count${unlockedCount >= total ? ' all-done' : ''}">${unlockedCount}/${total} 解放</span>
+                    </span>
                 </div>`);
+            htmlParts.push(`<div class="zukan-world-body">`);
+
+            typeGroups.forEach(g => {
+                const groupEntries = entries.filter(([, def]) => def.type === g.type);
+                if (!groupEntries.length) return;
+                htmlParts.push(`<div class="zukan-group-label">${g.label}</div>`);
+                groupEntries.forEach(([name, def]) => {
+                    const kills = gameState.zukanKills[name] || 0;
+                    const unlocked = gameState.zukanUnlocked[name] || false;
+                    const ready = kills >= def.threshold && !unlocked;
+                    const pct = Math.min(100, Math.floor(kills / def.threshold * 100));
+                    const btnClass = unlocked ? '' : ready ? ' is-ready' : '';
+                    const btnLabel = unlocked ? '✅ 解放済' : ready ? '💡 解放可' : '🔒 未達成';
+                    htmlParts.push(`
+                        <div class="zukan-card${unlocked ? ' is-unlocked' : ''}">
+                            <div class="zukan-name">${name}</div>
+                            <div class="zukan-card-sub">
+                                <span class="zukan-tag">${def.label}</span>
+                                <div class="zukan-progress-track"><div class="zukan-progress-fill" style="background:${unlocked ? '#4caf50' : '#1565c0'}; width:${pct}%;"></div></div>
+                                <span class="zukan-count">${kills.toLocaleString('ja-JP')}/${def.threshold}</span>
+                                <button class="zukan-btn${btnClass}" onclick="unlockZukan('${name}')">${btnLabel}</button>
+                            </div>
+                        </div>`);
+                });
             });
+
+            htmlParts.push(`</div>`); // /zukan-world-body
+            htmlParts.push(`</div>`); // /zukan-world-section
         });
         container.innerHTML = htmlParts.join('');
+    }
+
+    /** 図鑑のワールド別アコーディオンの開閉を切り替える */
+    function toggleZukanWorld(world) {
+        if (zukanOpenWorlds.has(world)) {
+            zukanOpenWorlds.delete(world);
+        } else {
+            zukanOpenWorlds.add(world);
+        }
+        updateNotebookZukan();
     }
     function updateEnhanceTab() {
         const hardUnlocked = gameState.unlockedDungeons && gameState.unlockedDungeons.hard;
