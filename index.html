@@ -34,6 +34,11 @@
            ========================================= */
         .stat { font-size: 1.1em; margin: 5px; }
         .hp-bar { color: #d32f2f; font-weight: bold; }
+
+        .hp-gauge-outer { width: 100%; height: 14px; background: #e0e0e0; border-radius: 7px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.25); margin-top: 4px; }
+        .hp-gauge-fill { height: 100%; width: 100%; transition: width 0.25s ease-out; }
+        .hp-gauge-fill.enemy { background: linear-gradient(#ef5350, #c62828); }
+        .hp-gauge-fill.player { background: linear-gradient(#66bb6a, #2e7d32); }
         
         button {
             padding: 10px;
@@ -87,13 +92,12 @@
         .progress-row { padding: 4px 12px; text-align: center; font-size: 0.78em; color: white; }
 
         /* Enemy Info */
-        #enemy-box { padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 6px; background: #fafafa; }
-        .boss-active { background-color: #ffcdd2 !important; border: 2px solid #b71c1c !important; }
-        .maou-active { background-color: #e1bee7 !important; border: 2px solid #4a148c !important; }
+        .boss-active { background-color: #ffcdd2 !important; border: 1px solid #b71c1c !important; }
+        .maou-active { background-color: #e1bee7 !important; border: 1px solid #4a148c !important; }
 
         /* Leader Select */
         .leader-select-zone {
-            display: flex; gap: 8px; margin-bottom: 10px; background: #eceff1; padding: 8px; border-radius: 6px; border: 1px solid #cfd8dc;
+            display: flex; gap: 8px; margin-bottom: 8px;
         }
         .leader-btn {
             flex: 1; padding: 8px; font-size: 0.9em; background: #fff; border: 2px solid #b0bec5; border-radius: 4px; cursor: pointer; text-align: center;
@@ -308,30 +312,26 @@
             <div class="progress-row" id="stage-progress">進行度 1 / 5</div>
         </div>
 
-        <div style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:10px;">
-            <div style="font-weight:bold; color:#e65100; margin-bottom:6px;">🔍 敵の情報</div>
-            <div id="enemy-box">
-                <div class="stat" style="font-weight: bold; font-size: 1.1em;"><span id="enemy-name">野ウサギ</span></div>
-                <div class="stat">敵HP: <span id="enemy-hp">100</span> / <span id="enemy-max-hp">100</span></div>
-                <div style="font-size:0.8em; color:#555;">物理防御:<span id="e-stat-def">0</span> | 魔法耐性:<span id="e-stat-mres">0</span>% | 回避率:<span id="e-stat-eva">0</span>%</div>
-                <div style="font-size:0.8em; color:#555; margin-top:4px; height:1.4em; line-height:1.4em; overflow:hidden;" id="enemy-gimmick-label"></div>
-            </div>
-        </div>
-
-        <div style="text-align: center; background:#e8f5e9; border:1px solid #81c784; border-radius:6px; padding:8px; margin-bottom:10px; font-weight:bold;">
-            <div class="stat">HP: <span id="player-hp" class="hp-bar">100</span> / <span id="player-max-hp">100</span> <small style="color:#4caf50;">(+<span id="stat-regen">0</span>/s)</small></div>
-        </div>
-
-        <div style="text-align: left; font-size: 0.85em; font-weight: bold; margin-bottom: 3px; color: #37474f;">🎖️ 操作リーダー切り替え（クリック攻撃＆スキル担当）：</div>
-        <div class="leader-select-zone">
-            <div id="btn-leader-0" class="leader-btn active" onclick="switchLeader(0)"><span id="leader-name-0">主人公</span><br><small id="lbl-leader-0">-</small></div>
-            <div id="btn-leader-1" class="leader-btn locked" onclick="switchLeader(1)"><span id="leader-name-1">仲間1</span><br><small id="lbl-leader-1">未加入</small></div>
-            <div id="btn-leader-2" class="leader-btn locked" onclick="switchLeader(2)"><span id="leader-name-2">仲間2</span><br><small id="lbl-leader-2">未加入</small></div>
+        <div id="enemy-box" style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:10px;">
+            <div class="stat" style="font-weight: bold; font-size: 1.1em;"><span id="enemy-name">野ウサギ</span></div>
+            <div class="stat">敵HP: <span id="enemy-hp">100</span> / <span id="enemy-max-hp">100</span></div>
+            <div class="hp-gauge-outer"><div id="enemy-hp-gauge" class="hp-gauge-fill enemy"></div></div>
+            <div style="font-size:0.8em; color:#555;">物理防御:<span id="e-stat-def">0</span> | 魔法耐性:<span id="e-stat-mres">0</span>% | 回避率:<span id="e-stat-eva">0</span>%</div>
+            <div style="font-size:0.8em; color:#555; margin-top:4px; height:1.4em; line-height:1.4em; overflow:hidden;" id="enemy-gimmick-label"></div>
         </div>
 
         <div style="background:#e3f2fd; border:1px solid #64b5f6; border-radius:6px; padding:10px; margin-bottom:10px;">
-            <div style="font-weight:bold; color:#1565c0; margin-bottom:8px;">⚔️ 戦闘操作</div>
-            
+            <div style="text-align: center; font-weight:bold; margin-bottom:8px;">
+                <div class="stat">HP: <span id="player-hp" class="hp-bar">100</span> / <span id="player-max-hp">100</span> <small style="color:#4caf50;">(+<span id="stat-regen">0</span>/s)</small></div>
+                <div class="hp-gauge-outer"><div id="player-hp-gauge" class="hp-gauge-fill player"></div></div>
+            </div>
+
+            <div class="leader-select-zone">
+                <div id="btn-leader-0" class="leader-btn active" onclick="switchLeader(0)"><span id="leader-name-0">主人公</span><br><small id="lbl-leader-0">-</small></div>
+                <div id="btn-leader-1" class="leader-btn locked" onclick="switchLeader(1)"><span id="leader-name-1">仲間1</span><br><small id="lbl-leader-1">未加入</small></div>
+                <div id="btn-leader-2" class="leader-btn locked" onclick="switchLeader(2)"><span id="leader-name-2">仲間2</span><br><small id="lbl-leader-2">未加入</small></div>
+            </div>
+
             <div style="margin-bottom:8px;">
                 <button type="button" onclick="attack()" onkeydown="return false" tabindex="-1" style="width:100%; padding:12px; background:#4caf50; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.1em;">
                     <span id="attack-label-pc">【敵をクリックして攻撃】</span><span id="attack-label-sp" style="display:none;">【敵をタップして攻撃】</span>
@@ -669,16 +669,14 @@
 
             <!-- クエストサブタブ -->
             <div id="notebook-quest" class="enhance-tab-content active">
-                <h3 style="margin-top:0;">📜 クエスト・実績</h3>
-                <p style="color:#555; font-size:0.88em;">達成すると自動的に報酬が付与されます。</p>
+                <p style="color:#555; font-size:0.88em; margin-top:0;">達成すると自動的に報酬が付与されます。</p>
                 <div style="font-size:0.85em; color:#37474f; margin-bottom:8px;">総撃破数: <strong id="total-kills-disp">0</strong></div>
                 <div id="quest-list" style="display:flex; flex-direction:column; gap:6px;"></div>
             </div>
 
             <!-- 図鑑サブタブ -->
             <div id="notebook-zukan" class="enhance-tab-content">
-                <h3 style="margin-top:0;">📖 図鑑</h3>
-                <p style="color:#555; font-size:0.88em;">ハードで一定数討伐後、100万EXPを消費してステータス強化を解放できます。</p>
+                <p style="color:#555; font-size:0.88em; margin-top:0;">ハードで一定数討伐後、100万EXPを消費してステータス強化を解放できます。</p>
                 <div id="zukan-list"></div>
             </div>
         </div>
@@ -898,10 +896,17 @@
                 { key: "kill100",      label: "🗡️ 敵100体撃破",              reward: { exp: 500,   gold: 200 } },
                 { key: "kill500",      label: "⚔️ 敵500体撃破",              reward: { exp: 2000,  gold: 1000 } },
                 { key: "kill1000",     label: "💀 敵1000体撃破",             reward: { exp: 6000,  gold: 3000, stone: 10 } },
-                { key: "stage5",       label: "🏕️ 始まりの村 ステージ5到達", reward: { exp: 300,   gold: 500 } },
-                { key: "stage10",      label: "🐺 大狼ガルム討伐",           reward: { exp: 2000,  stone: 5 } },
-                { key: "world2",       label: "🌲 魔物の森へ到達",           reward: { exp: 5000,  gold: 2000 } },
-                { key: "world3",       label: "🗝️ 盗賊のアジトへ到達",       reward: { exp: 15000, gold: 8000, stone: 20 } },
+                { key: "stage5",       label: "🏕️ 始まりの村ステージ1クリア", reward: { exp: 300,   gold: 500 } },
+                { key: "stage10",      label: "🐺 ワールド1 始まりの村クリア", reward: { exp: 2000,  stone: 5 } },
+                { key: "world2",       label: "🌲 ワールド2 魔物の森クリア",   reward: { exp: 5000,  gold: 2000 } },
+                { key: "world3",       label: "🗝️ ワールド3盗賊のアジトクリア", reward: { exp: 15000, gold: 8000, stone: 20 } },
+                { key: "world4",       label: "☠️ ワールド4毒の沼地クリア",     reward: { exp: 20000, gold: 10000, stone: 20 } },
+                { key: "world5",       label: "🌫️ ワールド5闇霧の廃墟クリア",   reward: { exp: 20000, gold: 10000, stone: 20 } },
+                { key: "world6",       label: "⚡ ワールド6雷鳴の荒野クリア",   reward: { exp: 20000, gold: 10000, stone: 20 } },
+                { key: "world7",       label: "🌳 ワールド7魔族領の深森クリア", reward: { exp: 20000, gold: 10000, stone: 20 } },
+                { key: "world8",       label: "🏰 ワールド8魔族の要塞都市クリア", reward: { exp: 20000, gold: 10000, stone: 20 } },
+                { key: "world9",       label: "🏯 ワールド9魔王城クリア",       reward: { exp: 20000, gold: 10000, stone: 20 } },
+                { key: "world10",      label: "👑 ワールド10魔王の間クリア",    reward: { exp: 20000, gold: 10000, stone: 20 } },
                 { key: "gold10k",      label: "💰 累計1万G所持",             reward: { exp: 800,   stone: 3 } },
                 { key: "eq_legendary", label: "⭐ Legendary装備入手",        reward: { exp: 1500,  gold: 500 } },
                 { key: "awaken",       label: "✨ 誰かが覚醒",               reward: { exp: 3000,  stone: 8 } },
@@ -1044,6 +1049,8 @@
         quests: {
             kill100: false, kill500: false, kill1000: false,
             stage5: false, stage10: false, world2: false, world3: false,
+            world4: false, world5: false, world6: false, world7: false,
+            world8: false, world9: false, world10: false,
             gold10k: false, eq_legendary: false, awaken: false, party3: false,
         },
         totalKills: 0,
@@ -1107,7 +1114,14 @@
                     delete gameState.maxReachedStage;
                     // --- その他の後方互換パッチ ---
                     if (!gameState.facilities) gameState.facilities = { smithLevel: 0, templeLevel: 0, guildLevel: 0, alchemyLevel: 0 };
-                    if (!gameState.quests) gameState.quests = { kill100: false, kill500: false, kill1000: false, stage5: false, stage10: false, world2: false, world3: false, gold10k: false, eq_legendary: false, awaken: false, party3: false };
+                    if (!gameState.quests) gameState.quests = { kill100: false, kill500: false, kill1000: false, stage5: false, stage10: false, world2: false, world3: false, world4: false, world5: false, world6: false, world7: false, world8: false, world9: false, world10: false, gold10k: false, eq_legendary: false, awaken: false, party3: false };
+                    if (gameState.quests.world4 === undefined) gameState.quests.world4 = false;
+                    if (gameState.quests.world5 === undefined) gameState.quests.world5 = false;
+                    if (gameState.quests.world6 === undefined) gameState.quests.world6 = false;
+                    if (gameState.quests.world7 === undefined) gameState.quests.world7 = false;
+                    if (gameState.quests.world8 === undefined) gameState.quests.world8 = false;
+                    if (gameState.quests.world9 === undefined) gameState.quests.world9 = false;
+                    if (gameState.quests.world10 === undefined) gameState.quests.world10 = false;
                     if (!gameState.totalKills) gameState.totalKills = 0;
                     if (!gameState.worldClearCount) gameState.worldClearCount = 0;
                     if (!gameState.treeSkills.warcry) gameState.treeSkills.warcry = 0;
@@ -2811,15 +2825,22 @@
         if ((gameState.totalKills || 0) >= 500 && !gameState.quests.kill500) { gameState.quests.kill500 = true; grantQuestReward("kill500"); }
         if ((gameState.totalKills || 0) >= 1000 && !gameState.quests.kill1000) { gameState.quests.kill1000 = true; grantQuestReward("kill1000"); }
         if (gameState.gold >= 10000 && !gameState.quests.gold10k) { gameState.quests.gold10k = true; grantQuestReward("gold10k"); }
-        if (prog().stage >= 5 && prog().world >= 1 && !gameState.quests.stage5) { gameState.quests.stage5 = true; grantQuestReward("stage5"); }
-        if (prog().world >= 2 && !gameState.quests.world2) { gameState.quests.world2 = true; grantQuestReward("world2"); }
-        if (prog().world >= 3 && !gameState.quests.world3) { gameState.quests.world3 = true; grantQuestReward("world3"); }
+        if (prog().stage >= 2 && prog().world >= 1 && !gameState.quests.stage5) { gameState.quests.stage5 = true; grantQuestReward("stage5"); }
+        if ((gameState.worldClearCount || 0) >= 2 && !gameState.quests.world2) { gameState.quests.world2 = true; grantQuestReward("world2"); }
+        if ((gameState.worldClearCount || 0) >= 3 && !gameState.quests.world3) { gameState.quests.world3 = true; grantQuestReward("world3"); }
+        if ((gameState.worldClearCount || 0) >= 4 && !gameState.quests.world4) { gameState.quests.world4 = true; grantQuestReward("world4"); }
+        if ((gameState.worldClearCount || 0) >= 5 && !gameState.quests.world5) { gameState.quests.world5 = true; grantQuestReward("world5"); }
+        if ((gameState.worldClearCount || 0) >= 6 && !gameState.quests.world6) { gameState.quests.world6 = true; grantQuestReward("world6"); }
+        if ((gameState.worldClearCount || 0) >= 7 && !gameState.quests.world7) { gameState.quests.world7 = true; grantQuestReward("world7"); }
+        if ((gameState.worldClearCount || 0) >= 8 && !gameState.quests.world8) { gameState.quests.world8 = true; grantQuestReward("world8"); }
+        if ((gameState.worldClearCount || 0) >= 9 && !gameState.quests.world9) { gameState.quests.world9 = true; grantQuestReward("world9"); }
+        if ((gameState.worldClearCount || 0) >= 10 && !gameState.quests.world10) { gameState.quests.world10 = true; grantQuestReward("world10"); }
         if (gameState.party.length >= 3 && !gameState.quests.party3) { gameState.quests.party3 = true; grantQuestReward("party3"); }
     }
 
     function checkQuests() {
         checkQuestsTick();
-        if (prog().stage >= 10 && prog().world >= 1 && !gameState.quests.stage10) { gameState.quests.stage10 = true; grantQuestReward("stage10"); }
+        if ((gameState.worldClearCount || 0) >= 1 && !gameState.quests.stage10) { gameState.quests.stage10 = true; grantQuestReward("stage10"); }
         if (gameState.inventory.some(i => i.rarity === "Legendary") && !gameState.quests.eq_legendary) { gameState.quests.eq_legendary = true; grantQuestReward("eq_legendary"); }
         if (gameState.party.some(c => c.awakened) && !gameState.quests.awaken) { gameState.quests.awaken = true; grantQuestReward("awaken"); }
     }
@@ -2881,10 +2902,12 @@
         document.getElementById('stage-progress').innerText = `進行度 ${gameState.killsInStage + 1} / 5　[最高: W${prog().maxReachedWorld || 1}-${prog().maxReachedStage}]`;
         document.getElementById('player-hp').innerText = Math.max(0, playerHp); 
         document.getElementById('player-max-hp').innerText = pStats.maxHp; 
+        document.getElementById('player-hp-gauge').style.width = Math.max(0, Math.min(100, (playerHp / pStats.maxHp) * 100)) + '%';
         document.getElementById('stat-regen').innerText = pStats.regen;
         document.getElementById('enemy-name').innerText = enemyName; 
         document.getElementById('enemy-hp').innerText = Math.max(0, enemyHp); 
         document.getElementById('enemy-max-hp').innerText = enemyMaxHp;
+        document.getElementById('enemy-hp-gauge').style.width = Math.max(0, Math.min(100, (enemyHp / enemyMaxHp) * 100)) + '%';
         document.getElementById('exp').innerText = gameState.exp; 
         document.getElementById('gold').innerText = gameState.gold; 
         document.getElementById('dust-count').innerText = gameState.upgradeStone;
