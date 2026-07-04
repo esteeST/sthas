@@ -90,11 +90,12 @@
         .enhance-tab-content.active { display: block; }
         .world-row { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid #333; }
         .world-select { background: #424242; color: white; border: 1px solid #616161; border-radius: 4px; padding: 3px 8px; font-size: 0.85em; font-weight: bold; cursor: pointer; }
+        .loop-select-inline { margin-left: 8px; background: #424242; color: white; border: 1px solid #616161; border-radius: 3px; padding: 0px 3px; font-size: 0.95em; font-weight: bold; cursor: pointer; box-sizing: border-box; height: 1.4em; line-height: 1em; }
         .stage-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #333; }
         .stage-nav-btn { width: auto; margin: 0; padding: 4px 14px; background: #424242; color: white; border: none; font-size: 0.85em; border-radius: 3px; }
         .stage-nav-btn:hover { background: #616161; }
         .stage-title-text { font-size: 0.95em; font-weight: bold; color: white; text-align: center; }
-        .progress-row { padding: 4px 12px; text-align: center; font-size: 0.78em; color: white; }
+        .progress-row { padding: 4px 12px; text-align: center; font-size: 0.78em; color: white; display: flex; align-items: center; justify-content: center; min-height: 1.5em; box-sizing: content-box; }
 
         /* Enemy Info */
         .boss-active { background-color: #ffcdd2 !important; border: 1px solid #b71c1c !important; }
@@ -314,7 +315,13 @@
                 <span class="stage-title-text" id="stage-title">ステージ 1</span>
                 <button class="stage-nav-btn" type="button" onkeydown="return false" tabindex="-1" onclick="moveStage(1)">進む ▶</button>
             </div>
-            <div class="progress-row" id="stage-progress">進行度 1 / 5</div>
+            <div class="progress-row" id="stage-progress">
+                <span id="stage-progress-text">進行度 1 / 5</span><select id="loop-mode-select" class="loop-select-inline" onchange="setLoopMode(this.value)" style="display:none;">
+                    <option value="off">周回:オフ</option>
+                    <option value="stage">周回:ステージ</option>
+                    <option value="world">周回:ワールド</option>
+                </select>
+            </div>
         </div>
 
         <div id="enemy-box" style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:10px;">
@@ -1024,6 +1031,7 @@
         currentDungeon: "normal",
         unlockedDungeons: { normal: true, hard: false },
         hardPoint: 0,
+        loopMode: "off", // "off" | "stage" | "world"（ハード限定の周回モード）
         hardUpgrades: { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 },
         zukanKills: {},
         zukanUnlocked: {},
@@ -1142,6 +1150,7 @@
                     if (!gameState.killsInStage) gameState.killsInStage = 0;
                     if (!gameState.unlockedDungeons) gameState.unlockedDungeons = { normal: true, hard: false };
                     if (gameState.hardPoint === undefined) gameState.hardPoint = 0;
+                    if (!gameState.loopMode) gameState.loopMode = "off";
                     if (!gameState.hardUpgrades) gameState.hardUpgrades = { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 };
                     if (!gameState.zukanKills) gameState.zukanKills = {};
                     if (!gameState.zukanUnlocked) gameState.zukanUnlocked = {};
@@ -1471,6 +1480,14 @@
         updateDisplay();
     }
 
+    /** 周回モードの切替（ハード限定機能。off / stage / world のいずれか一つを保持） */
+    function setLoopMode(mode) {
+        if (mode !== "off" && mode !== "stage" && mode !== "world") return;
+        gameState.loopMode = mode;
+        saveGame();
+        updateDisplay();
+    }
+
     /** ワールド倍率を計算する純粋関数 */
     function calcWorldMult(w) {
         if (w <= 7) return 1 + (w - 1) * 1.8;
@@ -1688,13 +1705,21 @@
                 9: "ダーク・セラフ", 10: "終焉の神ルシファー"
             };
             const isHard = gameState.currentDungeon === "hard";
+            const loopMode = isHard ? (gameState.loopMode || "off") : "off"; // 周回モードはハード限定
             alert(`🎉 ${worldNames[w] || '大ボス'}を討伐！${isHard ? '【ハード】' : ''}ワールド${w}クリア！ 🎉`); 
             gameState.exp += 6000 * w; 
             gameState.gold += 3000 * w; 
             dropEquipment(true);
             gameState.worldClearCount = (gameState.worldClearCount || 0) + 1;
             
-            if (w < 10) {
+            if (loopMode === "stage") {
+                // ステージ周回：ワールドボスであっても進行させず、同じステージ(10)を繰り返す
+                appendLog('log-exp-area', `${getLogTime()} 🔁 <span style="color:#26c6da; font-weight:bold;">周回モード（ステージ）中のため、このステージを継続します。</span>`, "c-yellow");
+            } else if (loopMode === "world") {
+                // ワールド周回：次のワールドへ進まず、同じワールドのステージ1に戻る
+                prog().stage = 1;
+                appendLog('log-exp-area', `${getLogTime()} 🔁 <span style="color:#26c6da; font-weight:bold;">周回モード（ワールド）のため、ワールド${w}の最初に戻ります。</span>`, "c-yellow");
+            } else if (w < 10) {
                 prog().world++;
                 prog().maxReachedWorld = Math.max(prog().maxReachedWorld, prog().world);
                 prog().stage = 1; 
@@ -1730,9 +1755,12 @@
         gameState.killsInStage++;
         if (gameState.killsInStage >= 5) {
             gameState.killsInStage = 0; 
-            prog().stage++;
-            if (prog().world === prog().maxReachedWorld && prog().stage > prog().maxReachedStage) {
-                prog().maxReachedStage = prog().stage;
+            const isStageLoop = gameState.currentDungeon === "hard" && gameState.loopMode === "stage";
+            if (!isStageLoop) {
+                prog().stage++;
+                if (prog().world === prog().maxReachedWorld && prog().stage > prog().maxReachedStage) {
+                    prog().maxReachedStage = prog().stage;
+                }
             }
         }
         checkQuests();
@@ -2903,8 +2931,16 @@
         }
 
         document.getElementById('world-name-label').textContent = worldName;
+
+        // 周回モードプルダウン（ハード限定表示、進行度行にインライン表示）
+        let loopSelect = document.getElementById('loop-mode-select');
+        if (loopSelect) {
+            loopSelect.style.display = (gameState.currentDungeon === "hard") ? "inline-block" : "none";
+            loopSelect.value = gameState.loopMode || "off";
+        }
+
         document.getElementById('stage-title').innerText = `ステージ ${prog().stage}`;
-        document.getElementById('stage-progress').innerText = `進行度 ${gameState.killsInStage + 1} / 5　[最高: W${prog().maxReachedWorld || 1}-${prog().maxReachedStage}]`;
+        document.getElementById('stage-progress-text').innerText = `進行度 ${gameState.killsInStage + 1} / 5　[最高: W${prog().maxReachedWorld || 1}-${prog().maxReachedStage}]`;
         document.getElementById('player-hp').innerText = Math.max(0, playerHp); 
         document.getElementById('player-max-hp').innerText = pStats.maxHp; 
         document.getElementById('player-hp-gauge').style.width = Math.max(0, Math.min(100, (playerHp / pStats.maxHp) * 100)) + '%';
