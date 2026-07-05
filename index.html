@@ -324,16 +324,10 @@
                     <option value="world">周回:ワールド</option>
                 </select>
             </div>
-            <div class="stage-row" id="floor-row" style="display:none;">
-                <button class="stage-nav-btn" type="button" onkeydown="return false" tabindex="-1" onclick="moveFloor(-1)">◀ 戻る</button>
-                <span class="stage-title-text" id="floor-title">Floor 1</span>
-                <button class="stage-nav-btn" type="button" onkeydown="return false" tabindex="-1" onclick="moveFloor(1)">進む ▶</button>
-            </div>
             <div class="progress-row" id="floor-progress" style="display:none;">
-                <span>地下迷宮　1 / 100</span>
+                <span id="floor-progress-text">進行度 1 / 100</span>
             </div>
         </div>
-        <div id="underground-tier-legend" style="display:none; font-size:0.75em; color:#8d6e63; text-align:center; margin:-4px 0 8px;">🥉銅 &lt; 🥈銀 &lt; 🥇金 &lt; 🌈虹（強さは全て同じ、色が良いほどドロップ品質が上がります）</div>
 
         <div id="enemy-box" style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:10px;">
             <div class="stat" style="font-weight: bold; font-size: 1.1em;"><span id="enemy-name">野ウサギ</span></div>
@@ -757,6 +751,7 @@
     // 1. GAME DATA & CONFIGURATION
     // =========================================
     const SAVE_KEY = 'haksla_party_idle_v6_evolved';
+    const CURRENT_SAVE_VERSION = 1; // セーブデータの構造バージョン（将来の破壊的マイグレーション用の保険）
 
     /** 数値をカンマ区切り文字列に変換するユーティリティ */
     function fmt(num) {
@@ -1119,7 +1114,72 @@
     // 3. SYSTEM & CORE FUNCTIONS
     // =========================================
     function saveGame() {
+        gameState.saveVersion = CURRENT_SAVE_VERSION;
         localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+    }
+
+    /**
+     * 旧セーブデータの後方互換パッチをまとめて適用する。
+     * 「フィールドが存在しなければデフォルト値を補う」という安全な移行のみを行うため、
+     * 現状は明示的なバージョン分岐は使っていない（saveVersionは将来の破壊的変更に備えた保険）。
+     */
+    function migrateSave(state) {
+        // --- 旧フラット値 → progress.normal への移行 ---
+        if (state.currentDungeon === undefined) state.currentDungeon = "normal";
+        if (state.progress === undefined) state.progress = {};
+        if (state.progress.normal === undefined) {
+            state.progress.normal = {
+                world:           state.world           || 1,
+                stage:           state.stage           || 1,
+                maxReachedWorld: state.maxReachedWorld || 1,
+                maxReachedStage: state.maxReachedStage || 1,
+            };
+        }
+        // 旧フラット値を削除（progress.normalが正になったので不要）
+        delete state.world;
+        delete state.stage;
+        delete state.maxReachedWorld;
+        delete state.maxReachedStage;
+
+        // --- その他の後方互換パッチ ---
+        if (state.facilities === undefined) state.facilities = { smithLevel: 0, templeLevel: 0, guildLevel: 0, alchemyLevel: 0 };
+        if (state.quests === undefined) state.quests = { kill100: false, kill500: false, kill1000: false, stage5: false, stage10: false, world2: false, world3: false, world4: false, world5: false, world6: false, world7: false, world8: false, world9: false, world10: false, gold10k: false, eq_legendary: false, awaken: false, party3: false };
+        if (state.quests.world4  === undefined) state.quests.world4  = false;
+        if (state.quests.world5  === undefined) state.quests.world5  = false;
+        if (state.quests.world6  === undefined) state.quests.world6  = false;
+        if (state.quests.world7  === undefined) state.quests.world7  = false;
+        if (state.quests.world8  === undefined) state.quests.world8  = false;
+        if (state.quests.world9  === undefined) state.quests.world9  = false;
+        if (state.quests.world10 === undefined) state.quests.world10 = false;
+        if (state.totalKills      === undefined) state.totalKills      = 0;
+        if (state.worldClearCount === undefined) state.worldClearCount = 0;
+        if (state.treeSkills.warcry     === undefined) state.treeSkills.warcry     = 0;
+        if (state.treeSkills.shadowstep === undefined) state.treeSkills.shadowstep = 0;
+        if (state.treeSkills.meteor     === undefined) state.treeSkills.meteor     = 0;
+        if (state.treeSkills.ironwall   === undefined) state.treeSkills.ironwall   = 0;
+        if (state.treeSkills.berserker  === undefined) state.treeSkills.berserker  = 0;
+        if (state.treeSkills.poison     === undefined) state.treeSkills.poison     = 0;
+        if (state.treeSkills.deathmark  === undefined) state.treeSkills.deathmark  = 0;
+        if (state.treeSkills.arcane     === undefined) state.treeSkills.arcane     = 0;
+        if (state.treeSkills.arcaneamp  === undefined) state.treeSkills.arcaneamp  = 0;
+        if (state.inventoryFilter === undefined) state.inventoryFilter = { rarity: "all", slot: "all", sortBy: "entry" };
+        if (state.killsInStage === undefined) state.killsInStage = 0;
+        if (state.unlockedDungeons === undefined) state.unlockedDungeons = { normal: true, hard: false, underground: false };
+        if (state.unlockedDungeons.underground === undefined) state.unlockedDungeons.underground = false;
+        if (state.progress.underground === undefined) state.progress.underground = { floor: 1 };
+        if (state.hardPoint === undefined) state.hardPoint = 0;
+        // NaN/null化したゴールド・EXPの復旧（コインディグ等の不具合で発生したセーブ破損対策）
+        if (typeof state.gold !== "number" || isNaN(state.gold)) state.gold = 0;
+        if (typeof state.exp  !== "number" || isNaN(state.exp))  state.exp  = 0;
+        if (state.loopMode === undefined) state.loopMode = "off";
+        if (state.hardUpgrades === undefined) state.hardUpgrades = { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 };
+        if (state.zukanKills === undefined) state.zukanKills = {};
+        if (state.zukanUnlocked === undefined) state.zukanUnlocked = {};
+        state.party.forEach(c => { if (c.awakened === undefined) c.awakened = false; });
+        state.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
+
+        state.saveVersion = CURRENT_SAVE_VERSION;
+        return state;
     }
 
     function loadGame() {
@@ -1128,54 +1188,7 @@
             try {
                 let parsed = JSON.parse(savedData);
                 if (parsed.isJobSelected) {
-                    gameState = parsed;
-                    // --- 後方互換：旧フラット値 → progress.normal へ移行 ---
-                    if (!gameState.currentDungeon) gameState.currentDungeon = "normal";
-                    if (!gameState.progress) gameState.progress = {};
-                    if (!gameState.progress.normal) gameState.progress.normal = {
-                        world:           gameState.world           || 1,
-                        stage:           gameState.stage           || 1,
-                        maxReachedWorld: gameState.maxReachedWorld || 1,
-                        maxReachedStage: gameState.maxReachedStage || 1,
-                    };
-                    // 旧フラット値を削除（progress.normalが正になったので不要）
-                    delete gameState.world;
-                    delete gameState.stage;
-                    delete gameState.maxReachedWorld;
-                    delete gameState.maxReachedStage;
-                    // --- その他の後方互換パッチ ---
-                    if (!gameState.facilities) gameState.facilities = { smithLevel: 0, templeLevel: 0, guildLevel: 0, alchemyLevel: 0 };
-                    if (!gameState.quests) gameState.quests = { kill100: false, kill500: false, kill1000: false, stage5: false, stage10: false, world2: false, world3: false, world4: false, world5: false, world6: false, world7: false, world8: false, world9: false, world10: false, gold10k: false, eq_legendary: false, awaken: false, party3: false };
-                    if (gameState.quests.world4 === undefined) gameState.quests.world4 = false;
-                    if (gameState.quests.world5 === undefined) gameState.quests.world5 = false;
-                    if (gameState.quests.world6 === undefined) gameState.quests.world6 = false;
-                    if (gameState.quests.world7 === undefined) gameState.quests.world7 = false;
-                    if (gameState.quests.world8 === undefined) gameState.quests.world8 = false;
-                    if (gameState.quests.world9 === undefined) gameState.quests.world9 = false;
-                    if (gameState.quests.world10 === undefined) gameState.quests.world10 = false;
-                    if (!gameState.totalKills) gameState.totalKills = 0;
-                    if (!gameState.worldClearCount) gameState.worldClearCount = 0;
-                    if (!gameState.treeSkills.warcry) gameState.treeSkills.warcry = 0;
-                    if (!gameState.treeSkills.shadowstep) gameState.treeSkills.shadowstep = 0;
-                    if (!gameState.treeSkills.meteor) gameState.treeSkills.meteor = 0;
-                    if (!gameState.treeSkills.ironwall) gameState.treeSkills.ironwall = 0;
-                    if (!gameState.treeSkills.berserker) gameState.treeSkills.berserker = 0;
-                    if (!gameState.treeSkills.poison) gameState.treeSkills.poison = 0;
-                    if (!gameState.treeSkills.deathmark) gameState.treeSkills.deathmark = 0;
-                    if (!gameState.treeSkills.arcane) gameState.treeSkills.arcane = 0;
-                    if (!gameState.treeSkills.arcaneamp) gameState.treeSkills.arcaneamp = 0;
-                    if (!gameState.inventoryFilter) gameState.inventoryFilter = { rarity: "all", slot: "all", sortBy: "entry" };
-                    if (!gameState.killsInStage) gameState.killsInStage = 0;
-                    if (!gameState.unlockedDungeons) gameState.unlockedDungeons = { normal: true, hard: false, underground: false };
-                    if (gameState.unlockedDungeons.underground === undefined) gameState.unlockedDungeons.underground = false;
-                    if (!gameState.progress.underground) gameState.progress.underground = { floor: 1 };
-                    if (gameState.hardPoint === undefined) gameState.hardPoint = 0;
-                    if (!gameState.loopMode) gameState.loopMode = "off";
-                    if (!gameState.hardUpgrades) gameState.hardUpgrades = { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 };
-                    if (!gameState.zukanKills) gameState.zukanKills = {};
-                    if (!gameState.zukanUnlocked) gameState.zukanUnlocked = {};
-                    gameState.party.forEach(c => { if (c.awakened === undefined) c.awakened = false; });
-                    gameState.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
+                    gameState = migrateSave(parsed);
                     document.getElementById('start-job-select').style.display = 'none';
                     document.getElementById('main-game-area').style.display = 'block';
                 }
@@ -1190,8 +1203,6 @@
         if (confirm("⚠️ ゲームデータをすべて削除します。\nこの操作は取り消せません。本当によろしいですか？")) {
             try {
                 localStorage.removeItem(SAVE_KEY);
-                localStorage.clear();
-                sessionStorage.clear();
                 gameState = null;
                 location.reload();
             } catch (error) {
@@ -1502,17 +1513,6 @@
         updateDisplay();
     }
 
-    /** 地下迷宮のフロア移動（ロックなし、1〜100を自由に往復） */
-    function moveFloor(diff) {
-        let p = gameState.progress.underground || (gameState.progress.underground = { floor: 1 });
-        let target = p.floor + diff;
-        if (target < 1 || target > (GAME_DATA.dungeons.underground.floors || 100)) return;
-        p.floor = target;
-        spawnEnemy();
-        saveGame();
-        updateDisplay();
-    }
-
     /** 周回モードの切替（ハード限定機能。off / stage / world のいずれか一つを保持） */
     function setLoopMode(mode) {
         if (mode !== "off" && mode !== "stage" && mode !== "world") return;
@@ -1582,39 +1582,39 @@
         return UNDERGROUND_TIERS[0];
     }
 
+    /** 地下迷宮専用の敵ステータス計算。ハードの「現在攻略中ワールド-1」のステージボスを基準に、
+     *  銅・銀・金・虹のいずれかをランダムに割り当てる（強さは全ティア共通、色はドロップ用の記号のみ） */
+    function createEnemyUnderground() {
+        const hardProg  = gameState.progress.hard || { world: 1, stage: 1 };
+        const refWorld  = Math.max(1, (hardProg.world || 1) - 1);
+        const refStage  = Math.max(1, Math.min(10, hardProg.stage || 1));
+        const refW      = refWorld + 10; // ハードのステージボス相当（+10ワールド分）
+        const bTable    = stageBossData[refWorld] || stageBossData[1];
+        const entry     = bTable[Math.min(refStage - 1, bTable.length - 1)];
+        const refBd     = getExtendedWorldBoss(refW);
+        const refMult   = calcWorldMult(refW);
+        let def  = Math.floor(15 * refMult * 0.6);
+        let mres = 20 + (refW - 1) * 12;
+        let eva  = 15 + (refW - 1) * 6;
+        if (entry.gimmick === "shield")  def  += 30;
+        if (entry.gimmick === "mresist") mres  = Math.min(85, mres + 60);
+        if (entry.gimmick === "evasive") eva   = Math.min(70, eva  + 30);
+
+        const tier = pickUndergroundTier();
+        enemyUndergroundTier = tier;
+
+        return {
+            name:    `${tier.emoji}${tier.name}`,
+            gimmick: entry.gimmick,
+            maxHp:   Math.floor(refBd.finalHp),
+            atk:     Math.floor(refBd.finalAtk),
+            def, mres, eva,
+            type: 'underground',
+        };
+    }
+
     function createEnemy(w, s, killsInStage, dungeonId) {
         const wMult = calcWorldMult(w);
-
-        // ===== 地下迷宮：ハードの「現在攻略中ワールド - 1」のステージボスのステータスを基準に、
-        //       銅・銀・金・虹のいずれかをランダムに割り当てる（強さは全ティア共通、色はドロップ用の記号のみ） =====
-        if (dungeonId === "underground") {
-            const hardProg  = gameState.progress.hard || { world: 1, stage: 1 };
-            const refWorld  = Math.max(1, (hardProg.world || 1) - 1);
-            const refStage  = Math.max(1, Math.min(10, hardProg.stage || 1));
-            const refW      = refWorld + 10; // ハードのステージボス相当（+10ワールド分）
-            const bTable    = stageBossData[refWorld] || stageBossData[1];
-            const entry     = bTable[Math.min(refStage - 1, bTable.length - 1)];
-            const refBd     = getExtendedWorldBoss(refW);
-            const refMult   = calcWorldMult(refW);
-            let def  = Math.floor(15 * refMult * 0.6);
-            let mres = 20 + (refW - 1) * 12;
-            let eva  = 15 + (refW - 1) * 6;
-            if (entry.gimmick === "shield")  def  += 30;
-            if (entry.gimmick === "mresist") mres  = Math.min(85, mres + 60);
-            if (entry.gimmick === "evasive") eva   = Math.min(70, eva  + 30);
-
-            const tier = pickUndergroundTier();
-            enemyUndergroundTier = tier;
-
-            return {
-                name:    `${tier.emoji}${tier.name} (地下${gameState.progress.underground ? gameState.progress.underground.floor : 1}F)`,
-                gimmick: entry.gimmick,
-                maxHp:   Math.floor(refBd.finalHp),
-                atk:     Math.floor(refBd.finalAtk),
-                def, mres, eva,
-                type: 'underground',
-            };
-        }
 
         // ===== ハードモード：名前/ギミックは本来のワールド・種別のものを使用し、
         //       数値（HP/ATK/DEF/MRES/EVA）だけノーマルのワールドボス級(+9/+10/+11ワールド分)に差し替える =====
@@ -1737,12 +1737,17 @@
         }
     }
 
+    /** 地下迷宮専用の敵スポーン処理 */
+    function spawnEnemyUnderground() {
+        const enemy = createEnemyUnderground();
+        applyEnemy(enemy);
+        renderEnemy(enemy);
+    }
+
     /** 敵をスポーンする（オーケストレーター） */
     function spawnEnemy() {
         if (gameState.currentDungeon === "underground") {
-            const enemy = createEnemy(1, 1, gameState.killsInStage, "underground");
-            applyEnemy(enemy);
-            renderEnemy(enemy);
+            spawnEnemyUnderground();
             return;
         }
         const w = prog().world || 1;
@@ -1786,9 +1791,24 @@
         // 確定ドロップ（銅・銀・金・虹の色ティアに応じてレアリティ保証）
         dropEquipmentUnderground(tier);
 
+        advanceFloor();
+
         checkQuests();
         spawnEnemy();
         saveGame();
+    }
+
+    /** 地下迷宮のFloor自動進行。100Fを撃破したらクリア表示して1Fに戻る */
+    function advanceFloor() {
+        let p = gameState.progress.underground || (gameState.progress.underground = { floor: 1 });
+        const maxFloor = GAME_DATA.dungeons.underground.floors || 100;
+        if (p.floor >= maxFloor) {
+            alert(`🎉 地下迷宮 ${maxFloor}Fクリア！ 🎉`);
+            appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">地下迷宮 ${maxFloor}Fクリア！ 1Fから再挑戦します。</span>`, "c-yellow");
+            p.floor = 1;
+        } else {
+            p.floor++;
+        }
     }
 
     function winBattle() {
@@ -1883,8 +1903,8 @@
                 }
             }
             gameState.killsInStage = 0; 
-            spawnEnemy(); 
             checkQuests(); 
+            spawnEnemy(); 
             saveGame(); 
             return;
         }
@@ -2041,7 +2061,16 @@
                 mLog.innerHTML = `アローレイン！敵に <span class="c-red">${dmg}</span> 矢の雨ダメージ${critMark}`; 
             } else if (skillKey === 'coin') {
                 playSE('r2.mp3'); 
-                let bonusGold = prog().stage * 15 * prog().world; 
+                let bonusGold;
+                if (gameState.currentDungeon === "underground") {
+                    // 地下迷宮にはWorld/Stageがないため、他の地下迷宮処理と同じ基準（ハード現在地-1）を参照する
+                    const hardProg = gameState.progress.hard || { world: 1, stage: 1 };
+                    const refWorld = Math.max(1, (hardProg.world || 1) - 1);
+                    const refStage = Math.max(1, Math.min(10, hardProg.stage || 1));
+                    bonusGold = refStage * 15 * (refWorld + 9);
+                } else {
+                    bonusGold = prog().stage * 15 * prog().world;
+                }
                 gameState.gold += bonusGold; 
                 coolTimes.coin = 8;
                 mLog.innerHTML = `コインディグ！ <span class="c-red">${dmg}撃打</span> ＆ <span class="c-gold">+${bonusGold}G強奪</span>${critMark}`; 
@@ -2746,14 +2775,13 @@
         finalizeDrop(rarity, mult, maxOpts, wValue, refStage, "underground");
     }
 
-    /** ドロップアイテムの実体生成〜インベントリ追加までの共通処理 */
-    function finalizeDrop(rarity, mult, maxOpts, wValue, stageForCalc, source) {
+    /** スロットをランダムに選び、表示名・武器種別・itemTypeを解決する */
+    function resolveSlotAndType() {
         const slots = ["weapon", "shield", "head", "body", "hands", "feet", "acc1", "acc2"];
         let selectedSlot = slots[Math.floor(Math.random() * slots.length)];
-        let p = prefixes[Math.floor(Math.random() * prefixes.length)];
         let t = slotNames[selectedSlot][Math.floor(Math.random() * slotNames[selectedSlot].length)];
         let wType = "Sword";
-        
+
         if (selectedSlot === "weapon") {
             wType = ["Sword", "Bow", "Staff"][Math.floor(Math.random() * 3)];
             t = { Sword: "剣", Bow: "弓", Staff: "杖" }[wType];
@@ -2762,7 +2790,20 @@
             t = { Shield: "盾", Arrow: "矢", Orb: "オーブ" }[wType];
         }
 
-        let options = [];
+        let itemType = "def";
+        if (["weapon", "hands", "acc1", "acc2"].includes(selectedSlot)) {
+            itemType = "atk";
+        } else if (selectedSlot === "shield" && wType === "Arrow") {
+            itemType = "dps";
+        } else if (selectedSlot === "shield" && wType === "Orb") {
+            itemType = "mag";
+        }
+
+        return { slot: selectedSlot, name: t, weaponType: wType, itemType };
+    }
+
+    /** 装備オプション（追加効果）をmaxOpts個ロールする */
+    function rollOptions(maxOpts, mult, stageForCalc) {
         const optPool = [
             { name: "追加ATK", type: "atk", min: 2, max: 6 },
             { name: "追加DEF", type: "def", min: 2, max: 5 },
@@ -2778,43 +2819,47 @@
             { name: "暗闇耐性", type: "darknessRes", min: 1, max: 5, unit: "%" },
             { name: "麻痺耐性", type: "paralysisRes", min: 1, max: 5, unit: "%" }
         ];
-        
-        for(let i=0; i < maxOpts; i++) {
+
+        let options = [];
+        for (let i = 0; i < maxOpts; i++) {
             let poolItem = optPool[Math.floor(Math.random() * optPool.length)];
             let baseVal = Math.floor(Math.random() * (poolItem.max - poolItem.min + 1)) + poolItem.min;
             let isPercentageOption = poolItem.unit === "%";
             let isFixedValueOption = poolItem.type === "regen";
-            
+
             let finalVal = isPercentageOption || isFixedValueOption
                 ? baseVal
-                : Math.floor(baseVal * mult * (1 + stageForCalc * 0.08)); 
-            
-        options.push({ text: `${poolItem.name} +${finalVal}${poolItem.unit || ""}`, type: poolItem.type, val: finalVal });
+                : Math.floor(baseVal * mult * (1 + stageForCalc * 0.08));
+
+            options.push({ text: `${poolItem.name} +${finalVal}${poolItem.unit || ""}`, type: poolItem.type, val: finalVal });
         }
-        
+        return options;
+    }
+
+    /** レアリティ倍率・参照ワールド値・ステージ相当値から装備の基礎値（value）を計算する */
+    function computeBaseValue(slot, stageForCalc, wValue, mult) {
         let baseValue = Math.floor((stageForCalc * 4 * wValue) * mult) + 1;
-        let finalValue = (["shield", "head", "body", "hands", "feet"].includes(selectedSlot)) 
-            ? Math.floor(baseValue * 1.5)  
+        return (["shield", "head", "body", "hands", "feet"].includes(slot))
+            ? Math.floor(baseValue * 1.5)
             : baseValue;
-        
-        let itemType = "def";
-        if (["weapon", "hands", "acc1", "acc2"].includes(selectedSlot)) {
-            itemType = "atk";
-        } else if (selectedSlot === "shield" && wType === "Arrow") {
-            itemType = "dps";
-        } else if (selectedSlot === "shield" && wType === "Orb") {
-            itemType = "mag";
-        }
-        
+    }
+
+    /** ドロップアイテムの実体生成〜インベントリ追加までの共通処理（オーケストレーター） */
+    function finalizeDrop(rarity, mult, maxOpts, wValue, stageForCalc, source) {
+        const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+        const { slot, name, weaponType, itemType } = resolveSlotAndType();
+        const options = rollOptions(maxOpts, mult, stageForCalc);
+        const finalValue = computeBaseValue(slot, stageForCalc, wValue, mult);
+
         let newItem = { 
             id: "item-" + Date.now() + "-" + Math.floor(Math.random()*10000), 
-            name: `${p}${t}`, 
+            name: `${p}${name}`, 
             level: 0, 
             value: finalValue, 
             rarity: rarity, 
-            slot: selectedSlot, 
+            slot: slot, 
             type: itemType, 
-            weaponType: wType, 
+            weaponType: weaponType, 
             options: options, 
             isFavorite: false,
             fromHard: source === "hard",
@@ -3108,6 +3153,21 @@
     // 11. UI UPDATES
     // =========================================
 
+    /** 地下迷宮専用のHUD更新（表示行の切替＋進行度テキスト） */
+    function updateUndergroundProgress() {
+        const worldRow     = document.getElementById('world-row');
+        const stageRow     = document.getElementById('stage-row');
+        const stageProgRow = document.getElementById('stage-progress');
+        const floorProgRow = document.getElementById('floor-progress');
+        if (worldRow)     worldRow.style.display     = "none";
+        if (stageRow)     stageRow.style.display     = "none";
+        if (stageProgRow) stageProgRow.style.display = "none";
+        if (floorProgRow) floorProgRow.style.display = "flex";
+
+        const floor = (gameState.progress.underground && gameState.progress.underground.floor) || 1;
+        document.getElementById('floor-progress-text').innerText = `進行度 ${floor} / ${GAME_DATA.dungeons.underground.floors || 100}`;
+    }
+
     /** HUD（HP/ゴールド/EXP/敵情報/ステージ表示）の更新 */
     function updateHUD(pStats) {
         const isUnderground = gameState.currentDungeon === "underground";
@@ -3129,26 +3189,19 @@
             });
         }
 
-        // ノーマル/ハード用の行と、地下迷宮用の行を切り替え表示
-        const worldRow    = document.getElementById('world-row');
-        const stageRow    = document.getElementById('stage-row');
-        const stageProgRow = document.getElementById('stage-progress');
-        const floorRow    = document.getElementById('floor-row');
-        const floorProgRow = document.getElementById('floor-progress');
-        const tierLegend  = document.getElementById('underground-tier-legend');
-        if (worldRow)     worldRow.style.display     = isUnderground ? "none" : "flex";
-        if (stageRow)     stageRow.style.display     = isUnderground ? "none" : "flex";
-        if (stageProgRow) stageProgRow.style.display = isUnderground ? "none" : "flex";
-        if (floorRow)     floorRow.style.display     = isUnderground ? "flex" : "none";
-        if (floorProgRow) floorProgRow.style.display = isUnderground ? "flex" : "none";
-        if (tierLegend)   tierLegend.style.display   = isUnderground ? "block" : "none";
-
         if (isUnderground) {
-            const floor = (gameState.progress.underground && gameState.progress.underground.floor) || 1;
-            document.getElementById('floor-title').innerText = `Floor ${floor}`;
-            const floorProgText = floorProgRow ? floorProgRow.querySelector('span') : null;
-            if (floorProgText) floorProgText.innerText = `地下迷宮　${floor} / ${GAME_DATA.dungeons.underground.floors || 100}`;
+            updateUndergroundProgress();
         } else {
+            // ノーマル/ハード用の行を表示（地下迷宮の行は隠す）
+            const worldRow    = document.getElementById('world-row');
+            const stageRow    = document.getElementById('stage-row');
+            const stageProgRow = document.getElementById('stage-progress');
+            const floorProgRow = document.getElementById('floor-progress');
+            if (worldRow)     worldRow.style.display     = "flex";
+            if (stageRow)     stageRow.style.display     = "flex";
+            if (stageProgRow) stageProgRow.style.display = "flex";
+            if (floorProgRow) floorProgRow.style.display = "none";
+
             // Worldプルダウン（到達済みのみ表示）
             let worldSelect = document.getElementById('world-select');
             if (worldSelect) {
