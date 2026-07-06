@@ -44,6 +44,7 @@
         .hp-gauge-fill { height: 100%; width: 100%; transition: width 0.25s ease-out; }
         .hp-gauge-fill.enemy { background: linear-gradient(#ef5350, #c62828); }
         .hp-gauge-fill.player { background: linear-gradient(#66bb6a, #2e7d32); }
+        .hp-gauge-fill.training { background: linear-gradient(#9575cd, #5e35b1); }
         
         button {
             padding: 10px;
@@ -337,7 +338,7 @@
             <div style="font-size:0.8em; color:#555; margin-top:4px; height:1.4em; line-height:1.4em; overflow:hidden;" id="enemy-gimmick-label"></div>
         </div>
 
-        <div style="background:#e3f2fd; border:1px solid #64b5f6; border-radius:6px; padding:10px; margin-bottom:10px;">
+        <div id="battle-controls-box" style="background:#e3f2fd; border:1px solid #64b5f6; border-radius:6px; padding:10px; margin-bottom:10px;">
             <div style="text-align: center; font-weight:bold; margin-bottom:8px;">
                 <div class="stat">HP: <span id="player-hp" class="hp-bar">100</span> / <span id="player-max-hp">100</span> <small style="color:#4caf50;">(+<span id="stat-regen">0</span>/s)</small></div>
                 <div class="hp-gauge-outer"><div id="player-hp-gauge" class="hp-gauge-fill player"></div></div>
@@ -368,6 +369,19 @@
                     <small style="color:#999;">解除スキルなし</small>
                 </div>
             </div>
+        </div>
+
+        <div id="training-panel" style="display:none; background:#ede7f6; border:1px solid #9575cd; border-radius:6px; padding:14px; margin-bottom:10px; text-align:center;">
+            <div style="font-weight:bold; color:#5e35b1; font-size:1.1em; margin-bottom:8px;">🔥 ブースト中</div>
+            <div style="font-size:0.85em; color:#555; margin-bottom:4px;">上限まで残り <span id="training-remaining-text">8時間0分</span></div>
+            <div class="hp-gauge-outer" style="margin-bottom:10px;"><div id="training-cap-gauge" class="hp-gauge-fill training"></div></div>
+            <div style="font-size:0.95em; margin-bottom:10px; text-align:left; display:inline-block;">
+                <div>🔷 蓄積EXP: <span id="training-pending-exp">0</span></div>
+                <div>💰 蓄積Gold: <span id="training-pending-gold">0</span></div>
+                <div>🏅 蓄積ポイント: <span id="training-pending-point">0</span></div>
+            </div>
+            <button type="button" onclick="collectTraining()" style="width:100%; padding:12px; background:#5e35b1; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.05em;">受け取る</button>
+            <div style="font-size:0.7em; color:#888; margin-top:8px;">※未受取分はオフライン時も最大8時間分まで蓄積されます</div>
         </div>
 
         <div class="tab-menu">
@@ -1017,6 +1031,11 @@
             floors:   100,
             unlock:   "normal_clear", // ノーマルW10-10クリアで解放（ハードと同時）
         },
+        training: {
+            id:       "training",
+            label:    "訓練所",
+            unlock:   "always", // 最初から使用可能
+        },
     };
 
     // 後方互換エイリアス（既存コードが参照する短い変数名を維持）
@@ -1041,12 +1060,18 @@
         killsInStage: 0,
         gold: 0, exp: 0, upgradeStone: 0, maxInventorySlots: 10,
         currentDungeon: "normal",
-        unlockedDungeons: { normal: true, hard: false, underground: false },
+        unlockedDungeons: { normal: true, hard: false, underground: false, training: true },
         hardPoint: 0,
         loopMode: "off", // "off" | "stage" | "world"（ハード限定の周回モード）
         hardUpgrades: { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 },
         zukanKills: {},
         zukanUnlocked: {},
+        trainingPoint: 0,
+        training: {
+            pending: { exp: 0, gold: 0, point: 0 }, // 未受取の蓄積報酬
+            elapsedSec: 0,                           // 前回受取からの経過秒（8h=28800でキャップ）
+            lastSeenTime: Date.now(),                // オフライン計算用の最終確認時刻
+        },
         progress: {
             normal: { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 },
         },
@@ -1086,6 +1111,7 @@
         seVolume: 0.7,
         upgradeMaxLevel: 20,
         worldClearCount: 0,
+        undergroundClearCount: 0,
     };
 
     let activePickerCharIndex = null, activePickerSlot = null;
@@ -1117,6 +1143,93 @@
         gameState.saveVersion = CURRENT_SAVE_VERSION;
         localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
     }
+
+    // ===== 訓練所（Training）設定 =====
+    const TRAINING_MAX_HOURS = 8;
+    const TRAINING_BASE_MAX = { exp: 8000, gold: 8000, point: 1 }; // 初期値：8時間で貯まる最大量
+    const TRAINING_BONUS_PER_CLEAR = { exp: 8000, gold: 8000, point: 1 }; // ノーマル/ハードのワールドクリア、地下迷宮クリア1回ごとの上乗せ
+    const TRAINING_BOOST_MULT = 2; // ブースト時のEXP/Gold倍率（ポイントには掛からない）
+
+    /** 訓練所の報酬計算に使う「クリア回数」。ノーマル/ハードはワールド10到達を1回だけカウント（worldClearCountは
+     *  ワールド10ボスを周回するたびに増え続けるため使用しない）。地下迷宮は実際の周回数をそのまま使う。 */
+    function getTrainingClearCount(state) {
+        const normalCleared = (((state.progress && state.progress.normal && state.progress.normal.maxReachedWorld) || 1) >= 10) ? 1 : 0;
+        const hardCleared   = (((state.progress && state.progress.hard   && state.progress.hard.maxReachedWorld)   || 1) >= 10) ? 1 : 0;
+        return normalCleared + hardCleared + (state.undergroundClearCount || 0);
+    }
+
+    /** クリア回数を反映した、現在の「8時間で貯まる最大量」 */
+    function getTrainingMax(state) {
+        const n = getTrainingClearCount(state);
+        return {
+            exp:   TRAINING_BASE_MAX.exp   + TRAINING_BONUS_PER_CLEAR.exp   * n,
+            gold:  TRAINING_BASE_MAX.gold  + TRAINING_BONUS_PER_CLEAR.gold  * n,
+            point: TRAINING_BASE_MAX.point + TRAINING_BONUS_PER_CLEAR.point * n,
+        };
+    }
+
+    /** オフライン中（lastSeenTimeからの経過）の訓練所蓄積を通常レートで加算する。8hキャップあり。 */
+    function applyTrainingOfflineCatchup(state) {
+        const t = state.training;
+        if (!t) return;
+        const maxSec = TRAINING_MAX_HOURS * 3600;
+        const remainingSec = Math.max(0, maxSec - t.elapsedSec);
+        if (remainingSec > 0) {
+            const gapSec = Math.max(0, Math.floor((Date.now() - (t.lastSeenTime || Date.now())) / 1000));
+            const grantSec = Math.min(gapSec, remainingSec);
+            if (grantSec > 0) {
+                const max = getTrainingMax(state); // オフラインはブーストなし
+                t.pending.exp   += (max.exp   / maxSec) * grantSec;
+                t.pending.gold  += (max.gold  / maxSec) * grantSec;
+                t.pending.point += (max.point / maxSec) * grantSec;
+                t.elapsedSec += grantSec;
+            }
+        }
+        t.lastSeenTime = Date.now();
+    }
+
+    /** 訓練所の蓄積を1秒分進める。currentDungeon==="training"の間はEXP/Goldのみブースト。8hキャップあり。 */
+    function tickTraining() {
+        const t = gameState.training;
+        if (!t) return;
+        const maxSec = TRAINING_MAX_HOURS * 3600;
+        if (t.elapsedSec >= maxSec) {
+            t.lastSeenTime = Date.now();
+            return; // キャップ済み、蓄積停止
+        }
+        const isBoosted = gameState.currentDungeon === "training";
+        const boost = isBoosted ? TRAINING_BOOST_MULT : 1;
+        const max = getTrainingMax(gameState);
+        t.pending.exp   += (max.exp   / maxSec) * boost;
+        t.pending.gold  += (max.gold  / maxSec) * boost;
+        t.pending.point += (max.point / maxSec); // ポイントはブースト対象外
+        t.elapsedSec++;
+        t.lastSeenTime = Date.now();
+    }
+
+    /** 訓練所の蓄積報酬を受け取る。受け取ると経過時間もリセットされる。 */
+    function collectTraining() {
+        const t = gameState.training;
+        if (!t) return;
+        const gained = {
+            exp:   Math.floor(t.pending.exp),
+            gold:  Math.floor(t.pending.gold),
+            point: Math.floor(t.pending.point),
+        };
+        gameState.exp  += gained.exp;
+        gameState.gold += gained.gold;
+        gameState.trainingPoint = (gameState.trainingPoint || 0) + gained.point;
+
+        appendLog('log-exp-area', `${getLogTime()} 🏋️ <span style="color:#5e35b1; font-weight:bold;">訓練所の報酬を受け取りました！</span> ➡ +${gained.exp}EXP +${gained.gold}G +${gained.point}pt`, "c-yellow");
+
+        t.pending = { exp: 0, gold: 0, point: 0 };
+        t.elapsedSec = 0;
+        t.lastSeenTime = Date.now();
+
+        saveGame();
+        updateDisplay();
+    }
+
 
     /**
      * 旧セーブデータの後方互換パッチをまとめて適用する。
@@ -1153,6 +1266,7 @@
         if (state.quests.world10 === undefined) state.quests.world10 = false;
         if (state.totalKills      === undefined) state.totalKills      = 0;
         if (state.worldClearCount === undefined) state.worldClearCount = 0;
+        if (state.undergroundClearCount === undefined) state.undergroundClearCount = 0;
         if (state.treeSkills.warcry     === undefined) state.treeSkills.warcry     = 0;
         if (state.treeSkills.shadowstep === undefined) state.treeSkills.shadowstep = 0;
         if (state.treeSkills.meteor     === undefined) state.treeSkills.meteor     = 0;
@@ -1177,6 +1291,12 @@
         if (state.zukanUnlocked === undefined) state.zukanUnlocked = {};
         state.party.forEach(c => { if (c.awakened === undefined) c.awakened = false; });
         state.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
+        if (state.unlockedDungeons.training === undefined) state.unlockedDungeons.training = true;
+        if (state.trainingPoint === undefined) state.trainingPoint = 0;
+        if (state.training === undefined) {
+            state.training = { pending: { exp: 0, gold: 0, point: 0 }, elapsedSec: 0, lastSeenTime: Date.now() };
+        }
+        applyTrainingOfflineCatchup(state); // オフライン中の訓練所蓄積を計算（通常レート・8hキャップ）
 
         state.saveVersion = CURRENT_SAVE_VERSION;
         return state;
@@ -1501,6 +1621,14 @@
         if (!GAME_DATA.dungeons[dungeonId]) return;
         if (!gameState.unlockedDungeons || !gameState.unlockedDungeons[dungeonId]) return;
         gameState.currentDungeon = dungeonId;
+
+        if (dungeonId === "training") {
+            // 訓練所はWorld/Stage/敵の概念が無いため、進行初期化・敵スポーンは行わない
+            saveGame();
+            updateDisplay();
+            return;
+        }
+
         // 切替先のprogress未初期化なら初期化
         if (!gameState.progress[dungeonId]) {
             gameState.progress[dungeonId] = (dungeonId === "underground")
@@ -1806,6 +1934,7 @@
             alert(`🎉 地下迷宮 ${maxFloor}Fクリア！ 🎉`);
             appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">地下迷宮 ${maxFloor}Fクリア！ 1Fから再挑戦します。</span>`, "c-yellow");
             p.floor = 1;
+            gameState.undergroundClearCount = (gameState.undergroundClearCount || 0) + 1;
         } else {
             p.floor++;
         }
@@ -2131,6 +2260,16 @@
     // =========================================
     function gameTick() {
         if (!gameState.isJobSelected) return;
+
+        // --- 訓練所の蓄積は常時進行（選択中ダンジョンに関わらず）---
+        tickTraining();
+
+        if (gameState.currentDungeon === "training") {
+            // 訓練所選択中は戦闘処理を行わない
+            updateDisplay();
+            return;
+        }
+
         let stats = calcPartyAllStats();
         let leader = gameState.party[gameState.currentLeaderIndex];
         let lStats = calcSingleCharStats(leader);
@@ -3168,11 +3307,35 @@
         document.getElementById('floor-progress-text').innerText = `進行度 ${floor} / ${GAME_DATA.dungeons.underground.floors || 100}`;
     }
 
+    /** 訓練所専用パネルの更新（蓄積報酬・残り時間・キャップゲージ） */
+    function updateTrainingPanel() {
+        const t = gameState.training;
+        if (!t) return;
+        const maxSec = TRAINING_MAX_HOURS * 3600;
+        const remainingSec = Math.max(0, maxSec - t.elapsedSec);
+        const rh = Math.floor(remainingSec / 3600);
+        const rm = Math.floor((remainingSec % 3600) / 60);
+
+        const remainText = document.getElementById('training-remaining-text');
+        if (remainText) remainText.innerText = remainingSec <= 0 ? "上限に達しました" : `${rh}時間${rm}分`;
+
+        const gauge = document.getElementById('training-cap-gauge');
+        if (gauge) gauge.style.width = Math.max(0, Math.min(100, (t.elapsedSec / maxSec) * 100)) + '%';
+
+        const expEl   = document.getElementById('training-pending-exp');
+        const goldEl  = document.getElementById('training-pending-gold');
+        const pointEl = document.getElementById('training-pending-point');
+        if (expEl)   expEl.innerText   = fmt(Math.floor(t.pending.exp));
+        if (goldEl)  goldEl.innerText  = fmt(Math.floor(t.pending.gold));
+        if (pointEl) pointEl.innerText = fmt(Math.floor(t.pending.point));
+    }
+
     /** HUD（HP/ゴールド/EXP/敵情報/ステージ表示）の更新 */
     function updateHUD(pStats) {
         const isUnderground = gameState.currentDungeon === "underground";
+        const isTraining    = gameState.currentDungeon === "training";
         let dungeon = GAME_DATA.dungeons[gameState.currentDungeon] || GAME_DATA.dungeons.normal;
-        let worldName = (!isUnderground && dungeon.worldNames && dungeon.worldNames[prog().world]) || `ワールド${!isUnderground ? prog().world : 1}`;
+        let worldName = (!isUnderground && !isTraining && dungeon.worldNames && dungeon.worldNames[prog().world]) || `ワールド${!isUnderground && !isTraining ? prog().world : 1}`;
 
         // ダンジョンタブ（解放済みのみ表示）
         let tabRow = document.getElementById('dungeon-tab-row');
@@ -3189,7 +3352,26 @@
             });
         }
 
-        if (isUnderground) {
+        // 戦闘画面（敵情報・HP/リーダー/攻撃ボックス）と訓練所パネルの表示切替
+        const enemyBox         = document.getElementById('enemy-box');
+        const battleControlsBox = document.getElementById('battle-controls-box');
+        const trainingPanel    = document.getElementById('training-panel');
+        if (enemyBox)          enemyBox.style.display          = isTraining ? "none" : "block";
+        if (battleControlsBox) battleControlsBox.style.display = isTraining ? "none" : "block";
+        if (trainingPanel)     trainingPanel.style.display     = isTraining ? "block" : "none";
+
+        if (isTraining) {
+            // 訓練所選択中はWorld/Stage/Floor行を全て隠し、専用パネルのみ更新する
+            const worldRow    = document.getElementById('world-row');
+            const stageRow    = document.getElementById('stage-row');
+            const stageProgRow = document.getElementById('stage-progress');
+            const floorProgRow = document.getElementById('floor-progress');
+            if (worldRow)     worldRow.style.display     = "none";
+            if (stageRow)     stageRow.style.display     = "none";
+            if (stageProgRow) stageProgRow.style.display = "none";
+            if (floorProgRow) floorProgRow.style.display = "none";
+            updateTrainingPanel();
+        } else if (isUnderground) {
             updateUndergroundProgress();
         } else {
             // ノーマル/ハード用の行を表示（地下迷宮の行は隠す）
