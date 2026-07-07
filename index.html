@@ -381,7 +381,8 @@
             <div style="font-size:0.95em; margin-bottom:10px; text-align:left; display:inline-block;">
                 <div>🔷 蓄積EXP: <span id="training-pending-exp">0</span></div>
                 <div>💰 蓄積Gold: <span id="training-pending-gold">0</span></div>
-                <div>🏅 蓄積ポイント: <span id="training-pending-point">0</span></div>
+                <div>🏅 訓練ポイント(未受取): <span id="training-pending-point">0</span></div>
+                <div id="training-pending-stone-row" style="display:none;">✨ 蓄積強化石: <span id="training-pending-stone">0</span></div>
             </div>
             <button type="button" onclick="collectTraining()" style="width:100%; padding:12px; background:#5e35b1; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.05em;">受け取る</button>
             <div style="font-size:0.7em; color:#888; margin-top:8px;">※未受取分はオフライン時も最大8時間分まで蓄積されます</div>
@@ -662,6 +663,16 @@
                 <h3 style="margin-top:0;">🍺 酒場（仲間の雇用）</h3>
                 <p style="color:#555; font-size:0.88em;">まとまった資金を投資して、新しい職業スロットを開放しよう。</p>
                 <div id="hire-action-zone"></div>
+            </div>
+
+            <div style="border-top:2px solid #ddd; margin-top:20px; padding-top:15px;">
+                <h3 style="margin-top:0;">🏋️ 訓練所強化</h3>
+                <p style="color:#555; font-size:0.88em;">訓練所で貯めた訓練ポイントを使って強化を行おう。</p>
+                <div style="background:#1a1a2e; border:2px solid #5e35b1; border-radius:8px; padding:12px; margin-bottom:12px; color:#fff;">
+                    <div style="font-size:1.1em; font-weight:bold;">🏅 所持訓練ポイント: <span id="training-point-display" style="color:#b39ddb; font-size:1.3em;">0</span> pt</div>
+                    <div style="font-size:0.8em; color:#aaa; margin-top:4px;">訓練所の蓄積報酬を受け取ると獲得できます</div>
+                </div>
+                <div id="training-upgrade-list"></div>
             </div>
             
             <div style="border-top:2px solid #ddd; margin-top:20px; padding-top:15px;">
@@ -1070,8 +1081,9 @@
         zukanKills: {},
         zukanUnlocked: {},
         trainingPoint: 0,
+        trainingUpgrades: { exp: false, gold: false, stone: false, point: false }, // 訓練所強化（訓練ポイント消費、各1回きり）
         training: {
-            pending: { exp: 0, gold: 0, point: 0 }, // 未受取の蓄積報酬
+            pending: { exp: 0, gold: 0, point: 0, stone: 0 }, // 未受取の蓄積報酬
             elapsedSec: 0,                           // 前回受取からの経過秒（8h=28800でキャップ）
             lastSeenTime: Date.now(),                // オフライン計算用の最終確認時刻
         },
@@ -1149,9 +1161,17 @@
 
     // ===== 訓練所（Training）設定 =====
     const TRAINING_MAX_HOURS = 8;
-    const TRAINING_BASE_MAX = { exp: 8000, gold: 8000, point: 1 }; // 初期値：8時間で貯まる最大量
+    const TRAINING_BASE_MAX = { exp: 8000, gold: 8000, point: 1, stone: 0 }; // 初期値：8時間で貯まる最大量（強化石は強化購入前は0）
     const TRAINING_BONUS_PER_CLEAR = { exp: 8000, gold: 8000, point: 1 }; // ノーマル/ハードのワールドクリア、地下迷宮クリア1回ごとの上乗せ
     const TRAINING_BOOST_MULT = 2; // ブースト時のEXP/Gold倍率（ポイントには掛からない）
+
+    // 訓練所強化（訓練ポイントで購入する1回きりの強化。各項目とも8時間あたりの最大蓄積量に加算される）
+    const TRAINING_UPGRADE_DEFS = {
+        exp:   { cost: 10, bonus: 8000, label: "🔷 EXP+",     desc: "8時間の蓄積EXP上限が+8000（8000→16000）" },
+        gold:  { cost: 10, bonus: 8000, label: "💰 ゴールド+", desc: "8時間の蓄積ゴールド上限が+8000（8000→16000）" },
+        stone: { cost: 10, bonus: 8,    label: "✨ 強化石+",   desc: "8時間で強化石が+8個手に入るようになる" },
+        point: { cost: 1,  bonus: 1,    label: "🏅 訓練ポイント+", desc: "8時間の蓄積訓練ポイント上限が+1（1→2）" },
+    };
 
     /** 訓練所の報酬計算に使う「クリア回数」。ノーマル/ハードはワールド10到達を1回だけカウント（worldClearCountは
      *  ワールド10ボスを周回するたびに増え続けるため使用しない）。地下迷宮は実際の周回数をそのまま使う。 */
@@ -1161,13 +1181,15 @@
         return normalCleared + hardCleared + (state.undergroundClearCount || 0);
     }
 
-    /** クリア回数を反映した、現在の「8時間で貯まる最大量」 */
+    /** クリア回数と訓練所強化を反映した、現在の「8時間で貯まる最大量」 */
     function getTrainingMax(state) {
         const n = getTrainingClearCount(state);
+        const up = state.trainingUpgrades || {};
         return {
-            exp:   TRAINING_BASE_MAX.exp   + TRAINING_BONUS_PER_CLEAR.exp   * n,
-            gold:  TRAINING_BASE_MAX.gold  + TRAINING_BONUS_PER_CLEAR.gold  * n,
-            point: TRAINING_BASE_MAX.point + TRAINING_BONUS_PER_CLEAR.point * n,
+            exp:   TRAINING_BASE_MAX.exp   + TRAINING_BONUS_PER_CLEAR.exp   * n + (up.exp   ? TRAINING_UPGRADE_DEFS.exp.bonus   : 0),
+            gold:  TRAINING_BASE_MAX.gold  + TRAINING_BONUS_PER_CLEAR.gold  * n + (up.gold  ? TRAINING_UPGRADE_DEFS.gold.bonus  : 0),
+            point: TRAINING_BASE_MAX.point + TRAINING_BONUS_PER_CLEAR.point * n + (up.point ? TRAINING_UPGRADE_DEFS.point.bonus : 0),
+            stone: TRAINING_BASE_MAX.stone + (up.stone ? TRAINING_UPGRADE_DEFS.stone.bonus : 0),
         };
     }
 
@@ -1185,6 +1207,7 @@
                 t.pending.exp   += (max.exp   / maxSec) * grantSec;
                 t.pending.gold  += (max.gold  / maxSec) * grantSec;
                 t.pending.point += (max.point / maxSec) * grantSec;
+                t.pending.stone += (max.stone / maxSec) * grantSec;
                 t.elapsedSec += grantSec;
             }
         }
@@ -1206,6 +1229,7 @@
         t.pending.exp   += (max.exp   / maxSec) * boost;
         t.pending.gold  += (max.gold  / maxSec) * boost;
         t.pending.point += (max.point / maxSec); // ポイントはブースト対象外
+        t.pending.stone += (max.stone / maxSec); // 強化石もブースト対象外
         t.elapsedSec++;
         t.lastSeenTime = Date.now();
     }
@@ -1218,16 +1242,35 @@
             exp:   Math.floor(t.pending.exp),
             gold:  Math.floor(t.pending.gold),
             point: Math.floor(t.pending.point),
+            stone: Math.floor(t.pending.stone || 0),
         };
         gameState.exp  += gained.exp;
         gameState.gold += gained.gold;
         gameState.trainingPoint = (gameState.trainingPoint || 0) + gained.point;
+        gameState.upgradeStone  = (gameState.upgradeStone  || 0) + gained.stone;
 
-        appendLog('log-exp-area', `${getLogTime()} 🏋️ <span style="color:#5e35b1; font-weight:bold;">訓練所の報酬を受け取りました！</span> ➡ +${gained.exp}EXP +${gained.gold}G +${gained.point}pt`, "c-yellow");
+        appendLog('log-exp-area', `${getLogTime()} 🏋️ <span style="color:#5e35b1; font-weight:bold;">訓練所の報酬を受け取りました！</span> ➡ +${gained.exp}EXP +${gained.gold}G +${gained.point}pt${gained.stone > 0 ? ` +${gained.stone}✨` : ""}`, "c-yellow");
 
-        t.pending = { exp: 0, gold: 0, point: 0 };
+        t.pending = { exp: 0, gold: 0, point: 0, stone: 0 };
         t.elapsedSec = 0;
         t.lastSeenTime = Date.now();
+
+        saveGame();
+        updateDisplay();
+    }
+
+    /** 訓練所強化を訓練ポイントで購入する（各項目1回きり） */
+    function buyTrainingUpgrade(key) {
+        const def = TRAINING_UPGRADE_DEFS[key];
+        if (!def) return;
+        if (!gameState.trainingUpgrades) gameState.trainingUpgrades = { exp: false, gold: false, stone: false, point: false };
+        if (gameState.trainingUpgrades[key]) return; // 既に取得済み
+        if ((gameState.trainingPoint || 0) < def.cost) return;
+
+        gameState.trainingPoint -= def.cost;
+        gameState.trainingUpgrades[key] = true;
+
+        appendLog('log-exp-area', `${getLogTime()} 🏋️ <span style="color:#5e35b1; font-weight:bold;">訓練所強化「${def.label}」を取得しました！</span>`, "c-yellow");
 
         saveGame();
         updateDisplay();
@@ -1296,9 +1339,11 @@
         state.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
         if (state.unlockedDungeons.training === undefined) state.unlockedDungeons.training = true;
         if (state.trainingPoint === undefined) state.trainingPoint = 0;
+        if (state.trainingUpgrades === undefined) state.trainingUpgrades = { exp: false, gold: false, stone: false, point: false };
         if (state.training === undefined) {
-            state.training = { pending: { exp: 0, gold: 0, point: 0 }, elapsedSec: 0, lastSeenTime: Date.now() };
+            state.training = { pending: { exp: 0, gold: 0, point: 0, stone: 0 }, elapsedSec: 0, lastSeenTime: Date.now() };
         }
+        if (state.training.pending.stone === undefined) state.training.pending.stone = 0;
         applyTrainingOfflineCatchup(state); // オフライン中の訓練所蓄積を計算（通常レート・8hキャップ）
 
         // --- 地下迷宮スケールレベル（プルダウンで手動選択、クリア済みハードワールドまで選択可） ---
@@ -3387,6 +3432,12 @@
         if (expEl)   expEl.innerText   = fmt(Math.floor(t.pending.exp));
         if (goldEl)  goldEl.innerText  = fmt(Math.floor(t.pending.gold));
         if (pointEl) pointEl.innerText = fmt(Math.floor(t.pending.point));
+
+        const stoneRow = document.getElementById('training-pending-stone-row');
+        const stoneEl  = document.getElementById('training-pending-stone');
+        const stoneUnlocked = !!(gameState.trainingUpgrades && gameState.trainingUpgrades.stone);
+        if (stoneRow) stoneRow.style.display = stoneUnlocked ? "block" : "none";
+        if (stoneEl)  stoneEl.innerText = fmt(Math.floor(t.pending.stone || 0));
     }
 
     /** HUD（HP/ゴールド/EXP/敵情報/ステージ表示）の更新 */
@@ -3696,6 +3747,11 @@
     /** 施設タブの更新（街タブが非表示の間はスキップ） */
     function updateFacilityTab() {
         if (!isVisible('tab-town')) return;
+
+        // 所持訓練ポイントの表示更新
+        const trainingPointDisplay = document.getElementById('training-point-display');
+        if (trainingPointDisplay) trainingPointDisplay.textContent = fmt(gameState.trainingPoint || 0);
+
         let facZone = document.getElementById('facility-zone');
         if (!facZone) return;
         facZone.innerHTML = "";
@@ -3715,6 +3771,30 @@
                 </button>`;
             facZone.appendChild(div);
         });
+
+        // 訓練所強化リストの描画
+        const trainingUpgradeList = document.getElementById('training-upgrade-list');
+        if (trainingUpgradeList) {
+            trainingUpgradeList.innerHTML = "";
+            const tu = gameState.trainingUpgrades || {};
+            Object.keys(TRAINING_UPGRADE_DEFS).forEach(key => {
+                const def = TRAINING_UPGRADE_DEFS[key];
+                const bought = !!tu[key];
+                const canAfford = (gameState.trainingPoint || 0) >= def.cost;
+                let div = document.createElement('div');
+                div.style.cssText = "background:#fff; border:1px solid #ddd; border-radius:6px; padding:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-bottom:8px;";
+                div.innerHTML = `
+                    <div>
+                        <strong style="font-size:1em;">${def.label}</strong>
+                        <span style="background:#eceff1; padding:1px 6px; border-radius:3px; font-size:0.8em; color:#455a64;">${bought ? '取得済み' : '未取得'}</span><br>
+                        <span style="font-size:0.83em; color:#666; display:block; margin-top:2px;">${def.desc}</span>
+                    </div>
+                    <button onclick="buyTrainingUpgrade('${key}')" style="width:auto; padding:8px 14px; background:${bought ? '#ccc' : (canAfford ? '#5e35b1' : '#bbb')}; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap;" ${(bought || !canAfford) ? 'disabled' : ''}>
+                        ${bought ? '取得済み' : `強化 ${def.cost}pt`}
+                    </button>`;
+                trainingUpgradeList.appendChild(div);
+            });
+        }
     }
 
     /** クエストタブの更新（手帳タブが非表示の間はスキップ） */
