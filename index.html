@@ -327,6 +327,9 @@
             </div>
             <div class="progress-row" id="floor-progress" style="display:none;">
                 <span id="floor-progress-text">進行度 1 / 100</span>
+                <select id="underground-scale-select" class="loop-select-inline" onchange="selectUndergroundScale(this.value)">
+                    <option value="1">スケール1</option>
+                </select>
             </div>
         </div>
 
@@ -1298,6 +1301,16 @@
         }
         applyTrainingOfflineCatchup(state); // オフライン中の訓練所蓄積を計算（通常レート・8hキャップ）
 
+        // --- 地下迷宮スケールレベル（プルダウンで手動選択、クリア済みハードワールドまで選択可） ---
+        if (state.undergroundScaleLevel === undefined) state.undergroundScaleLevel = 1;
+        if (state.progress.hard === undefined) {
+            state.progress.hard = { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 };
+        }
+        if (state.progress.hard.maxClearedWorld === undefined) {
+            // 旧セーブ互換：maxReachedWorldから概算で補完（過去にクリア済みのワールド数-1相当）
+            state.progress.hard.maxClearedWorld = Math.max(0, (state.progress.hard.maxReachedWorld || 1) - 1);
+        }
+
         state.saveVersion = CURRENT_SAVE_VERSION;
         return state;
     }
@@ -1641,6 +1654,20 @@
         updateDisplay();
     }
 
+    /** 地下迷宮スケールレベルの選択可能上限（ハードでクリア済みの最大ワールド）を返す */
+    function getUndergroundMaxScale() {
+        return Math.max(1, (gameState.progress.hard && gameState.progress.hard.maxClearedWorld) || 0);
+    }
+
+    /** 地下迷宮スケールレベルを変更する（クリア済みハードワールドの範囲内にクランプ） */
+    function selectUndergroundScale(val) {
+        const maxScale = getUndergroundMaxScale();
+        const v = Math.max(1, Math.min(maxScale, parseInt(val, 10) || 1));
+        gameState.undergroundScaleLevel = v;
+        saveGame();
+        updateDisplay();
+    }
+
     /** 周回モードの切替（ハード限定機能。off / stage / world のいずれか一つを保持） */
     function setLoopMode(mode) {
         if (mode !== "off" && mode !== "stage" && mode !== "world") return;
@@ -1699,6 +1726,12 @@
         { key: "rainbow", name: "虹のスケルトン", emoji: "🌈", weight: 3,  dropRarity: "legendary" },
     ];
 
+    // ===== ドロップ基礎値の強化倍率（地下迷宮がハードと同格以上になるための補正） =====
+    // ハードは「ワールド1つ=ノーマル全クリア分(100)、ステージ1つ=10」の積み上げ式で
+    // ハードW1 S1がノーマルW10 S10と同値になるため、追加の固定倍率は不要
+    // 地下迷宮はティア（銅/銀/金/虹）に応じて+5〜+20%
+    const UNDERGROUND_TIER_VALUE_BONUS = { copper: 1.05, silver: 1.10, gold: 1.15, rainbow: 1.20 };
+
     /** 重み付きランダムで地下迷宮の敵色ティアを1つ選ぶ */
     function pickUndergroundTier() {
         const total = UNDERGROUND_TIERS.reduce((sum, t) => sum + t.weight, 0);
@@ -1710,15 +1743,15 @@
         return UNDERGROUND_TIERS[0];
     }
 
-    /** 地下迷宮専用の敵ステータス計算。ハードの「現在攻略中ワールド-1」のステージボスを基準に、
+    /** 地下迷宮専用の敵ステータス計算。プルダウンで選択されたスケールレベル（クリア済みハードワールドの範囲内）を基準に、
      *  銅・銀・金・虹のいずれかをランダムに割り当てる（強さは全ティア共通、色はドロップ用の記号のみ） */
     function createEnemyUnderground() {
-        const hardProg  = gameState.progress.hard || { world: 1, stage: 1 };
-        const refWorld  = Math.max(1, (hardProg.world || 1) - 1);
-        const refStage  = Math.max(1, Math.min(10, hardProg.stage || 1));
+        const scale     = Math.max(1, Math.min(getUndergroundMaxScale(), gameState.undergroundScaleLevel || 1));
+        const refWorld  = scale;
+        const floor     = (gameState.progress.underground && gameState.progress.underground.floor) || 1;
         const refW      = refWorld + 10; // ハードのステージボス相当（+10ワールド分）
         const bTable    = stageBossData[refWorld] || stageBossData[1];
-        const entry     = bTable[Math.min(refStage - 1, bTable.length - 1)];
+        const entry     = bTable[(floor - 1) % bTable.length]; // フロア番号で見た目・ギミックにバリエーションを持たせる（強さには影響しない）
         const refBd     = getExtendedWorldBoss(refW);
         const refMult   = calcWorldMult(refW);
         let def  = Math.floor(15 * refMult * 0.6);
@@ -1884,12 +1917,11 @@
         renderEnemy(enemy);
     }
 
-    /** 地下迷宮専用の撃破処理（World/Stage進行なし、確定ドロップ、経験値・ゴールドはハード現在地-1を参照） */
+    /** 地下迷宮専用の撃破処理（World/Stage進行なし、確定ドロップ、経験値・ゴールドは選択中のスケールレベルを参照） */
     function winBattleUnderground() {
         const tier = enemyUndergroundTier || UNDERGROUND_TIERS[0];
-        const hardProg = gameState.progress.hard || { world: 1, stage: 1 };
-        const refWorld = Math.max(1, (hardProg.world || 1) - 1);
-        const refStage = Math.max(1, Math.min(10, hardProg.stage || 1));
+        const refWorld = Math.max(1, Math.min(getUndergroundMaxScale(), gameState.undergroundScaleLevel || 1));
+        const refStage = 10; // スケールレベルのみで決まる方式に統一（ステージによる変動は廃止）
         const refW = refWorld + 9; // ハードの通常敵と同じ基準の参照ワールド値（仮）
 
         let expGain = Math.floor(refStage * 10 * refW * (1 + expBonus / 100));
@@ -1990,6 +2022,7 @@
             };
             const isHard = gameState.currentDungeon === "hard";
             const loopMode = isHard ? (gameState.loopMode || "off") : "off"; // 周回モードはハード限定
+            prog().maxClearedWorld = Math.max(prog().maxClearedWorld || 0, w); // 地下迷宮スケール選択の上限に使用
             alert(`🎉 ${worldNames[w] || '大ボス'}を討伐！${isHard ? '【ハード】' : ''}ワールド${w}クリア！ 🎉`); 
             gameState.exp += 6000 * w; 
             gameState.gold += 3000 * w; 
@@ -2192,11 +2225,9 @@
                 playSE('r2.mp3'); 
                 let bonusGold;
                 if (gameState.currentDungeon === "underground") {
-                    // 地下迷宮にはWorld/Stageがないため、他の地下迷宮処理と同じ基準（ハード現在地-1）を参照する
-                    const hardProg = gameState.progress.hard || { world: 1, stage: 1 };
-                    const refWorld = Math.max(1, (hardProg.world || 1) - 1);
-                    const refStage = Math.max(1, Math.min(10, hardProg.stage || 1));
-                    bonusGold = refStage * 15 * (refWorld + 9);
+                    // 地下迷宮にはWorld/Stageがないため、選択中のスケールレベルを参照する
+                    const refWorld = Math.max(1, Math.min(getUndergroundMaxScale(), gameState.undergroundScaleLevel || 1));
+                    bonusGold = 10 * 15 * (refWorld + 9);
                 } else {
                     bonusGold = prog().stage * 15 * prog().world;
                 }
@@ -2541,7 +2572,7 @@
                 <input type="checkbox" class="inv-item-check" ${isSelected ? 'checked' : ''} ${item.isFavorite ? 'disabled title="お気に入りは選択できません"' : ''} onchange="toggleItemSelect('${item.id}', this.checked)">
                 <div class="inv-item-content" style="border-left: 5px solid ${slotColors[item.slot] || "#ccc"};">
                     <div>
-                        <span class="rarity-${item.rarity}">${slotMarkers[item.slot] || "🎒"} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value}${item.type === "atk" ? "A" : "D"})</span>
+                        <span class="rarity-${item.rarity}">${slotMarkers[item.slot] || "🎒"} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value}${item.type === "atk" ? "A" : "D"})</span>
                         <span style="font-size:0.75em; background:#eee; color:#333; padding:1px 4px; border-radius:3px; margin-left:5px;">${slotJpNames[item.slot] || item.slot}</span>
                         ${optStrings ? `<span class="opt-text">${optStrings}</span>` : ""}
                     </div>
@@ -2578,7 +2609,7 @@
                 
                 let optText = item.options ? item.options.map(o => o.text).join(", ") : "";
 
-                div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
+                div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
                 
                 let btn = document.createElement('button'); 
                 btn.className = "picker-btn";
@@ -2818,8 +2849,15 @@
         const isHard = gameState.currentDungeon === "hard";
         let rand = Math.random(), rarity = "Normal", mult = 1, maxOpts = 0;
         let w = prog().world || 1;
-        const wRarity = isHard ? w + 9 : w;  // レアリティ・倍率はハードW1=ノーマルW10相当
-        const wValue  = isHard ? w + 9 : w;  // 基礎値もハードW1=ノーマルW10相当
+        let stage = prog().stage || 1;
+        const wRarity = isHard ? w + 9 : w;  // レアリティ・倍率の抽選基準はハードW1=ノーマルW10相当
+        // 基礎値：ハードはワールド1つ=ノーマル全クリア分(100)、ステージ1つ=10 という積み上げ式にして
+        // 「ハードW1 S1」がノーマル最大値(W10 S10)と同じになり、以降は右肩上がりで伸びるようにする
+        const wValue  = isHard ? 1 : w;
+        // ハードは「ワールドのみで基礎値・オプション強度が決まる」設計にする（同ワールド内はS1でもS10でも同じ値）
+        const valueStageForCalc = isHard ? (100 * w) : stage;
+        const optionStageForCalc = isHard ? w : stage;
+        const itemLevel = isHard ? 10 + w : w;
         
         if (isBoss) {
             if (wRarity <= 3) {
@@ -2844,7 +2882,7 @@
             }
         }
 
-        finalizeDrop(rarity, mult, maxOpts, wValue, prog().stage || 1, isHard ? "hard" : null);
+        finalizeDrop(rarity, mult, maxOpts, wValue, optionStageForCalc, isHard ? "hard" : null, 1, valueStageForCalc, itemLevel);
     }
 
     /**
@@ -2862,11 +2900,15 @@
             return;
         }
 
-        const hardProg = gameState.progress.hard || { world: 1, stage: 1 };
-        const refWorld = Math.max(1, (hardProg.world || 1) - 1);
-        const refStage = Math.max(1, Math.min(10, hardProg.stage || 1));
-        const wRarity  = refWorld + 9; // ハードと同じ基準（ハードW1=ノーマルW10相当）に揃える
-        const wValue   = refWorld + 9;
+        const refWorld = Math.max(1, Math.min(getUndergroundMaxScale(), gameState.undergroundScaleLevel || 1));
+        const wRarity  = refWorld + 9; // レアリティ・倍率の抽選基準はハードと同じ
+        // 基礎値：ハードと同じ積み上げ式（ワールド1つ=100、ステージ1つ=10）を使う
+        const wValue   = 1;
+        // 地下迷宮もハードと同じく「参照ワールドのみで基礎値・オプション強度が決まる」
+        const valueStageForCalc = 100 * refWorld;
+        const optionStageForCalc = refWorld;
+        const itemLevel = 10 + refWorld;
+        const valueBonusMult = UNDERGROUND_TIER_VALUE_BONUS[tier.key] || 1;
         let rand = Math.random(), rarity = "Normal", mult = 1, maxOpts = 0;
 
         switch (tier.dropRarity) {
@@ -2911,7 +2953,7 @@
             }
         }
 
-        finalizeDrop(rarity, mult, maxOpts, wValue, refStage, "underground");
+        finalizeDrop(rarity, mult, maxOpts, wValue, optionStageForCalc, "underground", valueBonusMult, valueStageForCalc, itemLevel);
     }
 
     /** スロットをランダムに選び、表示名・武器種別・itemTypeを解決する */
@@ -2942,7 +2984,7 @@
     }
 
     /** 装備オプション（追加効果）をmaxOpts個ロールする */
-    function rollOptions(maxOpts, mult, stageForCalc) {
+    function rollOptions(maxOpts, mult, stageForCalc, valueBonusMult = 1) {
         const optPool = [
             { name: "追加ATK", type: "atk", min: 2, max: 6 },
             { name: "追加DEF", type: "def", min: 2, max: 5 },
@@ -2968,7 +3010,7 @@
 
             let finalVal = isPercentageOption || isFixedValueOption
                 ? baseVal
-                : Math.floor(baseVal * mult * (1 + stageForCalc * 0.08));
+                : Math.floor(baseVal * mult * (1 + stageForCalc * 0.08) * valueBonusMult);
 
             options.push({ text: `${poolItem.name} +${finalVal}${poolItem.unit || ""}`, type: poolItem.type, val: finalVal });
         }
@@ -2984,16 +3026,17 @@
     }
 
     /** ドロップアイテムの実体生成〜インベントリ追加までの共通処理（オーケストレーター） */
-    function finalizeDrop(rarity, mult, maxOpts, wValue, stageForCalc, source) {
+    function finalizeDrop(rarity, mult, maxOpts, wValue, stageForCalc, source, valueBonusMult = 1, valueStageForCalc = stageForCalc, itemLevel = null) {
         const p = prefixes[Math.floor(Math.random() * prefixes.length)];
         const { slot, name, weaponType, itemType } = resolveSlotAndType();
-        const options = rollOptions(maxOpts, mult, stageForCalc);
-        const finalValue = computeBaseValue(slot, stageForCalc, wValue, mult);
+        const options = rollOptions(maxOpts, mult, stageForCalc, valueBonusMult);
+        const finalValue = Math.floor(computeBaseValue(slot, valueStageForCalc, wValue, mult) * valueBonusMult);
 
         let newItem = { 
             id: "item-" + Date.now() + "-" + Math.floor(Math.random()*10000), 
             name: `${p}${name}`, 
             level: 0, 
+            itemLevel: itemLevel,
             value: finalValue, 
             rarity: rarity, 
             slot: slot, 
@@ -3006,7 +3049,7 @@
         };
         
         gameState.inventory.push(newItem);
-        appendLog('log-drop-area', `${getLogTime()} 🌟ドロップ: [${rarity}] ${newItem.name}`, `rarity-${rarity}`);
+        appendLog('log-drop-area', `${getLogTime()} 🌟ドロップ: [${rarity}] [IL${itemLevel ?? "?"}] ${newItem.name}`, `rarity-${rarity}`);
         
         if (rarity === "Legendary") checkQuests();
     }
@@ -3292,7 +3335,7 @@
     // 11. UI UPDATES
     // =========================================
 
-    /** 地下迷宮専用のHUD更新（表示行の切替＋進行度テキスト） */
+    /** 地下迷宮専用のHUD更新（表示行の切替＋進行度テキスト＋スケールレベル選択） */
     function updateUndergroundProgress() {
         const worldRow     = document.getElementById('world-row');
         const stageRow     = document.getElementById('stage-row');
@@ -3305,6 +3348,22 @@
 
         const floor = (gameState.progress.underground && gameState.progress.underground.floor) || 1;
         document.getElementById('floor-progress-text').innerText = `進行度 ${floor} / ${GAME_DATA.dungeons.underground.floors || 100}`;
+
+        // スケールレベルプルダウン（ハードでクリア済みのワールドまでのみ選択可）
+        const scaleSelect = document.getElementById('underground-scale-select');
+        if (scaleSelect) {
+            const maxScale = getUndergroundMaxScale();
+            const current = Math.max(1, Math.min(maxScale, gameState.undergroundScaleLevel || 1));
+            gameState.undergroundScaleLevel = current;
+            scaleSelect.innerHTML = '';
+            for (let i = 1; i <= maxScale; i++) {
+                let opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `スケール${i}`;
+                if (i === current) opt.selected = true;
+                scaleSelect.appendChild(opt);
+            }
+        }
     }
 
     /** 訓練所専用パネルの更新（蓄積報酬・残り時間・キャップゲージ） */
@@ -3601,7 +3660,7 @@
 
                 slotBox.innerHTML = `
                     <div class="eq-info-area">
-                        <span class="rarity-${item.rarity}">${slotMarkers[slot]} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name} +${item.level} (+${item.value} ${item.type.toUpperCase()})</span>
+                        <span class="rarity-${item.rarity}">${slotMarkers[slot]} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""} +${item.level} (+${item.value} ${item.type.toUpperCase()})</span>
                         ${optHtml}
                     </div>
                     <div class="eq-control-btns">
