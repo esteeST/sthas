@@ -379,10 +379,10 @@
             <div style="font-size:0.85em; color:#555; margin-bottom:4px;">上限まで残り <span id="training-remaining-text">8時間0分</span></div>
             <div class="hp-gauge-outer" style="margin-bottom:10px;"><div id="training-cap-gauge" class="hp-gauge-fill training"></div></div>
             <div style="font-size:0.95em; margin-bottom:10px; text-align:left; display:inline-block;">
-                <div>🔷 蓄積EXP: <span id="training-pending-exp">0</span></div>
-                <div>💰 蓄積Gold: <span id="training-pending-gold">0</span></div>
-                <div>🏅 訓練ポイント(未受取): <span id="training-pending-point">0</span></div>
-                <div id="training-pending-stone-row" style="display:none;">✨ 蓄積強化石: <span id="training-pending-stone">0</span></div>
+                <div>🔷 経験値: <span id="training-pending-exp">0</span>/<span id="training-max-exp">8000</span></div>
+                <div>💰 ゴールド: <span id="training-pending-gold">0</span>/<span id="training-max-gold">8000</span></div>
+                <div>🏅 訓練ポイント: <span id="training-pending-point">0</span>/<span id="training-max-point">1</span></div>
+                <div>✨ 強化石: <span id="training-pending-stone">0</span>/<span id="training-max-stone">0</span></div>
             </div>
             <button type="button" onclick="collectTraining()" style="width:100%; padding:12px; background:#5e35b1; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.05em;">受け取る</button>
             <div style="font-size:0.7em; color:#888; margin-top:8px;">※未受取分はオフライン時も最大8時間分まで蓄積されます</div>
@@ -1081,7 +1081,7 @@
         zukanKills: {},
         zukanUnlocked: {},
         trainingPoint: 0,
-        trainingUpgrades: { exp: false, gold: false, stone: false, point: false }, // 訓練所強化（訓練ポイント消費、各1回きり）
+        trainingUpgrades: { exp: 0, gold: 0, stone: 0, point: 0 }, // 訓練所強化（訓練ポイント消費、各レベル5まで）
         training: {
             pending: { exp: 0, gold: 0, point: 0, stone: 0 }, // 未受取の蓄積報酬
             elapsedSec: 0,                           // 前回受取からの経過秒（8h=28800でキャップ）
@@ -1165,13 +1165,22 @@
     const TRAINING_BONUS_PER_CLEAR = { exp: 8000, gold: 8000, point: 1 }; // ノーマル/ハードのワールドクリア、地下迷宮クリア1回ごとの上乗せ
     const TRAINING_BOOST_MULT = 2; // ブースト時のEXP/Gold倍率（ポイントには掛からない）
 
-    // 訓練所強化（訓練ポイントで購入する1回きりの強化。各項目とも8時間あたりの最大蓄積量に加算される）
+    // 訓練所強化（訓練ポイントで購入する、各項目レベル5までの強化）
+    // costMode: "scaling"=レベルに応じてコスト上昇(10→20→30→40→50) / "flat"=常に同じコスト
+    // bonusMode: "additive"=レベル×bonusPerLevelを加算 / "double"=(基礎値)を2^レベルで倍化
     const TRAINING_UPGRADE_DEFS = {
-        exp:   { cost: 10, bonus: 8000, label: "🔷 EXP+",     desc: "8時間の蓄積EXP上限が+8000（8000→16000）" },
-        gold:  { cost: 10, bonus: 8000, label: "💰 ゴールド+", desc: "8時間の蓄積ゴールド上限が+8000（8000→16000）" },
-        stone: { cost: 10, bonus: 8,    label: "✨ 強化石+",   desc: "8時間で強化石が+8個手に入るようになる" },
-        point: { cost: 1,  bonus: 1,    label: "🏅 訓練ポイント+", desc: "8時間の蓄積訓練ポイント上限が+1（1→2）" },
+        exp:   { maxLevel: 5, costMode: "scaling", costPerLevel: 10, bonusMode: "additive", bonusPerLevel: 8000, label: "🔷 EXP+",       desc: "8時間の蓄積EXP上限が上昇する" },
+        gold:  { maxLevel: 5, costMode: "scaling", costPerLevel: 10, bonusMode: "additive", bonusPerLevel: 8000, label: "💰 ゴールド+",   desc: "8時間の蓄積ゴールド上限が上昇する" },
+        stone: { maxLevel: 5, costMode: "scaling", costPerLevel: 10, bonusMode: "additive", bonusPerLevel: 8,    label: "✨ 強化石+",     desc: "8時間の蓄積強化石が増える" },
+        point: { maxLevel: 5, costMode: "flat",    costPerLevel: 1,  bonusMode: "double",                       label: "🏅 訓練ポイント+", desc: "8時間の蓄積訓練ポイント上限が倍になる" },
     };
+
+    /** 訓練所強化の次レベルに必要なコストを返す（curLevelは現在のレベル、購入後は curLevel+1 になる） */
+    function getTrainingUpgradeCost(key, curLevel) {
+        const def = TRAINING_UPGRADE_DEFS[key];
+        if (!def) return Infinity;
+        return def.costMode === "flat" ? def.costPerLevel : def.costPerLevel * (curLevel + 1);
+    }
 
     /** 訓練所の報酬計算に使う「クリア回数」。ノーマル/ハードはワールド10到達を1回だけカウント（worldClearCountは
      *  ワールド10ボスを周回するたびに増え続けるため使用しない）。地下迷宮は実際の周回数をそのまま使う。 */
@@ -1185,11 +1194,13 @@
     function getTrainingMax(state) {
         const n = getTrainingClearCount(state);
         const up = state.trainingUpgrades || {};
+        const expLv = up.exp || 0, goldLv = up.gold || 0, stoneLv = up.stone || 0, pointLv = up.point || 0;
+        const pointBase = TRAINING_BASE_MAX.point + TRAINING_BONUS_PER_CLEAR.point * n;
         return {
-            exp:   TRAINING_BASE_MAX.exp   + TRAINING_BONUS_PER_CLEAR.exp   * n + (up.exp   ? TRAINING_UPGRADE_DEFS.exp.bonus   : 0),
-            gold:  TRAINING_BASE_MAX.gold  + TRAINING_BONUS_PER_CLEAR.gold  * n + (up.gold  ? TRAINING_UPGRADE_DEFS.gold.bonus  : 0),
-            point: TRAINING_BASE_MAX.point + TRAINING_BONUS_PER_CLEAR.point * n + (up.point ? TRAINING_UPGRADE_DEFS.point.bonus : 0),
-            stone: TRAINING_BASE_MAX.stone + (up.stone ? TRAINING_UPGRADE_DEFS.stone.bonus : 0),
+            exp:   TRAINING_BASE_MAX.exp   + TRAINING_BONUS_PER_CLEAR.exp   * n + expLv   * TRAINING_UPGRADE_DEFS.exp.bonusPerLevel,
+            gold:  TRAINING_BASE_MAX.gold  + TRAINING_BONUS_PER_CLEAR.gold  * n + goldLv  * TRAINING_UPGRADE_DEFS.gold.bonusPerLevel,
+            stone: TRAINING_BASE_MAX.stone + stoneLv * TRAINING_UPGRADE_DEFS.stone.bonusPerLevel,
+            point: pointBase * Math.pow(2, pointLv),
         };
     }
 
@@ -1259,18 +1270,20 @@
         updateDisplay();
     }
 
-    /** 訓練所強化を訓練ポイントで購入する（各項目1回きり） */
+    /** 訓練所強化を訓練ポイントで購入する（レベル5まで、購入ごとにコストが上昇） */
     function buyTrainingUpgrade(key) {
         const def = TRAINING_UPGRADE_DEFS[key];
         if (!def) return;
-        if (!gameState.trainingUpgrades) gameState.trainingUpgrades = { exp: false, gold: false, stone: false, point: false };
-        if (gameState.trainingUpgrades[key]) return; // 既に取得済み
-        if ((gameState.trainingPoint || 0) < def.cost) return;
+        if (!gameState.trainingUpgrades) gameState.trainingUpgrades = { exp: 0, gold: 0, stone: 0, point: 0 };
+        const curLevel = gameState.trainingUpgrades[key] || 0;
+        if (curLevel >= def.maxLevel) return; // 既に最大レベル
+        const cost = getTrainingUpgradeCost(key, curLevel);
+        if ((gameState.trainingPoint || 0) < cost) return;
 
-        gameState.trainingPoint -= def.cost;
-        gameState.trainingUpgrades[key] = true;
+        gameState.trainingPoint -= cost;
+        gameState.trainingUpgrades[key] = curLevel + 1;
 
-        appendLog('log-exp-area', `${getLogTime()} 🏋️ <span style="color:#5e35b1; font-weight:bold;">訓練所強化「${def.label}」を取得しました！</span>`, "c-yellow");
+        appendLog('log-exp-area', `${getLogTime()} 🏋️ <span style="color:#5e35b1; font-weight:bold;">訓練所強化「${def.label}」がLv.${curLevel + 1}になりました！</span>`, "c-yellow");
 
         saveGame();
         updateDisplay();
@@ -1339,7 +1352,14 @@
         state.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
         if (state.unlockedDungeons.training === undefined) state.unlockedDungeons.training = true;
         if (state.trainingPoint === undefined) state.trainingPoint = 0;
-        if (state.trainingUpgrades === undefined) state.trainingUpgrades = { exp: false, gold: false, stone: false, point: false };
+        if (state.trainingUpgrades === undefined) state.trainingUpgrades = { exp: 0, gold: 0, stone: 0, point: 0 };
+        // 旧仕様（true/false の1回きり）からの互換変換：trueだったものはレベル1として扱う
+        ["exp", "gold", "stone", "point"].forEach(k => {
+            if (typeof state.trainingUpgrades[k] === "boolean") {
+                state.trainingUpgrades[k] = state.trainingUpgrades[k] ? 1 : 0;
+            }
+            if (state.trainingUpgrades[k] === undefined) state.trainingUpgrades[k] = 0;
+        });
         if (state.training === undefined) {
             state.training = { pending: { exp: 0, gold: 0, point: 0, stone: 0 }, elapsedSec: 0, lastSeenTime: Date.now() };
         }
@@ -3416,6 +3436,7 @@
         const t = gameState.training;
         if (!t) return;
         const maxSec = TRAINING_MAX_HOURS * 3600;
+        const max = getTrainingMax(gameState);
         const remainingSec = Math.max(0, maxSec - t.elapsedSec);
         const rh = Math.floor(remainingSec / 3600);
         const rm = Math.floor((remainingSec % 3600) / 60);
@@ -3429,15 +3450,20 @@
         const expEl   = document.getElementById('training-pending-exp');
         const goldEl  = document.getElementById('training-pending-gold');
         const pointEl = document.getElementById('training-pending-point');
+        const stoneEl = document.getElementById('training-pending-stone');
         if (expEl)   expEl.innerText   = fmt(Math.floor(t.pending.exp));
         if (goldEl)  goldEl.innerText  = fmt(Math.floor(t.pending.gold));
         if (pointEl) pointEl.innerText = fmt(Math.floor(t.pending.point));
+        if (stoneEl) stoneEl.innerText = fmt(Math.floor(t.pending.stone || 0));
 
-        const stoneRow = document.getElementById('training-pending-stone-row');
-        const stoneEl  = document.getElementById('training-pending-stone');
-        const stoneUnlocked = !!(gameState.trainingUpgrades && gameState.trainingUpgrades.stone);
-        if (stoneRow) stoneRow.style.display = stoneUnlocked ? "block" : "none";
-        if (stoneEl)  stoneEl.innerText = fmt(Math.floor(t.pending.stone || 0));
+        const maxExpEl   = document.getElementById('training-max-exp');
+        const maxGoldEl  = document.getElementById('training-max-gold');
+        const maxPointEl = document.getElementById('training-max-point');
+        const maxStoneEl = document.getElementById('training-max-stone');
+        if (maxExpEl)   maxExpEl.innerText   = fmt(max.exp);
+        if (maxGoldEl)  maxGoldEl.innerText  = fmt(max.gold);
+        if (maxPointEl) maxPointEl.innerText = fmt(max.point);
+        if (maxStoneEl) maxStoneEl.innerText = fmt(max.stone);
     }
 
     /** HUD（HP/ゴールド/EXP/敵情報/ステージ表示）の更新 */
@@ -3779,18 +3805,20 @@
             const tu = gameState.trainingUpgrades || {};
             Object.keys(TRAINING_UPGRADE_DEFS).forEach(key => {
                 const def = TRAINING_UPGRADE_DEFS[key];
-                const bought = !!tu[key];
-                const canAfford = (gameState.trainingPoint || 0) >= def.cost;
+                const lv = tu[key] || 0;
+                const isMax = lv >= def.maxLevel;
+                const nextCost = isMax ? null : getTrainingUpgradeCost(key, lv);
+                const canAfford = !isMax && (gameState.trainingPoint || 0) >= nextCost;
                 let div = document.createElement('div');
                 div.style.cssText = "background:#fff; border:1px solid #ddd; border-radius:6px; padding:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-bottom:8px;";
                 div.innerHTML = `
                     <div>
                         <strong style="font-size:1em;">${def.label}</strong>
-                        <span style="background:#eceff1; padding:1px 6px; border-radius:3px; font-size:0.8em; color:#455a64;">${bought ? '取得済み' : '未取得'}</span><br>
+                        <span style="background:#eceff1; padding:1px 6px; border-radius:3px; font-size:0.8em; color:#455a64;">Lv.${lv}/${def.maxLevel}</span><br>
                         <span style="font-size:0.83em; color:#666; display:block; margin-top:2px;">${def.desc}</span>
                     </div>
-                    <button onclick="buyTrainingUpgrade('${key}')" style="width:auto; padding:8px 14px; background:${bought ? '#ccc' : (canAfford ? '#5e35b1' : '#bbb')}; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap;" ${(bought || !canAfford) ? 'disabled' : ''}>
-                        ${bought ? '取得済み' : `強化 ${def.cost}pt`}
+                    <button onclick="buyTrainingUpgrade('${key}')" style="width:auto; padding:8px 14px; background:${isMax ? '#ccc' : (canAfford ? '#5e35b1' : '#bbb')}; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap;" ${(isMax || !canAfford) ? 'disabled' : ''}>
+                        ${isMax ? 'MAX' : `強化 ${nextCost}pt`}
                     </button>`;
                 trainingUpgradeList.appendChild(div);
             });
