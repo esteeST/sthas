@@ -709,11 +709,18 @@
         <div id="tab-quest" class="tab-content">
             <!-- 手帳タブ内サブタブ -->
             <div class="enhance-tab-row" id="notebook-tab-row">
-                <button class="enhance-tab-btn active" onclick="switchEnhanceTab('notebook-quest', this)">📜 クエスト</button>
+                <button class="enhance-tab-btn active" onclick="switchEnhanceTab('notebook-quest-new', this)">📜 クエスト</button>
+                <button class="enhance-tab-btn" onclick="switchEnhanceTab('notebook-quest', this)">🏆 実績</button>
             </div>
 
-            <!-- クエストサブタブ -->
-            <div id="notebook-quest" class="enhance-tab-content active">
+            <!-- クエストサブタブ（デイリークエスト・最初から解放） -->
+            <div id="notebook-quest-new" class="enhance-tab-content active">
+                <p style="color:#555; font-size:0.88em; margin-top:0;">毎日リセットされます（日付が変わると自動更新）。達成すると自動的に報酬が付与されます。</p>
+                <div id="daily-quest-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+            </div>
+
+            <!-- 実績サブタブ（旧クエスト） -->
+            <div id="notebook-quest" class="enhance-tab-content">
                 <p style="color:#555; font-size:0.88em; margin-top:0;">達成すると自動的に報酬が付与されます。</p>
                 <div style="font-size:0.85em; color:#37474f; margin-bottom:8px;">総撃破数: <strong id="total-kills-disp">0</strong></div>
                 <div id="quest-list" style="display:flex; flex-direction:column; gap:6px;"></div>
@@ -1082,6 +1089,13 @@
         zukanUnlocked: {},
         trainingPoint: 0,
         trainingUpgrades: { exp: 0, gold: 0, stone: 0, point: 0 }, // 訓練所強化（訓練ポイント消費、各レベル5まで）
+        daily: {
+            date: null,       // 最後にリセットしたローカル日付（"YYYY-MM-DD"）。nullなら初回未初期化
+            kills: 0,         // 本日の撃破数
+            trainingClaimed: false, // 本日、訓練所の報酬を受け取ったか
+            dungeonCleared: false,  // 本日、ハードワールドor地下迷宮を1回クリアしたか
+            rewardClaimed: { kill: false, training: false, clear: false }, // 各デイリークエストの報酬受け取り済みか
+        },
         training: {
             pending: { exp: 0, gold: 0, point: 0, stone: 0 }, // 未受取の蓄積報酬
             elapsedSec: 0,                           // 前回受取からの経過秒（8h=28800でキャップ）
@@ -1157,6 +1171,62 @@
     function saveGame() {
         gameState.saveVersion = CURRENT_SAVE_VERSION;
         localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+    }
+
+    // ===== デイリークエスト設定 =====
+    // ※撃破数の目標(30体)はキリの良い仮値。様子を見て調整可能。
+    const DAILY_QUEST_DEFS = {
+        kill:     { label: "敵を30体撃破する",                     target: 30, reward: { exp: 10000, gold: 10000, stone: 10 }, requiresUnlock: false },
+        training: { label: "訓練所の報酬を受け取る",                 target: 1,  reward: { exp: 5000,  gold: 5000,  stone: 5  }, requiresUnlock: false },
+        clear:    { label: "ハードワールドまたは地下迷宮を1回クリアする", target: 1, reward: { hardPoint: 30 }, requiresUnlock: true },
+    };
+
+    /** ローカル時刻ベースの日付文字列（"YYYY-MM-DD"）を返す。UTC基準のtoISOString()は使わない（日本時間の深夜〜朝方がズレるため） */
+    function getLocalDateString() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    /** ローカル日付が変わっていたらデイリークエストをリセットする。ロード時・毎秒Tick時の両方から呼ばれる。 */
+    function checkDailyReset() {
+        if (!gameState.daily) {
+            gameState.daily = { date: null, kills: 0, trainingClaimed: false, dungeonCleared: false, rewardClaimed: { kill: false, training: false, clear: false } };
+        }
+        const today = getLocalDateString();
+        if (gameState.daily.date === today) return; // 日付が変わっていなければ何もしない
+
+        gameState.daily.date = today;
+        gameState.daily.kills = 0;
+        gameState.daily.trainingClaimed = false;
+        gameState.daily.dungeonCleared = false;
+        gameState.daily.rewardClaimed = { kill: false, training: false, clear: false };
+    }
+
+    /** デイリークエストの報酬を付与する */
+    function applyDailyQuestReward(key) {
+        const def = DAILY_QUEST_DEFS[key];
+        if (!def || !gameState.daily || gameState.daily.rewardClaimed[key]) return;
+        const r = def.reward;
+        if (r.exp)       gameState.exp += r.exp;
+        if (r.gold)      gameState.gold += r.gold;
+        if (r.stone)     gameState.upgradeStone = (gameState.upgradeStone || 0) + r.stone;
+        if (r.hardPoint) gameState.hardPoint = (gameState.hardPoint || 0) + r.hardPoint;
+        gameState.daily.rewardClaimed[key] = true;
+
+        const rewardText = [r.exp?`EXP+${r.exp}`:'', r.gold?`G+${r.gold}`:'', r.stone?`強化石+${r.stone}`:'', r.hardPoint?`ハードポイント+${r.hardPoint}`:''].filter(Boolean).join(' / ');
+        appendLog('log-exp-area', `${getLogTime()} 📜 <span style="color:#42a5f5; font-weight:bold;">デイリークエスト達成: ${def.label}</span> ➡ ${rewardText}`, "c-yellow");
+    }
+
+    /** 各デイリークエストの達成状況をチェックし、未受け取りなら自動で報酬を付与する */
+    function checkDailyQuests() {
+        if (!gameState.daily) return;
+        const d = gameState.daily;
+        if (!d.rewardClaimed.kill     && d.kills >= DAILY_QUEST_DEFS.kill.target) applyDailyQuestReward('kill');
+        if (!d.rewardClaimed.training && d.trainingClaimed)                       applyDailyQuestReward('training');
+        if (!d.rewardClaimed.clear    && d.dungeonCleared)                        applyDailyQuestReward('clear');
     }
 
     // ===== 訓練所（Training）設定 =====
@@ -1259,6 +1329,8 @@
         gameState.gold += gained.gold;
         gameState.trainingPoint = (gameState.trainingPoint || 0) + gained.point;
         gameState.upgradeStone  = (gameState.upgradeStone  || 0) + gained.stone;
+        gameState.daily.trainingClaimed = true;
+        checkDailyQuests();
 
         appendLog('log-exp-area', `${getLogTime()} 🏋️ <span style="color:#5e35b1; font-weight:bold;">訓練所の報酬を受け取りました！</span> ➡ +${gained.exp}EXP +${gained.gold}G +${gained.point}pt${gained.stone > 0 ? ` +${gained.stone}✨` : ""}`, "c-yellow");
 
@@ -1366,6 +1438,22 @@
         if (state.training.pending.stone === undefined) state.training.pending.stone = 0;
         applyTrainingOfflineCatchup(state); // オフライン中の訓練所蓄積を計算（通常レート・8hキャップ）
 
+        // --- デイリークエスト ---
+        if (state.daily === undefined) {
+            state.daily = { date: null, kills: 0, trainingClaimed: false, dungeonCleared: false, rewardClaimed: { kill: false, training: false, clear: false } };
+        }
+        if (state.daily.rewardClaimed === undefined) state.daily.rewardClaimed = { kill: false, training: false, clear: false };
+        // ロード時点で日付が変わっていれば即リセット（migrateSave内はまだgameStateに反映前のため、
+        // グローバル依存のcheckDailyReset()は使わずこの場でstateに直接適用する）
+        const todayForLoad = getLocalDateString();
+        if (state.daily.date !== todayForLoad) {
+            state.daily.date = todayForLoad;
+            state.daily.kills = 0;
+            state.daily.trainingClaimed = false;
+            state.daily.dungeonCleared = false;
+            state.daily.rewardClaimed = { kill: false, training: false, clear: false };
+        }
+
         // --- 地下迷宮スケールレベル（プルダウンで手動選択、クリア済みハードワールドまで選択可） ---
         if (state.undergroundScaleLevel === undefined) state.undergroundScaleLevel = 1;
         if (state.progress.hard === undefined) {
@@ -1420,7 +1508,7 @@
         // サブタブの初期activeを復元
         const defaultSubTab = {
             'tab-status': 'enhance-skill-tree',
-            'tab-quest':  'notebook-quest',
+            'tab-quest':  'notebook-quest-new',
         };
         if (defaultSubTab[tabId]) {
             // 対象タブ内のサブタブを全リセットしてデフォルトを復元
@@ -2006,6 +2094,8 @@
         let gainedGold = Math.floor((refStage * 5 * refW) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100)) * (refW >= 4 ? 1.2 : 1.0));
         gameState.gold += gainedGold;
         gameState.totalKills = (gameState.totalKills || 0) + 1;
+        gameState.daily.kills = (gameState.daily.kills || 0) + 1;
+        checkDailyQuests();
 
         appendLog('log-exp-area', `${getLogTime()} ${enemyName} 撃破 ➡ <span class="c-gold">+${gainedGold}G</span> <span style="color:#64b5f6">+${expGain}EXP</span>`, "c-white");
 
@@ -2032,6 +2122,7 @@
             appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">地下迷宮 ${maxFloor}Fクリア！ 1Fから再挑戦します。</span>`, "c-yellow");
             p.floor = 1;
             gameState.undergroundClearCount = (gameState.undergroundClearCount || 0) + 1;
+            gameState.daily.dungeonCleared = true; checkDailyQuests(); // デイリークエスト（ハード/地下迷宮クリア）
         } else {
             p.floor++;
         }
@@ -2072,6 +2163,8 @@
         let gainedGold = Math.floor((isBoss ? s * 30 * w : s * 5 * w) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100)) * (w >= 4 ? 1.2 : 1.0));
         gameState.gold += gainedGold;
         gameState.totalKills = (gameState.totalKills || 0) + 1;
+        gameState.daily.kills = (gameState.daily.kills || 0) + 1;
+        checkDailyQuests();
 
         appendLog('log-exp-area', `${getLogTime()} ${enemyName} 撃破 ➡ <span class="c-gold">+${gainedGold}G</span> <span style="color:#64b5f6">+${expGain}EXP</span>`, "c-white");
 
@@ -2088,6 +2181,7 @@
             const isHard = gameState.currentDungeon === "hard";
             const loopMode = isHard ? (gameState.loopMode || "off") : "off"; // 周回モードはハード限定
             prog().maxClearedWorld = Math.max(prog().maxClearedWorld || 0, w); // 地下迷宮スケール選択の上限に使用
+            if (isHard) { gameState.daily.dungeonCleared = true; checkDailyQuests(); } // デイリークエスト（ハード/地下迷宮クリア）
             alert(`🎉 ${worldNames[w] || '大ボス'}を討伐！${isHard ? '【ハード】' : ''}ワールド${w}クリア！ 🎉`); 
             gameState.exp += 6000 * w; 
             gameState.gold += 3000 * w; 
@@ -2356,6 +2450,8 @@
     // =========================================
     function gameTick() {
         if (!gameState.isJobSelected) return;
+
+        checkDailyReset(); // 日付が変わっていたらデイリークエストをリセット
 
         // --- 訓練所の蓄積は常時進行（選択中ダンジョンに関わらず）---
         tickTraining();
@@ -3392,7 +3488,7 @@
         if (r.stone) gameState.upgradeStone += r.stone;
         
         let rewardText = [r.exp?`EXP+${r.exp}`:'', r.gold?`G+${r.gold}`:'', r.stone?`強化石+${r.stone}`:''].filter(Boolean).join(', ');
-        appendLog('log-exp-area', `${getLogTime()} 🏆 <span style="color:#ffd700; font-weight:bold;">クエスト達成: ${def.label}</span> ➡ ${rewardText}`, "c-yellow");
+        appendLog('log-exp-area', `${getLogTime()} 🏆 <span style="color:#ffd700; font-weight:bold;">実績達成: ${def.label}</span> ➡ ${rewardText}`, "c-yellow");
         saveGame();
     }
 
@@ -3825,7 +3921,39 @@
         }
     }
 
-    /** クエストタブの更新（手帳タブが非表示の間はスキップ） */
+    /** デイリークエストタブの更新（手帳タブが非表示の間はスキップ） */
+    function updateDailyQuestTab() {
+        if (!isVisible('tab-quest')) return;
+        let list = document.getElementById('daily-quest-list');
+        if (!list || !gameState.daily) return;
+        list.innerHTML = "";
+        const d = gameState.daily;
+        const hardOrUndergroundUnlocked = !!(gameState.unlockedDungeons && (gameState.unlockedDungeons.hard || gameState.unlockedDungeons.underground));
+
+        const progressFor = (key) => {
+            if (key === "kill")     return Math.min(d.kills, DAILY_QUEST_DEFS.kill.target);
+            if (key === "training") return d.trainingClaimed ? 1 : 0;
+            if (key === "clear")    return d.dungeonCleared ? 1 : 0;
+            return 0;
+        };
+
+        Object.keys(DAILY_QUEST_DEFS).forEach(key => {
+            const def = DAILY_QUEST_DEFS[key];
+            if (def.requiresUnlock && !hardOrUndergroundUnlocked) return; // ハード/地下迷宮未解放の間は表示しない
+            const done = !!d.rewardClaimed[key];
+            const progVal = progressFor(key);
+            const r = def.reward;
+            const rewardStr = [r.exp?`EXP+${r.exp}`:'', r.gold?`G+${r.gold}`:'', r.stone?`強化石+${r.stone}`:'', r.hardPoint?`ハードポイント+${r.hardPoint}`:''].filter(Boolean).join(' / ');
+            let div = document.createElement('div');
+            div.style.cssText = `background:${done?'#e8f5e9':'#fff'}; border:1px solid ${done?'#4caf50':'#ddd'}; border-radius:5px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-size:0.87em;`;
+            div.innerHTML = `
+                <div>${done?'✅':'⬜'} <strong>${def.label}</strong> <span style="color:#888;">(${progVal}/${def.target})</span><br><span style="color:#888;">報酬: ${rewardStr}</span></div>
+                <div style="font-size:1.4em;">${done?'🏆':''}</div>`;
+            list.appendChild(div);
+        });
+    }
+
+    /** 実績タブ（旧クエスト）の更新（手帳タブが非表示の間はスキップ） */
     function updateQuestTab() {
         if (!isVisible('tab-quest')) return;
         let questList = document.getElementById('quest-list');
@@ -3870,6 +3998,7 @@
         updateTreeTab();
         updateEquipTab();
         updateFacilityTab();
+        updateDailyQuestTab();
         updateQuestTab();
         updateBGMSEButtons();
         updateEnhanceTab();
