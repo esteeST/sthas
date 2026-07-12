@@ -81,11 +81,11 @@
         /* Dungeon Navigation */
         .dungeon-nav { background: #212121; color: #fff; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
         .dungeon-tab-row { display: flex; border-bottom: 1px solid #424242; }
-        .dungeon-tab-btn { flex: 1; padding: 6px 4px; background: #2c2c2c; color: #aaa; border: none; cursor: pointer; font-size: 0.78em; font-weight: bold; margin: 0; border-radius: 0; }
+        .dungeon-tab-btn { flex: 1; padding: 6px 2px; background: #2c2c2c; color: #aaa; border: none; cursor: pointer; font-size: 0.68em; font-weight: bold; margin: 0; border-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .dungeon-tab-btn.active { background: #4caf50; color: white; }
         /* 強化タブ内サブタブ */
         .enhance-tab-row { display: flex; border-bottom: 2px solid #555; margin-bottom: 12px; }
-        .enhance-tab-btn { flex: 1; padding: 7px 4px; background: #424242; color: #bbb; border: none; cursor: pointer; font-size: 0.85em; font-weight: bold; margin: 0; border-radius: 4px 4px 0 0; }
+        .enhance-tab-btn { flex: 1; padding: 7px 3px; background: #424242; color: #bbb; border: none; cursor: pointer; font-size: 0.75em; font-weight: bold; margin: 0; border-radius: 4px 4px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .enhance-tab-btn.active { background: #1565c0; color: white; }
         .enhance-tab-content { display: none; }
         .enhance-tab-content.active { display: block; }
@@ -101,6 +101,114 @@
         /* Enemy Info */
         .boss-active { background-color: #ffcdd2 !important; border: 1px solid #b71c1c !important; }
         .maou-active { background-color: #e1bee7 !important; border: 1px solid #4a148c !important; }
+
+        /* パンデモニウム（大罪）：赤黒の炎テーマ */
+        .sins-active {
+            background: linear-gradient(135deg, #3a0000 0%, #1a0000 100%) !important;
+            border: 1px solid #ff1744 !important;
+            animation: sinsPulse 2s ease-in-out infinite;
+        }
+        .sins-active, .sins-active .stat, .sins-active * { color: #f5f5f5 !important; }
+        .sins-active #enemy-name { color: #ff5252 !important; text-shadow: 0 0 6px #ff1744, 0 0 12px #b71c1c; }
+        @keyframes sinsPulse {
+            0%, 100% { box-shadow: 0 0 6px rgba(255, 23, 68, 0.4) inset; }
+            50%      { box-shadow: 0 0 18px rgba(255, 23, 68, 0.8) inset; }
+        }
+
+        /* エデン（天使）：白金の光テーマ */
+        .angels-active {
+            background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%) !important;
+            border: 1px solid #ffd700 !important;
+            animation: angelsPulse 2.4s ease-in-out infinite;
+        }
+        .angels-active #enemy-name { color: #b8860b !important; text-shadow: 0 0 6px #fff59d, 0 0 12px #ffd700; }
+        @keyframes angelsPulse {
+            0%, 100% { box-shadow: 0 0 6px rgba(255, 215, 0, 0.4) inset; }
+            50%      { box-shadow: 0 0 20px rgba(255, 235, 130, 0.9) inset; }
+        }
+
+        /* 創生の間：未解放時は不穏なノイズ演出 */
+        .final-locked-active {
+            background: linear-gradient(135deg, #1a0a2e 0%, #0d0510 100%) !important;
+            border: 1px solid #6a1b9a !important;
+            animation: finalLockedGlitch 3s ease-in-out infinite;
+        }
+        .final-locked-active, .final-locked-active .stat, .final-locked-active * { color: #e0e0e0 !important; }
+        .final-locked-active #enemy-name { color: #9575cd !important; text-shadow: 0 0 6px #4a148c; }
+        @keyframes finalLockedGlitch {
+            0%, 92%, 100% { transform: translateX(0); filter: none; }
+            93% { transform: translateX(-2px); filter: hue-rotate(20deg); }
+            94% { transform: translateX(2px);  filter: hue-rotate(-20deg); }
+            95% { transform: translateX(-1px); filter: none; }
+        }
+
+        /* 創生の間：解放後は虹色の荘厳な演出 */
+        .final-revealed-active {
+            background: linear-gradient(270deg, #ff1744, #ffd700, #00e5ff, #d500f9, #ff1744) !important;
+            background-size: 400% 400% !important;
+            border: 2px solid #fff !important;
+            animation: finalRevealedShift 6s ease infinite;
+        }
+        .final-revealed-active, .final-revealed-active .stat, .final-revealed-active * { color: #fff !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        .final-revealed-active #enemy-name { color: #fff !important; text-shadow: 0 0 8px #fff, 0 0 16px #d500f9; }
+        @keyframes finalRevealedShift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* ダンジョン入場フラッシュ演出 */
+        @keyframes dungeonEnterFlash {
+            0% { opacity: 0.85; }
+            100% { opacity: 0; }
+        }
+        @keyframes dungeonEnterTextFade {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+            15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+            25% { transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* 真のエンディング演出 */
+        @keyframes endingBgFade { 0% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes endingRainbowText {
+            0%, 100% { background-position: 0% 50%; }
+            50%      { background-position: 100% 50%; }
+        }
+        .ending-title {
+            background: linear-gradient(90deg, #ff1744, #ffd700, #00e5ff, #d500f9, #ff1744);
+            background-size: 400% 400%;
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            opacity: 0;
+            animation: endingLineFadeIn 0.8s ease forwards, endingRainbowText 4s ease infinite;
+            font-size: 2.6em; font-weight: bold; letter-spacing: 6px; text-align: center;
+        }
+        @keyframes endingLineFadeIn {
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .ending-line { opacity: 0; animation: endingLineFadeIn 0.8s ease forwards; }
+        .ending-artifact-icon { display: inline-block; font-size: 1.8em; margin: 3px; opacity: 0; animation: endingLineFadeIn 0.5s ease forwards; }
+
+        /* Legendaryドロップ トースト通知 */
+        @keyframes legendaryToastPop {
+            0%   { opacity: 0; transform: translate(-50%, -10px) scale(0.85); }
+            12%  { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+            18%  { transform: translate(-50%, 0) scale(1); }
+            85%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -6px) scale(1); }
+        }
+        .legendary-toast {
+            position: fixed; top: 70px; left: 50%; z-index: 9200; pointer-events: none;
+            background: linear-gradient(135deg, #3a2a00 0%, #1a1200 100%);
+            border: 2px solid #ffca28; border-radius: 10px; padding: 10px 22px;
+            color: #ffca28; font-weight: bold; font-size: 1.05em; text-align: center;
+            text-shadow: 0 0 8px #ff8000; box-shadow: 0 0 20px rgba(255, 202, 40, 0.6);
+            white-space: nowrap;
+            animation: legendaryToastPop 2s ease-in-out forwards;
+        }
+
 
         /* Leader Select */
         .leader-select-zone {
@@ -231,10 +339,6 @@
             100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); }
         }
         /* Game Clear Animation */
-        @keyframes clearDialogPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-        }
         /* スマホではシークバーを非表示（音量JS制御不可のため） */
         @media (hover: none) and (pointer: coarse) {
             #bgm-volume-row,
@@ -330,6 +434,15 @@
                 <select id="underground-scale-select" class="loop-select-inline" onchange="selectUndergroundScale(this.value)">
                     <option value="1">スケール1</option>
                 </select>
+            </div>
+            <div class="progress-row" id="sins-progress" style="display:none;">
+                <span id="sins-progress-text">対戦相手 1 / 6</span>
+            </div>
+            <div class="progress-row" id="angels-progress" style="display:none;">
+                <span id="angels-progress-text">対戦相手 1 / 4</span>
+            </div>
+            <div class="progress-row" id="final-progress" style="display:none;">
+                <span id="final-progress-text">❓❓❓</span>
             </div>
         </div>
 
@@ -678,9 +791,42 @@
             <div style="border-top:2px solid #ddd; margin-top:20px; padding-top:15px;">
                 <h3 style="margin-top:0;">💎 強化石販売</h3>
                 <p style="color:#555; font-size:0.88em;">強化石を購入して、装備強化に使用できます。</p>
-                <button onclick="buyUpgradeStone()" style="background: linear-gradient(135deg, #3f51b5 0%, #5c6bc0 100%); color: white; border: none; padding: 12px 20px; font-size: 1em; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 10px;">
-                    💎 強化石1個を購入（50,000ゴールド）
-                </button>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button onclick="buyUpgradeStone(1)" style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #3f51b5 0%, #5c6bc0 100%); color: white; border: none; padding: 12px 10px; font-size: 0.95em; font-weight: bold; border-radius: 8px; cursor: pointer;">
+                        💎 1個購入（50,000G）
+                    </button>
+                    <button onclick="buyUpgradeStone(10)" style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #3f51b5 0%, #5c6bc0 100%); color: white; border: none; padding: 12px 10px; font-size: 0.95em; font-weight: bold; border-radius: 8px; cursor: pointer;">
+                        💎 10個購入（50万G）
+                    </button>
+                    <button onclick="buyUpgradeStone(100)" style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #3f51b5 0%, #5c6bc0 100%); color: white; border: none; padding: 12px 10px; font-size: 0.95em; font-weight: bold; border-radius: 8px; cursor: pointer;">
+                        💎 100個購入（500万G）
+                    </button>
+                </div>
+            </div>
+
+            <div style="border-top:2px solid #ddd; margin-top:20px; padding-top:15px;">
+                <h3 style="margin-top:0;">🔄 EXP⇔ゴールド変換</h3>
+                <p style="color:#555; font-size:0.88em;">経験値とゴールドを1:1の等価交換で変換します。</p>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+                    <select id="exp-gold-convert-select" class="loop-select-inline" style="flex:1; min-width:120px;">
+                        <option value="100000">10万EXP → 10万G</option>
+                        <option value="500000">50万EXP → 50万G</option>
+                        <option value="1000000">100万EXP → 100万G</option>
+                    </select>
+                    <button onclick="convertExpToGold()" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none; padding: 10px 20px; font-size: 0.95em; font-weight: bold; border-radius: 6px; cursor: pointer;">
+                        EXP→G 変換
+                    </button>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <select id="gold-exp-convert-select" class="loop-select-inline" style="flex:1; min-width:120px;">
+                        <option value="100000">10万G → 10万EXP</option>
+                        <option value="500000">50万G → 50万EXP</option>
+                        <option value="1000000">100万G → 100万EXP</option>
+                    </select>
+                    <button onclick="convertGoldToExp()" style="background: linear-gradient(135deg, #1e88e5 0%, #42a5f5 100%); color: white; border: none; padding: 10px 20px; font-size: 0.95em; font-weight: bold; border-radius: 6px; cursor: pointer;">
+                        G→EXP 変換
+                    </button>
+                </div>
             </div>
             
             <div style="border-top:2px solid #ddd; margin-top:20px; padding-top:15px;">
@@ -692,15 +838,23 @@
                         HP: <span id="bonus-hp-display">0</span> | ATK: <span id="bonus-atk-display">0</span> | DEF: <span id="bonus-def-display">0</span>
                     </div>
                 </div>
+                <div style="margin-bottom:8px;">
+                    <label style="font-size:0.85em; color:#555;">強化量:</label>
+                    <select id="status-enhance-count" class="loop-select-inline">
+                        <option value="1">×1（10万EXP）</option>
+                        <option value="10">×10（100万EXP）</option>
+                        <option value="100">×100（1000万EXP）</option>
+                    </select>
+                </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button onclick="enhanceStatus('hp')" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #e53935 0%, #e65100 100%); color: white; border: none; padding: 10px; font-size: 0.95em; font-weight: bold; border-radius: 6px; cursor: pointer;">
-                        ❤️ HP+1（10万EXP）
+                        ❤️ HP強化
                     </button>
                     <button onclick="enhanceStatus('atk')" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #ff6f00 0%, #ff8f00 100%); color: white; border: none; padding: 10px; font-size: 0.95em; font-weight: bold; border-radius: 6px; cursor: pointer;">
-                        ⚔️ ATK+1（10万EXP）
+                        ⚔️ ATK強化
                     </button>
                     <button onclick="enhanceStatus('def')" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #0277bd 0%, #0288d1 100%); color: white; border: none; padding: 10px; font-size: 0.95em; font-weight: bold; border-radius: 6px; cursor: pointer;">
-                        🛡️ DEF+1（10万EXP）
+                        🛡️ DEF強化
                     </button>
                 </div>
             </div>
@@ -711,6 +865,7 @@
             <div class="enhance-tab-row" id="notebook-tab-row">
                 <button class="enhance-tab-btn active" onclick="switchEnhanceTab('notebook-quest-new', this)">📜 クエスト</button>
                 <button class="enhance-tab-btn" onclick="switchEnhanceTab('notebook-quest', this)">🏆 実績</button>
+                <button class="enhance-tab-btn" onclick="switchEnhanceTab('notebook-artifact', this)">🏺 アーティファクト</button>
             </div>
 
             <!-- クエストサブタブ（デイリークエスト・最初から解放） -->
@@ -726,9 +881,16 @@
                 <div id="quest-list" style="display:flex; flex-direction:column; gap:6px;"></div>
             </div>
 
+            <!-- アーティファクトサブタブ -->
+            <div id="notebook-artifact" class="enhance-tab-content">
+                <div style="font-size:0.85em; color:#37474f; margin-bottom:8px;">所持数: <strong id="artifact-count">0</strong> / <strong id="artifact-total">1</strong></div>
+                <div id="artifact-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+                <div id="artifact-complete-note" style="display:none; margin-top:10px; padding:8px; background:#3d2a5e; border:1px solid #b39ddb; border-radius:5px; color:#fff; font-size:0.85em; text-align:center;"></div>
+            </div>
+
             <!-- 図鑑サブタブ -->
             <div id="notebook-zukan" class="enhance-tab-content">
-                <p style="color:#555; font-size:0.88em; margin-top:0;">ハードで一定数討伐後、100万EXPを消費してステータス強化を解放できます。</p>
+                <p style="color:#555; font-size:0.88em; margin-top:0;">ハードで一定数討伐後、50万EXPを消費してステータス強化を解放できます。<br>✨ 全項目解放で装備強化上限が<strong>+10</strong>されます。</p>
                 <div id="zukan-list"></div>
             </div>
         </div>
@@ -769,7 +931,25 @@
 
                 <div style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); border: 2px solid #64b5f6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                     <h4 style="color: #64b5f6; margin: 0 0 10px 0; font-size: 1.2em;">💾 セーブコード（データ移行）</h4>
-                    <p style="color: #e0e0e0; margin: 0 0 12px 0; font-size: 0.9em;">この機能は現在準備中です。</p>
+                    <p style="color: #e0e0e0; margin: 0 0 12px 0; font-size: 0.9em;">現在のセーブデータをコードに変換し、別の端末・ブラウザに移行できます。</p>
+
+                    <div style="margin-bottom: 16px;">
+                        <button onclick="exportSaveCode()" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none; padding: 10px 18px; font-size: 0.9em; font-weight: bold; border-radius: 6px; cursor: pointer; width: auto;">
+                            📤 セーブコードを生成
+                        </button>
+                        <textarea id="save-code-output" readonly style="display:none; width:100%; height:70px; margin-top:10px; font-size:0.7em; word-break:break-all; box-sizing:border-box; padding:6px; border-radius:4px; border:1px solid #90caf9;"></textarea>
+                        <button id="copy-save-code-btn" onclick="copySaveCode()" style="display:none; margin-top:8px; background: linear-gradient(135deg, #1e88e5 0%, #42a5f5 100%); color: white; border: none; padding: 8px 16px; font-size: 0.85em; font-weight: bold; border-radius: 6px; cursor: pointer; width: auto;">
+                            📋 コピー
+                        </button>
+                    </div>
+
+                    <div>
+                        <label style="color: #e0e0e0; font-size: 0.85em; display:block; margin-bottom:6px;">セーブコードを読み込む（現在のデータは上書きされます）</label>
+                        <textarea id="save-code-input" placeholder="ここにセーブコードを貼り付け" style="width:100%; height:70px; font-size:0.7em; word-break:break-all; box-sizing:border-box; padding:6px; border-radius:4px; border:1px solid #90caf9;"></textarea>
+                        <button onclick="importSaveCode()" style="margin-top:8px; background: linear-gradient(135deg, #e53935 0%, #ef5350 100%); color: white; border: none; padding: 8px 16px; font-size: 0.85em; font-weight: bold; border-radius: 6px; cursor: pointer; width: auto;">
+                            📥 読み込んで復元
+                        </button>
+                    </div>
                 </div>
                 
                 <p style="color:#888; font-size:0.82em; margin-bottom:8px;">ゲームデータをすべて消去して最初から始めます。</p>
@@ -899,8 +1079,8 @@
                 2:  [{ name: "スライムの王",     gimmick: "reflect" },      { name: "ゴブリンリーダー",gimmick: "shield" },       { name: "オーク戦士",      gimmick: "berserk" },      { name: "コウモリの群れ",  gimmick: "mresist" },      { name: "ゾンビの大群",    gimmick: "poison" },       { name: "ホブゴブリン",    gimmick: "berserk" },      { name: "不死のゾンビ",    gimmick: "regen" },        { name: "オーガ",          gimmick: "reflect" },      { name: "魔物の巣の主",    gimmick: "nullphys" }],
                 3:  [{ name: "アジトの門番",     gimmick: "nullphys" },     { name: "盗賊の伍長",      gimmick: "regen" },        { name: "罠師の盗賊",      gimmick: "copydef" },      { name: "盗賊の小隊長",    gimmick: "evasive" },      { name: "略奪の暴君",      gimmick: "nullphys" },     { name: "呪術師の盗賊",    gimmick: "mresist" },      { name: "人喰い盗賊",      gimmick: "shield" },       { name: "盗賊団の猛者",    gimmick: "berserk" },      { name: "副団長・赤獅子",  gimmick: "reflect" }],
                 4:  [{ name: "沼の領主",           gimmick: "poison_normal" },{ name: "毒沼の巨人",      gimmick: "shield" },       { name: "瘴気の王",        gimmick: "poison_normal" },{ name: "毒液体生物",      gimmick: "regen" },        { name: "沼帝の眷属",      gimmick: "poison_normal" },{ name: "毒沼の化身",      gimmick: "poison_normal" },{ name: "腐敗の君主",      gimmick: "mresist" },      { name: "沼地の魔神",      gimmick: "poison_normal" },{ name: "瘴気の支配者",    gimmick: "poison_normal" }],
-                5:  [{ name: "霧の支配者",         gimmick: "darkness_normal"},{ name: "亡霊の王",       gimmick: "evasive" },      { name: "闇の騎士",        gimmick: "darkness_normal"},{ name: "幽鬼の王",       gimmick: "darkness_normal"},{ name: "暗黒の眼",        gimmick: "darkness_normal"},{ name: "霧の化身",       gimmick: "darkness_normal"},{ name: "影の神官",        gimmick: "mresist" },      { name: "暗黒の巨人",      gimmick: "shield" },       { name: "虚無の支配者",    gimmick: "darkness_normal"}],
-                6:  [{ name: "雷電の君主",         gimmick: "paralysis_normal"},{ name: "帯電の王",      gimmick: "paralysis_normal"},{ name: "電撃龍",         gimmick: "berserk" },      { name: "雷光の戦士",      gimmick: "paralysis_normal"},{ name: "電撃の魔神",     gimmick: "paralysis_normal"},{ name: "落雷の支配者",   gimmick: "paralysis_normal"},{ name: "雷電の化身",     gimmick: "paralysis_normal"},{ name: "電撃ゴーレム王", gimmick: "shield" },       { name: "高圧の君主",      gimmick: "paralysis_normal"}],
+                5:  [{ name: "霧の支配者",         gimmick: "darkness_normal"},{ name: "亡霊の王",       gimmick: "evasive" },      { name: "闇の騎士",        gimmick: "darkness_normal"},{ name: "幽鬼の王",       gimmick: "darkness_normal"},{ name: "暗黒の眼",        gimmick: "darkness_normal"},{ name: "霧の化身",       gimmick: "darkness_normal"},{ name: "影の神官",        gimmick: "mresist" },      { name: "暗黒の巨人",      gimmick: "shield" },       { name: "虚無の支配者",    gimmick: "darkness_normal"},{ name: "霧王の使徒",     gimmick: "darkness_boss" }],
+                6:  [{ name: "雷電の君主",         gimmick: "paralysis_normal"},{ name: "帯電の王",      gimmick: "paralysis_normal"},{ name: "電撃龍",         gimmick: "berserk" },      { name: "雷光の戦士",      gimmick: "paralysis_normal"},{ name: "電撃の魔神",     gimmick: "paralysis_normal"},{ name: "落雷の支配者",   gimmick: "paralysis_normal"},{ name: "雷電の化身",     gimmick: "paralysis_normal"},{ name: "電撃ゴーレム王", gimmick: "shield" },       { name: "高圧の君主",      gimmick: "paralysis_normal"},{ name: "雷帝の使徒",     gimmick: "paralysis_boss"}],
                 7:  [{ name: "森の魔族斥候",     gimmick: "chaos_random" }, { name: "魔族の猟犬",      gimmick: "chaos_random" }, { name: "魔界の蔦使い",    gimmick: "nullphys" },     { name: "魔族の小隊長",    gimmick: "chaos_random" }, { name: "森の混沌獣",      gimmick: "chaos_random" }, { name: "魔族の呪術師",    gimmick: "chaos_random" }, { name: "魔界樹の番人",    gimmick: "berserk" },      { name: "魔族の猛将",      gimmick: "chaos_random" }, { name: "森の魔王・影狼",  gimmick: "chaos_boss" }],
                 8:  [{ name: "街の門番兵",        gimmick: "poison_burn_normal"},{ name: "魔族の隊長",  gimmick: "poison_burn_normal"},{ name: "炎の魔族戦士",  gimmick: "shield" },       { name: "魔族の将軍補佐",  gimmick: "poison_burn_normal"},{ name: "魔族の焔使い",   gimmick: "poison_burn_normal"},{ name: "魔族の重騎兵",   gimmick: "poison_burn_normal"},{ name: "魔族の竜使い",   gimmick: "poison_burn_normal"},{ name: "魔族の総大将",   gimmick: "berserk" },      { name: "魔王の近衛隊長",  gimmick: "poison_burn_boss"}],
                 9:  [{ name: "城門の守護者",       gimmick: "void_random_dual"},{ name: "魔王城の衛兵長", gimmick: "evasive" },    { name: "影の刺客",        gimmick: "void_random_dual"},{ name: "魔王城の騎士団長",gimmick: "void_random_dual"},{ name: "闇の処刑人",      gimmick: "void_random_dual"},{ name: "魔王の軍師",     gimmick: "void_random_dual"},{ name: "魔王の右腕",      gimmick: "void_random_dual"},{ name: "魔王の左腕",     gimmick: "void_random_dual"},{ name: "魔王の四天王",    gimmick: "void_dual_boss"}],
@@ -982,20 +1162,20 @@
             const stat = wNum % 2 === 1 ? "magPenetration" : "idleDmg";
             const label = wNum % 2 === 1 ? "魔法耐性貫通+1%" : "放置ダメージ+1%";
             entries.forEach(e => {
-                if (!table[e.name]) table[e.name] = { threshold: 500, stat, label, type: "normal", world: wNum };
+                if (!table[e.name]) table[e.name] = { threshold: 100, stat, label, type: "normal", world: wNum };
             });
         });
         // ステージボス：会心ダメージ+1%、100体
         Object.entries(GAME_DATA.enemies.stageBosses).forEach(([w, arr]) => {
             const wNum = Number(w);
             arr.forEach(e => {
-                if (!table[e.name]) table[e.name] = { threshold: 100, stat: "critDmg", label: "会心ダメージ+1%", type: "stage_boss", world: wNum };
+                if (!table[e.name]) table[e.name] = { threshold: 10, stat: "critDmg", label: "会心ダメージ+1%", type: "stage_boss", world: wNum };
             });
         });
-        // ワールドボス：会心率+1%、100体
+        // ワールドボス：HP/ATK/DEF各+1%、10体
         Object.entries(GAME_DATA.enemies.worldBosses).forEach(([w, e]) => {
             const wNum = Number(w);
-            if (!table[e.name]) table[e.name] = { threshold: 100, stat: "crit", label: "会心率+1%", type: "world_boss", world: wNum };
+            if (!table[e.name]) table[e.name] = { threshold: 10, stat: ["hp", "atk", "def"], label: "HP/ATK/DEF+1%", type: "world_boss", world: wNum };
         });
         return table;
     })();
@@ -1052,11 +1232,64 @@
             floors:   100,
             unlock:   "normal_clear", // ノーマルW10-10クリアで解放（ハードと同時）
         },
+        sins: {
+            id:       "sins",
+            label:    "パンデモニウム",
+            unlock:   "pride_artifact", // 「傲慢の心」入手で解放
+        },
+        angels: {
+            id:       "angels",
+            label:    "エデン",
+            unlock:   "sins_artifacts", // 大罪6種のアーティファクトすべて入手で解放
+        },
+        final: {
+            id:       "final",
+            label:    "❓❓❓", // アーティファクトが揃うまでは???表示（updateHUDで動的に上書き）
+            unlock:   "pride_artifact", // ハードのルシファー撃破後に解放（大罪と同時）
+        },
         training: {
             id:       "training",
             label:    "訓練所",
             unlock:   "always", // 最初から使用可能
         },
+    };
+
+    // 大罪ボスラッシュ：6体を順番に連戦し、倒すと周回（1周ごとに1体ずつ）。ボス撃破時に確定でその大罪の「〜の心」をドロップする。
+    const SIN_BOSSES = [
+        { key: "lust",     name: "アスモデウス", label: "色欲",  artifact: "色欲の心", gimmick: "sin_charm"   },
+        { key: "gluttony", name: "ベルゼブブ",   label: "暴食",  artifact: "暴食の心", gimmick: "regen"       },
+        { key: "greed",    name: "マモン",       label: "強欲",  artifact: "強欲の心", gimmick: "sin_steal"   },
+        { key: "sloth",    name: "ベルフェゴール", label: "怠惰", artifact: "怠惰の心", gimmick: "sin_stun"    },
+        { key: "envy",     name: "レヴィアタン", label: "嫉妬",  artifact: "嫉妬の心", gimmick: "sin_envy"    },
+        { key: "wrath",    name: "サタン",       label: "憤怒",  artifact: "憤怒の心", gimmick: "sin_berserk" },
+    ];
+
+    // 四大天使ボスラッシュ：ウリエル→ラファエル→ガブリエル→ミカエルの順。パンデモニウムと同じく周回制。
+    const ANGEL_BOSSES = [
+        { key: "uriel",   name: "ウリエル",   label: "英知", artifact: "ウリエルの翼",   gimmick: "angel_nomagic"    },
+        { key: "raphael", name: "ラファエル", label: "治癒", artifact: "ラファエルの翼", gimmick: "angel_noheal"     },
+        { key: "gabriel", name: "ガブリエル", label: "守護", artifact: "ガブリエルの翼", gimmick: "angel_nophysical" },
+        { key: "michael", name: "ミカエル",   label: "審判", artifact: "ミカエルの翼",   gimmick: "angel_nocrit"     },
+    ];
+
+    // 真のラスボス。アーティファクト11種すべてが揃うまでは無敵かつダンジョン名・敵名が「？？？」のまま。
+    const FINAL_BOSS = { key: "final", name: "The ST", dungeonName: "創生の間" };
+
+    // アーティファクト一覧（表示用）。プライドはハードのルシファーから、大罪6つはパンデモニウムの各ボスから、
+    // 天使4つはエデンの各ボスからドロップする。
+    // unlockGate: "always"=常時表示 / "sins"=パンデモニウム解放後のみ表示 / "angels"=エデン解放後のみ表示（ネタバレ防止）
+    const ARTIFACT_DEFS = {
+        pride:    { name: "傲慢の心", emoji: "👑", source: "ハード：ルシファー",         unlockGate: "always", effect: "ATK+10%" },
+        lust:     { name: "色欲の心", emoji: "💋", source: "パンデモニウム：アスモデウス", unlockGate: "sins",   effect: "会心率+5%" },
+        gluttony: { name: "暴食の心", emoji: "🍖", source: "パンデモニウム：ベルゼブブ",   unlockGate: "sins",   effect: "最大HP+10%" },
+        greed:    { name: "強欲の心", emoji: "💰", source: "パンデモニウム：マモン",       unlockGate: "sins",   effect: "EXP&ゴールド獲得+10%" },
+        sloth:    { name: "怠惰の心", emoji: "💤", source: "パンデモニウム：ベルフェゴール", unlockGate: "sins",  effect: "放置DPS+15%" },
+        envy:     { name: "嫉妬の心", emoji: "👁️", source: "パンデモニウム：レヴィアタン", unlockGate: "sins",   effect: "魔法耐性貫通+15%" },
+        wrath:    { name: "憤怒の心", emoji: "🔥", source: "パンデモニウム：サタン",       unlockGate: "sins",   effect: "会心ダメージ+10%" },
+        uriel:    { name: "ウリエルの翼",   emoji: "📜", source: "エデン：ウリエル",   unlockGate: "angels", effect: "分解の強化石+1、売却価格+10%" },
+        raphael:  { name: "ラファエルの翼", emoji: "💚", source: "エデン：ラファエル", unlockGate: "angels", effect: "HP自然回復+2%/秒" },
+        gabriel:  { name: "ガブリエルの翼", emoji: "🛡️", source: "エデン：ガブリエル", unlockGate: "angels", effect: "DEF+10%" },
+        michael:  { name: "ミカエルの翼",   emoji: "⚖️", source: "エデン：ミカエル",   unlockGate: "angels", effect: "会心率+5%＆会心ダメージ+10%" },
     };
 
     // 後方互換エイリアス（既存コードが参照する短い変数名を維持）
@@ -1081,7 +1314,8 @@
         killsInStage: 0,
         gold: 0, exp: 0, upgradeStone: 0, maxInventorySlots: 10,
         currentDungeon: "normal",
-        unlockedDungeons: { normal: true, hard: false, underground: false, training: true },
+        unlockedDungeons: { normal: true, hard: false, underground: false, sins: false, angels: false, final: false, training: true },
+        artifacts: { pride: false, lust: false, gluttony: false, greed: false, sloth: false, envy: false, wrath: false, uriel: false, raphael: false, gabriel: false, michael: false }, // アーティファクト（〜の心）所持状況
         hardPoint: 0,
         loopMode: "off", // "off" | "stage" | "world"（ハード限定の周回モード）
         hardUpgrades: { hp: 0, atk: 0, def: 0, mag: 0, dps: 0 },
@@ -1103,7 +1337,11 @@
         },
         progress: {
             normal: { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 },
+            sins: { bossIndex: 1 }, // 大罪ボスラッシュの現在の対戦相手（1〜6）
+            angels: { bossIndex: 1 }, // 天使ボスラッシュの現在の対戦相手（1〜4）
+            final: {}, // 真のラスボス（単体、World/Stage/bossIndexなし）
         },
+        gameCompleted: false, // The ST撃破済みかどうか（真のエンディングフラグ）
         treeSkills: {
             atk: 0, bash: 0, crit: 0, ironwall: 0, rush: 0, critDmg: 0, berserker: 0, warcry: 0,
             dps: 0, rain: 0, goldBonus: 0, poison: 0, coin: 0, eva: 0, deathmark: 0, shadowstep: 0,
@@ -1141,6 +1379,8 @@
         upgradeMaxLevel: 20,
         worldClearCount: 0,
         undergroundClearCount: 0,
+        sinsClearCount: 0,
+        angelsClearCount: 0,
     };
 
     let activePickerCharIndex = null, activePickerSlot = null;
@@ -1159,6 +1399,7 @@
     let playerPoison = 0, playerPoisonDmg = 0;      
     let playerDarkness = 0, darknessDuration = 0;   
     let playerParalysis = 0, paralysisDuration = 0; 
+    let playerStunned = 0; // 大罪「怠惰」専用：>0の間、次のクリック攻撃1回分が無効化される
     
     let bgmAudio = null;
 
@@ -1254,10 +1495,20 @@
 
     /** 訓練所の報酬計算に使う「クリア回数」。ノーマル/ハードはワールド10到達を1回だけカウント（worldClearCountは
      *  ワールド10ボスを周回するたびに増え続けるため使用しない）。地下迷宮は実際の周回数をそのまま使う。 */
+    /** 装備強化レベルの上限を条件から都度計算する（保存値を直接上書きしない方式）。
+     *  基礎20 → ノーマルW10クリアで+10 → 図鑑コンプリートで+10 → The ST撃破で+10（最大50） */
+    function getUpgradeMaxLevel() {
+        let level = 20;
+        if (((gameState.progress?.normal?.maxReachedWorld) || 1) >= 10) level += 10; // ノーマルW10クリア
+        if (Object.keys(ZUKAN_TABLE).length > 0 && Object.keys(ZUKAN_TABLE).every(n => gameState.zukanUnlocked?.[n])) level += 10; // 図鑑コンプリート
+        if (gameState.gameCompleted) level += 10; // The ST撃破（創生の間クリア報酬）
+        return level;
+    }
+
     function getTrainingClearCount(state) {
         const normalCleared = (((state.progress && state.progress.normal && state.progress.normal.maxReachedWorld) || 1) >= 10) ? 1 : 0;
         const hardCleared   = (((state.progress && state.progress.hard   && state.progress.hard.maxReachedWorld)   || 1) >= 10) ? 1 : 0;
-        return normalCleared + hardCleared + (state.undergroundClearCount || 0);
+        return normalCleared + hardCleared + (state.undergroundClearCount || 0) + (state.sinsClearCount || 0) + (state.angelsClearCount || 0);
     }
 
     /** クリア回数と訓練所強化を反映した、現在の「8時間で貯まる最大量」 */
@@ -1398,6 +1649,7 @@
         if (state.totalKills      === undefined) state.totalKills      = 0;
         if (state.worldClearCount === undefined) state.worldClearCount = 0;
         if (state.undergroundClearCount === undefined) state.undergroundClearCount = 0;
+        if (state.sinsClearCount === undefined) state.sinsClearCount = 0;
         if (state.treeSkills.warcry     === undefined) state.treeSkills.warcry     = 0;
         if (state.treeSkills.shadowstep === undefined) state.treeSkills.shadowstep = 0;
         if (state.treeSkills.meteor     === undefined) state.treeSkills.meteor     = 0;
@@ -1454,6 +1706,23 @@
             state.daily.rewardClaimed = { kill: false, training: false, clear: false };
         }
 
+        // --- アーティファクト・大罪ダンジョン・天使ダンジョン・真のラスボス ---
+        if (state.artifacts === undefined) {
+            state.artifacts = { pride: false, lust: false, gluttony: false, greed: false, sloth: false, envy: false, wrath: false, uriel: false, raphael: false, gabriel: false, michael: false };
+        }
+        ["uriel","raphael","gabriel","michael"].forEach(k => { if (state.artifacts[k] === undefined) state.artifacts[k] = false; });
+        if (state.progress.sins === undefined) state.progress.sins = { bossIndex: 1 };
+        if (state.progress.angels === undefined) state.progress.angels = { bossIndex: 1 };
+        if (state.progress.final === undefined) state.progress.final = {};
+        if (state.unlockedDungeons.sins === undefined) state.unlockedDungeons.sins = false;
+        if (state.unlockedDungeons.angels === undefined) state.unlockedDungeons.angels = false;
+        if (state.unlockedDungeons.final === undefined) state.unlockedDungeons.final = false;
+        if (state.artifacts.pride) { state.unlockedDungeons.sins = true; state.unlockedDungeons.final = true; } // 傲慢の心を既に持っていれば解放済みにする
+        const allSinsOwned = ["lust","gluttony","greed","sloth","envy","wrath"].every(k => state.artifacts[k]);
+        if (allSinsOwned) state.unlockedDungeons.angels = true; // 大罪6種を既に持っていれば天使ダンジョンも解放済みにする
+        if (state.angelsClearCount === undefined) state.angelsClearCount = 0;
+        if (state.gameCompleted === undefined) state.gameCompleted = false;
+
         // --- 地下迷宮スケールレベル（プルダウンで手動選択、クリア済みハードワールドまで選択可） ---
         if (state.undergroundScaleLevel === undefined) state.undergroundScaleLevel = 1;
         if (state.progress.hard === undefined) {
@@ -1483,6 +1752,63 @@
             }
         }
         playerHp = calcPartyAllStats().maxHp;
+    }
+
+    /** 現在のセーブデータをBase64文字列（セーブコード）に変換して表示する */
+    function exportSaveCode() {
+        try {
+            saveGame(); // 表示直前の最新状態を必ず反映する
+            const json = JSON.stringify(gameState);
+            const code = btoa(unescape(encodeURIComponent(json))); // UTF-8対応のBase64エンコード
+            const textarea = document.getElementById('save-code-output');
+            const copyBtn = document.getElementById('copy-save-code-btn');
+            textarea.value = code;
+            textarea.style.display = 'block';
+            if (copyBtn) copyBtn.style.display = 'inline-block';
+            textarea.focus();
+            textarea.select();
+        } catch (error) {
+            console.error("セーブコード生成エラー:", error);
+            alert("セーブコードの生成に失敗しました。");
+        }
+    }
+
+    /** 表示中のセーブコードをクリップボードにコピーする */
+    function copySaveCode() {
+        const textarea = document.getElementById('save-code-output');
+        if (!textarea || !textarea.value) return alert("先に「セーブコードを生成」を押してください。");
+        textarea.focus();
+        textarea.select();
+        const finish = () => alert("セーブコードをコピーしました！");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textarea.value).then(finish).catch(() => {
+                try { document.execCommand('copy'); finish(); } catch (e) { alert("コピーに失敗しました。手動で選択してコピーしてください。"); }
+            });
+        } else {
+            try { document.execCommand('copy'); finish(); } catch (e) { alert("コピーに失敗しました。手動で選択してコピーしてください。"); }
+        }
+    }
+
+    /** 入力されたセーブコードを読み込み、現在のセーブデータを上書き復元する */
+    function importSaveCode() {
+        const input = document.getElementById('save-code-input');
+        const code = (input?.value || '').trim();
+        if (!code) return alert("セーブコードを入力してください。");
+        if (!confirm("⚠️ 現在のセーブデータは上書きされます。\nこの操作は取り消せません。本当に読み込みますか？")) return;
+
+        try {
+            const json = decodeURIComponent(escape(atob(code)));
+            const parsed = JSON.parse(json);
+            if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.party)) {
+                throw new Error("invalid save data structure");
+            }
+            localStorage.setItem(SAVE_KEY, JSON.stringify(parsed));
+            alert("セーブデータを復元しました。ページを再読み込みします。");
+            location.reload();
+        } catch (error) {
+            console.error("セーブコード読込エラー:", error);
+            alert("セーブコードが正しくありません。コードを確認してください。");
+        }
     }
 
     function resetGame() { 
@@ -1540,12 +1866,39 @@
     }
 
     /** 図鑑解放済み強化のボーナスを集計して返す */
+    /** アーティファクトを所持しているだけで発動するパッシブ効果を集計する */
+    function calcArtifactBonus() {
+        const a = gameState.artifacts || {};
+        const bonus = {
+            atkPct: 0, defPct: 0, maxHpPct: 0, idleDmgPct: 0,
+            critFlat: 0, critDmgFlat: 0, magPenetrationFlat: 0,
+            expPct: 0, goldPct: 0, raphaelRegenPct: 0, urielStoneBonus: 0, urielSellPct: 0,
+        };
+        if (a.pride)    bonus.atkPct += 10;               // 傲慢の心：ATK+10%
+        if (a.lust)     bonus.critFlat += 5;               // 色欲の心：会心率+5%
+        if (a.gluttony) bonus.maxHpPct += 10;              // 暴食の心：最大HP+10%
+        if (a.greed)  { bonus.expPct += 10; bonus.goldPct += 10; } // 強欲の心：EXP&ゴールド獲得+10%
+        if (a.sloth)    bonus.idleDmgPct += 15;            // 怠惰の心：放置DPS+15%
+        if (a.envy)     bonus.magPenetrationFlat += 15;    // 嫉妬の心：魔法耐性貫通+15%
+        if (a.wrath)    bonus.critDmgFlat += 10;           // 憤怒の心：会心ダメージ+10%
+        if (a.uriel)  { bonus.urielStoneBonus += 1; bonus.urielSellPct += 10; } // ウリエルの翼：分解の強化石+1、売却価格+10%
+        if (a.raphael)  bonus.raphaelRegenPct += 2;        // ラファエルの翼：HP自然回復+2%/秒
+        if (a.gabriel)  bonus.defPct += 10;                // ガブリエルの翼：被ダメージ軽減+10%(DEF加算)
+        if (a.michael) { bonus.critFlat += 5; bonus.critDmgFlat += 10; } // ミカエルの翼：会心率+5%＆会心ダメージ+10%
+        if (allArtifactsOwned()) { // コンプリートボーナス：全ステータスにさらに+5%
+            bonus.atkPct += 5; bonus.defPct += 5; bonus.critFlat += 5; bonus.critDmgFlat += 5;
+        }
+        return bonus;
+    }
+
     function calcZukanBonus() {
-        const bonus = { magPenetration: 0, idleDmg: 0, crit: 0, critDmg: 0 };
+        const bonus = { magPenetration: 0, idleDmg: 0, crit: 0, critDmg: 0, hp: 0, atk: 0, def: 0 };
         Object.entries(gameState.zukanUnlocked || {}).forEach(([name, unlocked]) => {
             if (!unlocked) return;
             const def = ZUKAN_TABLE[name];
-            if (def) bonus[def.stat] = (bonus[def.stat] || 0) + 1;
+            if (!def) return;
+            const stats = Array.isArray(def.stat) ? def.stat : [def.stat];
+            stats.forEach(s => { bonus[s] = (bonus[s] || 0) + 1; });
         });
         return bonus;
     }
@@ -1557,11 +1910,18 @@
         if (gameState.zukanUnlocked[name]) return alert("既に解放済みです。");
         const kills = gameState.zukanKills[name] || 0;
         if (kills < def.threshold) return alert(`討伐数が足りません！\n必要: ${def.threshold}体 / 現在: ${kills}体`);
-        const cost = 1000000;
+        const cost = 500000;
         if (gameState.exp < cost) return alert(`経験値が足りません！\n必要: ${cost.toLocaleString('ja-JP')}EXP`);
-        if (!confirm(`${name}の図鑑強化を解放しますか？\n効果: ${def.label}\n消費: 100万EXP`)) return;
+        if (!confirm(`${name}の図鑑強化を解放しますか？\n効果: ${def.label}\n消費: 50万EXP`)) return;
         gameState.exp -= cost;
         gameState.zukanUnlocked[name] = true;
+
+        // 図鑑コンプリートボーナス：全項目解放で装備強化上限+10（getUpgradeMaxLevel()で自動計算されるため、ここではログ通知のみ）
+        const allZukanUnlocked = Object.keys(ZUKAN_TABLE).every(n => gameState.zukanUnlocked[n]);
+        if (allZukanUnlocked) {
+            appendLog('log-exp-area', `${getLogTime()} 📖 <span style="color:#ffd700; font-weight:bold;">図鑑コンプリート！装備強化上限が+10されました！（現在の上限: +${getUpgradeMaxLevel()}）</span>`, "c-yellow");
+        }
+
         saveGame();
         updateDisplay();
         appendLog('log-exp-area', `${getLogTime()} 📖 <span style="color:#ce93d8; font-weight:bold;">図鑑強化解放: [${name}] ${def.label}</span>`, "c-yellow");
@@ -1786,7 +2146,12 @@
     function switchDungeon(dungeonId) {
         if (!GAME_DATA.dungeons[dungeonId]) return;
         if (!gameState.unlockedDungeons || !gameState.unlockedDungeons[dungeonId]) return;
+        const isNewEntry = gameState.currentDungeon !== dungeonId;
         gameState.currentDungeon = dungeonId;
+
+        if (isNewEntry && ["sins", "angels", "final"].includes(dungeonId)) {
+            showDungeonEnterEffect(dungeonId);
+        }
 
         if (dungeonId === "training") {
             // 訓練所はWorld/Stage/敵の概念が無いため、進行初期化・敵スポーンは行わない
@@ -1797,8 +2162,10 @@
 
         // 切替先のprogress未初期化なら初期化
         if (!gameState.progress[dungeonId]) {
-            gameState.progress[dungeonId] = (dungeonId === "underground")
-                ? { floor: 1 }
+            gameState.progress[dungeonId] = (dungeonId === "underground") ? { floor: 1 }
+                : (dungeonId === "sins") ? { bossIndex: 1 }
+                : (dungeonId === "angels") ? { bossIndex: 1 }
+                : (dungeonId === "final") ? {}
                 : { world: 1, stage: 1, maxReachedWorld: 1, maxReachedStage: 1 };
         }
         gameState.killsInStage = 0;
@@ -1927,6 +2294,68 @@
         };
     }
 
+    /** 大罪ボスラッシュ専用の敵ステータス計算。地下迷宮の最大スケール(20)の続き(21〜26)として力量を外挿する。 */
+    function createEnemySins() {
+        const bossIndex = Math.max(1, Math.min(SIN_BOSSES.length, (gameState.progress.sins && gameState.progress.sins.bossIndex) || 1));
+        const boss   = SIN_BOSSES[bossIndex - 1];
+        const refW   = 21; // refW20超は戦闘力の伸びがほぼ無いため固定。ルシファー(refW21)と同格クラスに統一
+        const refBd  = getExtendedWorldBoss(refW);
+        const refMult = calcWorldMult(refW);
+        let def  = Math.floor(15 * refMult * 0.6);
+        let mres = 20 + (refW - 1) * 12;
+        let eva  = 15 + (refW - 1) * 6;
+
+        return {
+            name:    `【パンデモニウム】${boss.name}`,
+            gimmick: boss.gimmick,
+            maxHp:   Math.floor(refBd.finalHp),
+            atk:     Math.floor(refBd.finalAtk),
+            def, mres, eva,
+            type: 'sins',
+        };
+    }
+
+    /** 四大天使ボスラッシュ専用の敵ステータス計算。大罪の続き(27〜30)として力量を外挿する。 */
+    function createEnemyAngels() {
+        const bossIndex = Math.max(1, Math.min(ANGEL_BOSSES.length, (gameState.progress.angels && gameState.progress.angels.bossIndex) || 1));
+        const boss   = ANGEL_BOSSES[bossIndex - 1];
+        const refW   = 22; // 大罪(21)より一段強い固定値
+        const refBd  = getExtendedWorldBoss(refW);
+        const refMult = calcWorldMult(refW);
+        let def  = Math.floor(15 * refMult * 0.6);
+        let mres = 20 + (refW - 1) * 12;
+        let eva  = 15 + (refW - 1) * 6;
+
+        return {
+            name:    `【エデン】${boss.name}`,
+            gimmick: boss.gimmick,
+            maxHp:   Math.floor(refBd.finalHp),
+            atk:     Math.floor(refBd.finalAtk),
+            def, mres, eva,
+            type: 'angels',
+        };
+    }
+
+    /** 真のラスボス「The ST」のステータス計算。天使の最大(30)のさらに続き(35)として力量を外挿する。 */
+    function createEnemyFinal() {
+        const revealed = allArtifactsOwned();
+        const refW   = 23; // 天使(22)よりさらに一段強い固定値
+        const refBd  = getExtendedWorldBoss(refW);
+        const refMult = calcWorldMult(refW);
+        let def  = Math.floor(15 * refMult * 0.6);
+        let mres = 20 + (refW - 1) * 12;
+        let eva  = 15 + (refW - 1) * 6;
+
+        return {
+            name:    revealed ? `【真ラスボス】${FINAL_BOSS.name}` : "❓❓❓",
+            gimmick: revealed ? "" : "final_invincible",
+            maxHp:   Math.floor(refBd.finalHp),
+            atk:     Math.floor(refBd.finalAtk),
+            def, mres, eva,
+            type: 'final',
+        };
+    }
+
     function createEnemy(w, s, killsInStage, dungeonId) {
         const wMult = calcWorldMult(w);
 
@@ -2042,6 +2471,9 @@
         enemyBox.className = '';
         if (enemy.type === 'world_boss') enemyBox.classList.add('maou-active');
         if (enemy.type === 'stage_boss') enemyBox.classList.add('boss-active');
+        if (enemy.type === 'sins')   enemyBox.classList.add('sins-active');
+        if (enemy.type === 'angels') enemyBox.classList.add('angels-active');
+        if (enemy.type === 'final')  enemyBox.classList.add(allArtifactsOwned() ? 'final-revealed-active' : 'final-locked-active');
 
         const gEl = document.getElementById('enemy-gimmick-label');
         if (gEl) {
@@ -2058,10 +2490,40 @@
         renderEnemy(enemy);
     }
 
+    function spawnEnemySins() {
+        const enemy = createEnemySins();
+        applyEnemy(enemy);
+        renderEnemy(enemy);
+    }
+
+    function spawnEnemyAngels() {
+        const enemy = createEnemyAngels();
+        applyEnemy(enemy);
+        renderEnemy(enemy);
+    }
+
+    function spawnEnemyFinal() {
+        const enemy = createEnemyFinal();
+        applyEnemy(enemy);
+        renderEnemy(enemy);
+    }
+
     /** 敵をスポーンする（オーケストレーター） */
     function spawnEnemy() {
         if (gameState.currentDungeon === "underground") {
             spawnEnemyUnderground();
+            return;
+        }
+        if (gameState.currentDungeon === "sins") {
+            spawnEnemySins();
+            return;
+        }
+        if (gameState.currentDungeon === "angels") {
+            spawnEnemyAngels();
+            return;
+        }
+        if (gameState.currentDungeon === "final") {
+            spawnEnemyFinal();
             return;
         }
         const w = prog().world || 1;
@@ -2091,7 +2553,7 @@
             });
         });
 
-        let gainedGold = Math.floor((refStage * 5 * refW) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100)) * (refW >= 4 ? 1.2 : 1.0));
+        let gainedGold = Math.floor((refStage * 5 * refW) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100 + calcArtifactBonus().goldPct / 100)) * (refW >= 4 ? 1.2 : 1.0));
         gameState.gold += gainedGold;
         gameState.totalKills = (gameState.totalKills || 0) + 1;
         gameState.daily.kills = (gameState.daily.kills || 0) + 1;
@@ -2128,9 +2590,190 @@
         }
     }
 
+    /** アーティファクト（〜の心）を付与する。既に持っていれば何もしない。「傲慢の心」入手時は大罪ダンジョンを解放する。 */
+    function grantArtifact(key, displayName) {
+        if (!gameState.artifacts) {
+            gameState.artifacts = { pride: false, lust: false, gluttony: false, greed: false, sloth: false, envy: false, wrath: false };
+        }
+        if (gameState.artifacts[key]) return false; // 既に所持
+        gameState.artifacts[key] = true;
+        appendLog('log-drop-area', `${getLogTime()} 🏺 <span style="color:#ffd700; font-weight:bold;">アーティファクト「${displayName}」を手に入れた！</span>`, "rarity-Legendary");
+        if (key === "pride") {
+            gameState.unlockedDungeons.sins = true;
+            gameState.unlockedDungeons.final = true;
+            appendLog('log-exp-area', `${getLogTime()} 👹 <span style="color:#e53935; font-weight:bold;">パンデモニウムの扉が開いた…！</span>`, "c-yellow");
+            appendLog('log-exp-area', `${getLogTime()} ❓ <span style="color:#9e9e9e; font-weight:bold;">どこか遠くで、何かが目を覚ました気配がする…</span>`, "c-yellow");
+        }
+        const sinKeys = ["lust", "gluttony", "greed", "sloth", "envy", "wrath"];
+        if (sinKeys.includes(key) && !gameState.unlockedDungeons.angels && sinKeys.every(k => gameState.artifacts[k])) {
+            gameState.unlockedDungeons.angels = true;
+            appendLog('log-exp-area', `${getLogTime()} 😇 <span style="color:#42a5f5; font-weight:bold;">七つの大罪を制した証として、エデンの扉が開いた…！</span>`, "c-yellow");
+        }
+        return true;
+    }
+
+    /** 大罪ボスラッシュ専用の撃破処理（World/Stageなし、6体を順番に連戦し、6体目を倒すと1体目に戻って周回） */
+    function winBattleSins() {
+        const bossIndex = Math.max(1, Math.min(SIN_BOSSES.length, (gameState.progress.sins && gameState.progress.sins.bossIndex) || 1));
+        const boss = SIN_BOSSES[bossIndex - 1];
+        const rewardTier = 21 + bossIndex; // 報酬計算専用の見かけ上のスケール（ステータス自体はcreateEnemySinsで固定refW21）
+
+        // 報酬はHard終盤(W10)の値(EXP5000/Gold3000)を確実に上回るよう線形加算で設計（指数成長のステータスとは別軸）
+        let expGain = Math.floor((5000 + rewardTier * 500) * (1 + expBonus / 100));
+        gameState.exp += expGain;
+
+        let equipGoldBonus = 0;
+        gameState.party.forEach(char => {
+            if (!char.isUnlocked || !char.currentEquip) return;
+            Object.values(char.currentEquip).forEach(item => {
+                if (!item || !item.options) return;
+                item.options.forEach(opt => { if (opt.type === "goldBonus") equipGoldBonus += opt.val; });
+            });
+        });
+        let gainedGold = Math.floor((3000 + rewardTier * 300) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100 + calcArtifactBonus().goldPct / 100)));
+        gameState.gold += gainedGold;
+        gameState.totalKills = (gameState.totalKills || 0) + 1;
+        gameState.daily.kills = (gameState.daily.kills || 0) + 1;
+        checkDailyQuests();
+        gameState.hardPoint = (gameState.hardPoint || 0) + 10; // 大罪撃破はハードポイントも少量加算
+
+        appendLog('log-exp-area', `${getLogTime()} ${enemyName} 撃破 ➡ <span class="c-gold">+${gainedGold}G</span> <span style="color:#64b5f6">+${expGain}EXP</span>`, "c-white");
+
+        playerPoison = 0; playerPoisonDmg = 0;
+        playerDarkness = 0; darknessDuration = 0;
+        playerParalysis = 0; paralysisDuration = 0;
+        playerStunned = 0;
+
+        // 確定でそのボスのアーティファクトをドロップ
+        grantArtifact(boss.key, boss.artifact);
+
+        // 次のボスへ（6体目撃破で1周し、1体目に戻る）
+        let p = gameState.progress.sins || (gameState.progress.sins = { bossIndex: 1 });
+        if (bossIndex >= SIN_BOSSES.length) {
+            appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">七つの大罪すべてを打ち倒した！最初から再戦できます。</span>`, "c-yellow");
+            p.bossIndex = 1;
+            gameState.sinsClearCount = (gameState.sinsClearCount || 0) + 1; // 訓練所の8h上限に反映される周回カウント
+            gameState.daily.dungeonCleared = true; checkDailyQuests(); // デイリークエスト（ハード/地下迷宮/大罪クリア）
+        } else {
+            p.bossIndex = bossIndex + 1;
+        }
+
+        checkQuests();
+        spawnEnemy();
+        saveGame();
+    }
+
+    /** 四大天使ボスラッシュ専用の撃破処理（大罪と同じ構造。4体目撃破で1体目に戻って周回） */
+    function winBattleAngels() {
+        const bossIndex = Math.max(1, Math.min(ANGEL_BOSSES.length, (gameState.progress.angels && gameState.progress.angels.bossIndex) || 1));
+        const boss = ANGEL_BOSSES[bossIndex - 1];
+        const rewardTier = 22 + bossIndex; // 報酬計算専用の見かけ上のスケール（ステータス自体はcreateEnemyAngelsで固定refW22）
+
+        // 報酬は大罪の水準をさらに上回るよう線形加算で設計（指数成長のステータスとは別軸）
+        let expGain = Math.floor((18000 + rewardTier * 500) * (1 + expBonus / 100));
+        gameState.exp += expGain;
+
+        let equipGoldBonus = 0;
+        gameState.party.forEach(char => {
+            if (!char.isUnlocked || !char.currentEquip) return;
+            Object.values(char.currentEquip).forEach(item => {
+                if (!item || !item.options) return;
+                item.options.forEach(opt => { if (opt.type === "goldBonus") equipGoldBonus += opt.val; });
+            });
+        });
+        let gainedGold = Math.floor((10800 + rewardTier * 300) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100 + calcArtifactBonus().goldPct / 100)));
+        gameState.gold += gainedGold;
+        gameState.totalKills = (gameState.totalKills || 0) + 1;
+        gameState.daily.kills = (gameState.daily.kills || 0) + 1;
+        checkDailyQuests();
+        gameState.hardPoint = (gameState.hardPoint || 0) + 15; // 天使撃破は大罪よりやや多めにハードポイント加算
+
+        appendLog('log-exp-area', `${getLogTime()} ${enemyName} 撃破 ➡ <span class="c-gold">+${gainedGold}G</span> <span style="color:#64b5f6">+${expGain}EXP</span>`, "c-white");
+
+        playerPoison = 0; playerPoisonDmg = 0;
+        playerDarkness = 0; darknessDuration = 0;
+        playerParalysis = 0; paralysisDuration = 0;
+        playerStunned = 0;
+
+        // 確定でそのボスのアーティファクトをドロップ
+        grantArtifact(boss.key, boss.artifact);
+
+        // 次のボスへ（4体目撃破で1周し、1体目に戻る）
+        let p = gameState.progress.angels || (gameState.progress.angels = { bossIndex: 1 });
+        if (bossIndex >= ANGEL_BOSSES.length) {
+            appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">四大天使すべてを打ち倒した！最初から再戦できます。</span>`, "c-yellow");
+            p.bossIndex = 1;
+            gameState.angelsClearCount = (gameState.angelsClearCount || 0) + 1; // 訓練所の8h上限に反映される周回カウント
+            gameState.daily.dungeonCleared = true; checkDailyQuests();
+        } else {
+            p.bossIndex = bossIndex + 1;
+        }
+
+        checkQuests();
+        spawnEnemy();
+        saveGame();
+    }
+
+    /** 真のラスボス「The ST」撃破処理。アーティファクト未コンプリートの間は攻撃自体が完全無効化されるため、
+     *  ここに到達する時点で必ずアーティファクトは揃っている。倒すと真のエンディングを迎え、その後も再戦可能。 */
+    function winBattleFinal() {
+        const wasFirstClear = !gameState.gameCompleted;
+        gameState.gameCompleted = true;
+
+        let expGain = Math.floor(50000 * (1 + expBonus / 100));
+        gameState.exp += expGain;
+
+        let equipGoldBonus = 0;
+        gameState.party.forEach(char => {
+            if (!char.isUnlocked || !char.currentEquip) return;
+            Object.values(char.currentEquip).forEach(item => {
+                if (!item || !item.options) return;
+                item.options.forEach(opt => { if (opt.type === "goldBonus") equipGoldBonus += opt.val; });
+            });
+        });
+        let gainedGold = Math.floor(30000 * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100 + calcArtifactBonus().goldPct / 100)));
+        gameState.gold += gainedGold;
+        gameState.totalKills = (gameState.totalKills || 0) + 1;
+        gameState.daily.kills = (gameState.daily.kills || 0) + 1;
+        checkDailyQuests();
+        gameState.hardPoint = (gameState.hardPoint || 0) + 50;
+        gameState.daily.dungeonCleared = true; checkDailyQuests();
+
+        appendLog('log-exp-area', `${getLogTime()} ${enemyName} 撃破 ➡ <span class="c-gold">+${gainedGold}G</span> <span style="color:#64b5f6">+${expGain}EXP</span>`, "c-white");
+
+        playerPoison = 0; playerPoisonDmg = 0;
+        playerDarkness = 0; darknessDuration = 0;
+        playerParalysis = 0; paralysisDuration = 0;
+        playerStunned = 0;
+
+        if (wasFirstClear) {
+            appendLog('log-exp-area', `${getLogTime()} 🌟🌟🌟 <span style="color:#ffd700; font-weight:bold; font-size:1.1em;">The STを打ち倒し、真のエンディングを迎えた…！</span>`, "c-yellow");
+            appendLog('log-exp-area', `${getLogTime()} 💎 <span style="color:#ce93d8; font-weight:bold;">装備強化上限が+10されました！（現在の上限: +${getUpgradeMaxLevel()}）</span>`, "c-yellow");
+            setTimeout(() => showTrueEndingScreen(), 400);
+        } else {
+            appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">The STを再び打ち倒した！</span>`, "c-yellow");
+        }
+
+        checkQuests();
+        spawnEnemy();
+        saveGame();
+    }
+
     function winBattle() {
         if (gameState.currentDungeon === "underground") {
             winBattleUnderground();
+            return;
+        }
+        if (gameState.currentDungeon === "sins") {
+            winBattleSins();
+            return;
+        }
+        if (gameState.currentDungeon === "angels") {
+            winBattleAngels();
+            return;
+        }
+        if (gameState.currentDungeon === "final") {
+            winBattleFinal();
             return;
         }
         let isBoss = (gameState.killsInStage === 4), w = prog().world, s = prog().stage;
@@ -2160,7 +2803,7 @@
             });
         });
         
-        let gainedGold = Math.floor((isBoss ? s * 30 * w : s * 5 * w) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100)) * (w >= 4 ? 1.2 : 1.0));
+        let gainedGold = Math.floor((isBoss ? s * 30 * w : s * 5 * w) * (1 + ((gameState.treeSkills.goldBonus || 0) * 0.15 + equipGoldBonus / 100 + calcArtifactBonus().goldPct / 100)) * (w >= 4 ? 1.2 : 1.0));
         gameState.gold += gainedGold;
         gameState.totalKills = (gameState.totalKills || 0) + 1;
         gameState.daily.kills = (gameState.daily.kills || 0) + 1;
@@ -2182,6 +2825,9 @@
             const loopMode = isHard ? (gameState.loopMode || "off") : "off"; // 周回モードはハード限定
             prog().maxClearedWorld = Math.max(prog().maxClearedWorld || 0, w); // 地下迷宮スケール選択の上限に使用
             if (isHard) { gameState.daily.dungeonCleared = true; checkDailyQuests(); } // デイリークエスト（ハード/地下迷宮クリア）
+            if (isHard && w === 10 && !gameState.artifacts.pride) {
+                grantArtifact("pride", "傲慢の心"); // ハードのルシファーから確定ドロップ→大罪ダンジョン解放
+            }
             alert(`🎉 ${worldNames[w] || '大ボス'}を討伐！${isHard ? '【ハード】' : ''}ワールド${w}クリア！ 🎉`); 
             gameState.exp += 6000 * w; 
             gameState.gold += 3000 * w; 
@@ -2205,9 +2851,8 @@
                 prog().stage = 10; 
                 prog().maxReachedStage = 10;
                 if (!isHard) {
-                    gameState.upgradeMaxLevel = 30;
                     appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">全ワールドクリア！W${prog().world}-10 に留まります。</span>`, "c-yellow");
-                    appendLog('log-exp-area', `${getLogTime()} 💎 <span style="color:#ce93d8; font-weight:bold;">装備強化上限が+30に解放されました！</span>`, "c-yellow");
+                    appendLog('log-exp-area', `${getLogTime()} 💎 <span style="color:#ce93d8; font-weight:bold;">装備強化上限が+10されました！</span>`, "c-yellow");
                     // ハードモード＆地下迷宮 解放
                     if (!gameState.unlockedDungeons) gameState.unlockedDungeons = { normal: true, hard: false, underground: false };
                     if (!gameState.unlockedDungeons.hard) {
@@ -2218,7 +2863,6 @@
                         gameState.unlockedDungeons.underground = true;
                         appendLog('log-exp-area', `${getLogTime()} 🕳️ <span style="color:#8d6e63; font-weight:bold;">地下迷宮が解放されました！</span>`, "c-yellow");
                     }
-                    setTimeout(() => showGameClearDialog(), 500);
                 } else {
                     appendLog('log-exp-area', `${getLogTime()} 🌟 <span style="color:#ffd700; font-weight:bold;">【ハード】全ワールドクリア！W${prog().world}-10 に留まります。</span>`, "c-yellow");
                 }
@@ -2261,37 +2905,46 @@
         setTimeout(() => defeatText.remove(), 1500);
     }
 
-    function showGameClearDialog() {
-        let dialogHtml = `
-            <div id="clear-dialog-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999;">
-                <div id="clear-dialog-box" style="
-                    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-                    border: 3px solid #ffd700; border-radius: 15px; padding: 40px; text-align: center; max-width: 600px;
-                    box-shadow: 0 0 50px rgba(255, 215, 0, 0.5), inset 0 0 30px rgba(255, 215, 0, 0.1);
-                    animation: clearDialogPulse 1s ease-in-out infinite;
-                ">
-                    <div style="font-size: 4em; margin-bottom: 20px;">🎉</div>
-                    <h1 style="color: #ffd700; font-size: 2.5em; margin: 20px 0; text-shadow: 0 0 20px rgba(255, 215, 0, 0.8); letter-spacing: 3px; font-weight: bold;">ALL WORLD CLEARED!</h1>
-                    <div style="font-size: 1.2em; margin-bottom: 30px;">🎉</div>
-                    <div style="color: #e0e0e0; font-size: 1.1em; line-height: 1.8; margin: 30px 0; border-top: 2px solid #ffd700; border-bottom: 2px solid #ffd700; padding: 20px 0;">
-                        <p style="margin: 10px 0;">✨ 勇敢な冒険者よ ✨</p>
-                        <p style="margin: 10px 0;">君は10つの世界のすべての試練を克服した。</p>
-                        <p style="margin: 10px 0;">混沌と絶望の果てに光をもたらし、</p>
-                        <p style="margin: 10px 0;">終焉の神さえも打ち倒した。</p>
-                        <p style="margin: 10px 0;">その名は永遠に伝説として刻まれるだろう。</p>
-                    </div>
-                    <div style="color: #ffd700; font-size: 1.3em; margin: 25px 0; font-weight: bold;">🏆 WORLD MASTER 🏆</div>
-                    <button onclick="closeClearDialog()" style="background: linear-gradient(135deg, #ffd700, #ffed4e); color: #1a1a1a; border: none; padding: 12px 30px; font-size: 1.1em; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); transition: all 0.3s;" onmouseover="this.style.boxShadow='0 0 30px rgba(255, 215, 0, 0.9)';" onmouseout="this.style.boxShadow='0 0 20px rgba(255, 215, 0, 0.6)';">
-                        ダイアログを閉じる
-                    </button>
-                </div>
-            </div>`;
-        document.body.insertAdjacentHTML('beforeend', dialogHtml);
+    /** パンデモニウム・エデン・創生の間 入場時の演出（フラッシュ＋中央テキスト） */
+    function showDungeonEnterEffect(dungeonId) {
+        const DUNGEON_ENTER_FX = {
+            sins:   { flashColor: "rgba(183, 28, 28, 0.55)",  textColor: "#ff5252", glow: "rgba(255, 23, 68, 0.9)",  text: "パンデモニウム" },
+            angels: { flashColor: "rgba(255, 249, 196, 0.7)", textColor: "#b8860b", glow: "rgba(255, 215, 0, 0.9)",  text: "エデン" },
+            final:  allArtifactsOwned()
+                ? { flashColor: "rgba(213, 0, 249, 0.55)", textColor: "#fff", glow: "rgba(213, 0, 249, 0.9)", text: FINAL_BOSS.dungeonName }
+                : { flashColor: "rgba(74, 20, 140, 0.6)",  textColor: "#9575cd", glow: "rgba(74, 20, 140, 0.9)", text: "？？？" },
+        };
+        const fx = DUNGEON_ENTER_FX[dungeonId];
+        if (!fx) return;
+
+        let flashOverlay = document.createElement('div');
+        flashOverlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: ${fx.flashColor}; z-index: 8888; pointer-events: none; animation: dungeonEnterFlash 0.6s ease-out;`;
+        document.body.appendChild(flashOverlay);
+        setTimeout(() => flashOverlay.remove(), 600);
+
+        let enterText = document.createElement('div');
+        enterText.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2.4em; font-weight: bold; color: ${fx.textColor}; text-shadow: 0 0 20px ${fx.glow}, 2px 2px 4px rgba(0,0,0,0.8); z-index: 8889; pointer-events: none; animation: dungeonEnterTextFade 2s ease-in-out forwards; letter-spacing: 4px;`;
+        enterText.textContent = fx.text;
+        document.body.appendChild(enterText);
+        setTimeout(() => enterText.remove(), 2000);
     }
-    
-    function closeClearDialog() {
-        let overlay = document.getElementById('clear-dialog-overlay');
-        if (overlay) overlay.remove();
+
+    /** 真のエンディング演出（The ST初回撃破時のみ）。画面全体をオーバーレイし、
+     *  タイトル→エピローグ→アーティファクト一覧→統計情報の順に時間差でフェードインさせる。 */
+    function showTrueEndingScreen() {
+        let overlay = document.createElement('div');
+        overlay.id = 'true-ending-overlay';
+        overlay.style.cssText = `position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 9500; display:flex; align-items:center; justify-content:center; overflow-y:auto; padding: 30px 15px; animation: endingBgFade 1.2s ease;`;
+
+        overlay.innerHTML = `
+            <div style="max-width:600px; text-align:center;">
+                <p class="ending-line" style="color:#e0e0e0; font-size:1.3em; letter-spacing:2px; margin:0 0 20px; animation-delay:1s;">THANK YOU FOR PLAYING</p>
+                <div class="ending-title" style="animation-delay:2.5s, 2.5s;">THE END</div>
+                <button onclick="document.getElementById('true-ending-overlay').remove()" style="margin-top:40px; padding:12px 30px; background: linear-gradient(135deg, #ffd700, #ffed4e); color:#1a1a1a; border:none; border-radius:8px; font-weight:bold; font-size:1em; cursor:pointer; opacity:0; animation: endingLineFadeIn 0.8s ease forwards; animation-delay:4s;">
+                    物語を続ける
+                </button>
+            </div>`;
+        document.body.appendChild(overlay);
     }
 
     // =========================================
@@ -2300,6 +2953,18 @@
     function attack() {
         try {
             if (!gameState.isJobSelected) return;
+            if (isFinalBossLocked()) {
+                const mLog = document.getElementById('m-p-click');
+                if (mLog) mLog.innerHTML = `<span style="color:#616161;">❓ 何も通用しない…気配だけがそこにある…</span>`;
+                updateDisplay();
+                return;
+            }
+            if (playerStunned > 0) {
+                playerStunned--;
+                const mLog = document.getElementById('m-p-atk');
+                if (mLog) mLog.innerHTML = `<span style="color:#8d6e63;">💤 堕落の重みで身体が動かない…！</span>`;
+                return;
+            }
             let leader = gameState.party[gameState.currentLeaderIndex], lStats = calcSingleCharStats(leader);
             let stats = calcPartyAllStats();
             
@@ -2312,38 +2977,49 @@
             let paralysisMult = playerParalysis > 0 ? 0.5 : 1.0;
 
             if (leader.job === "mage") {
-                let isCrit = Math.random() * 100 < lStats.crit;
-                let baseMagicDmg = Math.max(1, Math.floor((lStats.atk + stats.mag) * berserkMult * paralysisMult * (1 - Math.min(99, Math.max(0, enemyMres - stats.magPenetration)) / 100)));
-                let magicDmg = isCrit ? Math.max(1, Math.floor(baseMagicDmg * (lStats.critMultiplier / 100))) : baseMagicDmg;
-                
-                playSE('m0.mp3');
-                enemyHp -= magicDmg;
-                
-                document.getElementById('m-p-click').innerHTML = isCrit
-                    ? `⚔️ 会心 <span class="c-crit-flash">${magicDmg}💥</span> 必中魔法`
-                    : `🔮 [魔導士] <span class="c-purple">${magicDmg}</span> 必中魔法${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`;
+                let isCrit = !isAngelNullifying("crit") && Math.random() * 100 < lStats.crit;
+                if (isAngelNullifying("magic")) {
+                    playSE('m0.mp3');
+                    document.getElementById('m-p-click').innerHTML = `🔮 <span style="color:#90a4ae;">【魔法攻撃、無効化された…！】</span>`;
+                } else {
+                    let baseMagicDmg = Math.max(1, Math.floor((lStats.atk + stats.mag) * berserkMult * paralysisMult * (1 - Math.min(99, Math.max(0, enemyMres - stats.magPenetration)) / 100)));
+                    let magicDmg = isCrit ? Math.max(1, Math.floor(baseMagicDmg * (lStats.critMultiplier / 100))) : baseMagicDmg;
+
+                    playSE('m0.mp3');
+                    enemyHp -= magicDmg;
+
+                    document.getElementById('m-p-click').innerHTML = isCrit
+                        ? `⚔️ 会心 <span class="c-crit-flash">${magicDmg}💥</span> 必中魔法`
+                        : `🔮 [魔導士] <span class="c-purple">${magicDmg}</span> 必中魔法${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`;
+                }
             } else {
-                let isCrit = Math.random() * 100 < lStats.crit;
-                let baseDmg = lStats.atk - (isCrit ? 0 : enemyDef);
-                let dmg = Math.max(1, Math.floor((isCrit ? baseDmg * (lStats.critMultiplier / 100) : baseDmg) * (1 - (isCrit ? enemyEva * 0.5 : enemyEva) / 100) * berserkMult * paralysisMult));
-                
-                if (isCrit && (gameState.treeSkills.deathmark||0) > 0 && leader.job === "rogue") {
-                    dmg = Math.floor(dmg * (1 + gameState.treeSkills.deathmark * 0.15));
+                let isCrit = !isAngelNullifying("crit") && Math.random() * 100 < lStats.crit;
+                if (isAngelNullifying("physical")) {
+                    if (leader.job === "warrior") playSE('w0.mp3');
+                    else if (leader.job === "rogue") playSE('r0.mp3');
+                    document.getElementById('m-p-click').innerHTML = `⚔️ <span style="color:#90a4ae;">【物理攻撃、無効化された…！】</span>`;
+                } else {
+                    let baseDmg = lStats.atk - (isCrit ? 0 : enemyDef);
+                    let dmg = Math.max(1, Math.floor((isCrit ? baseDmg * (lStats.critMultiplier / 100) : baseDmg) * (1 - (isCrit ? enemyEva * 0.5 : enemyEva) / 100) * berserkMult * paralysisMult));
+
+                    if (isCrit && (gameState.treeSkills.deathmark||0) > 0 && leader.job === "rogue") {
+                        dmg = Math.floor(dmg * (1 + gameState.treeSkills.deathmark * 0.15));
+                    }
+
+                    if (leader.job === "rogue" && (gameState.treeSkills.poison||0) > 0 && Math.random() < gameState.treeSkills.poison * 0.1) {
+                        enemyPoisoned = 5;
+                        enemyPoisonDmg = Math.max(1, Math.floor(lStats.atk * 0.3));
+                    }
+
+                    if (leader.job === "warrior") playSE('w0.mp3');
+                    else if (leader.job === "rogue") playSE('r0.mp3');
+
+                    enemyHp -= dmg;
+
+                    document.getElementById('m-p-click').innerHTML = isCrit 
+                        ? `⚔️ 会心 <span class="c-crit-flash">${dmg}💥</span>${berserkMult>1?' <span style="color:#f44336;">[狂戦]</span>':''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`
+                        : `${leader.job === "warrior" ? '⚔️ [戦士]' : leader.job === "rogue" ? '🍃 [ローグ]' : '✨ [魔道士]'} <span class="c-white">${dmg}</span>${enemyPoisoned>0?' ☠️毒付与':''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`; 
                 }
-                
-                if (leader.job === "rogue" && (gameState.treeSkills.poison||0) > 0 && Math.random() < gameState.treeSkills.poison * 0.1) {
-                    enemyPoisoned = 5;
-                    enemyPoisonDmg = Math.max(1, Math.floor(lStats.atk * 0.3));
-                }
-                
-                if (leader.job === "warrior") playSE('w0.mp3');
-                else if (leader.job === "rogue") playSE('r0.mp3');
-                
-                enemyHp -= dmg;
-                
-                document.getElementById('m-p-click').innerHTML = isCrit 
-                    ? `⚔️ 会心 <span class="c-crit-flash">${dmg}💥</span>${berserkMult>1?' <span style="color:#f44336;">[狂戦]</span>':''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`
-                    : `${leader.job === "warrior" ? '⚔️ [戦士]' : leader.job === "rogue" ? '🍃 [ローグ]' : '✨ [魔道士]'} <span class="c-white">${dmg}</span>${enemyPoisoned>0?' ☠️毒付与':''}${playerParalysis>0?' <span style="color:#9575cd;">[麻痺-50%]</span>':''}`; 
             }
             if (enemyHp <= 0) winBattle();
             updateDisplay();
@@ -2359,27 +3035,36 @@
         let mLog = document.getElementById('m-p-skill1'), dmg = 0;
 
         if (['bash', 'rush', 'rain', 'coin', 'blizzard', 'meteor'].includes(skillKey)) {
-            let isCrit = Math.random() * 100 < lStats.crit;
+            if (isFinalBossLocked()) {
+                coolTimes[skillKey] = { bash: 6, rush: 4, rain: 7, coin: 8, blizzard: 8, meteor: 15 }[skillKey];
+                mLog.innerHTML = `<span style="color:#616161;">❓ 何も通用しない…気配だけがそこにある…</span>`;
+                updateDisplay();
+                return;
+            }
+            let isCrit = !isAngelNullifying("crit") && Math.random() * 100 < lStats.crit;
             let mult = { bash: 3.5, rush: 3.6, rain: 4.0, coin: 2.0, blizzard: 4.5, meteor: 8.0 }[skillKey];
-            
+            const skillDmgType = ['blizzard','meteor'].includes(skillKey) ? "magic" : "physical";
+            const nullified = isAngelNullifying(skillDmgType);
+
             let baseDmg = ['blizzard','meteor'].includes(skillKey)
                 ? Math.max(1, Math.floor(((lStats.atk + stats.mag) * mult) * (1 - Math.min(99, Math.max(0, enemyMres - stats.magPenetration)) / 100)))
                 : Math.max(1, Math.floor((lStats.atk * mult) - enemyDef));
             
             dmg = isCrit ? Math.max(1, Math.floor(baseDmg * (lStats.critMultiplier / 100))) : baseDmg;
-            enemyHp -= dmg;
+            if (nullified) { dmg = 0; } else { enemyHp -= dmg; }
             
             let critMark = isCrit ? ` <span class="c-crit-flash">💥会心💥</span>` : '';
+            let nullMark = nullified ? ` <span style="color:#90a4ae;">【無効化】</span>` : '';
             
             if (skillKey === 'bash') { 
                 playSE('w1.mp3'); coolTimes.bash = 6; 
-                mLog.innerHTML = `バッシュ！敵に <span class="c-red">${dmg}</span> 物理ダメージ${critMark}`; 
+                mLog.innerHTML = `バッシュ！敵に <span class="c-red">${dmg}</span> 物理ダメージ${critMark}${nullMark}`; 
             } else if (skillKey === 'rush') { 
                 playSE('w2.mp3'); coolTimes.rush = 4; 
-                mLog.innerHTML = `ラッシュ！ <span class="c-red">${Math.floor(dmg/2)}×2連撃 (${dmg})</span>${critMark}`; 
+                mLog.innerHTML = `ラッシュ！ <span class="c-red">${Math.floor(dmg/2)}×2連撃 (${dmg})</span>${critMark}${nullMark}`; 
             } else if (skillKey === 'rain') { 
                 playSE('r1.mp3'); coolTimes.rain = 7; 
-                mLog.innerHTML = `アローレイン！敵に <span class="c-red">${dmg}</span> 矢の雨ダメージ${critMark}`; 
+                mLog.innerHTML = `アローレイン！敵に <span class="c-red">${dmg}</span> 矢の雨ダメージ${critMark}${nullMark}`; 
             } else if (skillKey === 'coin') {
                 playSE('r2.mp3'); 
                 let bonusGold;
@@ -2387,18 +3072,26 @@
                     // 地下迷宮にはWorld/Stageがないため、選択中のスケールレベルを参照する
                     const refWorld = Math.max(1, Math.min(getUndergroundMaxScale(), gameState.undergroundScaleLevel || 1));
                     bonusGold = 10 * 15 * (refWorld + 9);
+                } else if (gameState.currentDungeon === "sins") {
+                    // 大罪ダンジョンにもWorld/Stageが無いため、現在の対戦相手番号を参照する
+                    const bossIndex = Math.max(1, Math.min(SIN_BOSSES.length, (gameState.progress.sins && gameState.progress.sins.bossIndex) || 1));
+                    bonusGold = 10 * 15 * (20 + bossIndex);
+                } else if (gameState.currentDungeon === "angels") {
+                    // 天使ダンジョンにもWorld/Stageが無いため、現在の対戦相手番号を参照する
+                    const bossIndex = Math.max(1, Math.min(ANGEL_BOSSES.length, (gameState.progress.angels && gameState.progress.angels.bossIndex) || 1));
+                    bonusGold = 10 * 15 * (26 + bossIndex);
                 } else {
                     bonusGold = prog().stage * 15 * prog().world;
                 }
                 gameState.gold += bonusGold; 
                 coolTimes.coin = 8;
-                mLog.innerHTML = `コインディグ！ <span class="c-red">${dmg}撃打</span> ＆ <span class="c-gold">+${bonusGold}G強奪</span>${critMark}`; 
+                mLog.innerHTML = `コインディグ！ <span class="c-red">${dmg}撃打</span> ＆ <span class="c-gold">+${bonusGold}G強奪</span>${critMark}${nullMark}`; 
             } else if (skillKey === 'blizzard') { 
                 playSE('m2.mp3'); coolTimes.blizzard = 8; 
-                mLog.innerHTML = `ブリザード！必中で <span class="c-purple">${dmg}</span> 魔法ダメージ${critMark}`; 
+                mLog.innerHTML = `ブリザード！必中で <span class="c-purple">${dmg}</span> 魔法ダメージ${critMark}${nullMark}`; 
             } else if (skillKey === 'meteor') {
                 playSE('m3.mp3'); coolTimes.meteor = 15;
-                mLog.innerHTML = `<span style="color:#ff5722;">☄️ メテオ！必中で <span class="c-purple">${dmg}</span> の超高火力魔法ダメージ！${critMark}</span>`;
+                mLog.innerHTML = `<span style="color:#ff5722;">☄️ メテオ！必中で <span class="c-purple">${dmg}</span> の超高火力魔法ダメージ！${critMark}${nullMark}</span>`;
             }
         } else {
             if (skillKey === 'warcry') {
@@ -2409,10 +3102,14 @@
                 mLog.innerHTML = `<span style="color:#9c27b0;">🌑 シャドウステップ！8秒間ダメージ完全無効！</span>`;
             } else if (skillKey === 'heal') {
                 playSE('m1.mp3'); 
-                let healVal = Math.floor(calcPartyAllStats().maxHp * 0.4); 
-                playerHp = Math.min(calcPartyAllStats().maxHp, playerHp + healVal); 
                 coolTimes.heal = 9;
-                mLog.innerHTML = `聖なるヒール！共有HPを <span class="c-green">＋${healVal}</span> 回復`;
+                if (isAngelNullifying("heal")) {
+                    mLog.innerHTML = `<span style="color:#90a4ae;">✨ 聖なるヒール！しかし治癒の光に打ち消され、回復できない…！</span>`;
+                } else {
+                    let healVal = Math.floor(calcPartyAllStats().maxHp * 0.4); 
+                    playerHp = Math.min(calcPartyAllStats().maxHp, playerHp + healVal); 
+                    mLog.innerHTML = `聖なるヒール！共有HPを <span class="c-green">＋${healVal}</span> 回復`;
+                }
             }
         }
 
@@ -2471,14 +3168,20 @@
         let berserkMult = (playerHp <= stats.maxHp * 0.5 && (gameState.treeSkills.berserker||0) > 0) ? 1 + (gameState.treeSkills.berserker * 0.2) : 1.0;
         let dpsBoost = warcryActive > 0 ? 1.5 : 1.0;
         let darknessMult = playerDarkness > 0 ? 0.5 : 1.0;
+        let finalLocked = isFinalBossLocked();
+        let idleNullified = isAngelNullifying("idle") || finalLocked;
         
-        let dpsNet = Math.max(1, Math.floor((totalDps * dpsBoost * berserkMult * darknessMult) * (1 - enemyEva / 100)));
+        let dpsNet = idleNullified ? 0 : Math.max(1, Math.floor((totalDps * dpsBoost * berserkMult * darknessMult) * (1 - enemyEva / 100)));
         enemyHp -= dpsNet;
 
-        let dpsInfo = `敵に <span class="c-green">${dpsNet}</span> 自動ダメ`;
-        if (warcryActive > 0) dpsInfo += ` <span style="color:#ff9800;">[ウォークライ:${warcryActive}s]</span>`;
-        if (berserkMult > 1) dpsInfo += ` <span style="color:#f44336;">[狂戦×${berserkMult.toFixed(1)}]</span>`;
-        if (playerDarkness > 0) dpsInfo += ` <span style="color:#424242;">[暗闇-50%]</span>`;
+        let dpsInfo = finalLocked
+            ? `<span style="color:#616161;">❓ 何も通用しない…気配だけがそこにある…</span>`
+            : idleNullified
+            ? `<span style="color:#90a4ae;">✨ 治癒の光により、放置ダメージが無効化されている…！</span>`
+            : `敵に <span class="c-green">${dpsNet}</span> 自動ダメ`;
+        if (!idleNullified && warcryActive > 0) dpsInfo += ` <span style="color:#ff9800;">[ウォークライ:${warcryActive}s]</span>`;
+        if (!idleNullified && berserkMult > 1) dpsInfo += ` <span style="color:#f44336;">[狂戦×${berserkMult.toFixed(1)}]</span>`;
+        if (!idleNullified && playerDarkness > 0) dpsInfo += ` <span style="color:#424242;">[暗闇-50%]</span>`;
         document.getElementById('m-p-dps').innerHTML = dpsInfo;
         
         // --- プレイヤーへの毒ダメージ ---
@@ -2496,8 +3199,12 @@
         }
 
         // --- 自動回復 ---
-        if (stats.regen > 0 && playerHp < stats.maxHp) {
-            playerHp = Math.min(stats.maxHp, playerHp + stats.regen);
+        if (!isAngelNullifying("heal")) {
+            let healAmount = 0;
+            if (stats.regen > 0 && playerHp < stats.maxHp) healAmount += stats.regen;
+            const artB = calcArtifactBonus();
+            if (artB.raphaelRegenPct > 0 && playerHp < stats.maxHp) healAmount += Math.floor(stats.maxHp * artB.raphaelRegenPct / 100); // ラファエルの翼：HP自然回復+2%/秒
+            if (healAmount > 0) playerHp = Math.min(stats.maxHp, playerHp + healAmount);
         }
 
         // --- 敵の攻撃 ---
@@ -2538,7 +3245,10 @@
             return;
         }
 
-        let baseDmg = Math.max(1, Math.floor(enemyAtk * (150 / (150 + stats.def)) * (1 - stats.eva / 100)));
+        // 大罪「憤怒」：自身のHPが30%以下になるほどATKが上昇する
+        let wrathMult = (enemyGimmick === "sin_berserk" && enemyHp <= enemyMaxHp * 0.3) ? 1.6 : 1.0;
+
+        let baseDmg = Math.max(1, Math.floor(enemyAtk * wrathMult * (150 / (150 + stats.def)) * (1 - stats.eva / 100)));
         let isCritical = Math.random() < 0.12 && gameState.killsInStage === 4;
         let dmg = isCritical ? Math.max(1, Math.floor(baseDmg * (1.5 + Math.random() * 0.5))) : baseDmg;
         
@@ -2549,20 +3259,84 @@
             return;
         }
 
-        // 敵の再生ギミック
+        // 敵の再生ギミック（大罪「暴食」もこれを流用）
         if (enemyGimmick === "regen") {
             let eRegen = Math.floor(enemyMaxHp * 0.02);
             enemyHp = Math.min(enemyMaxHp, enemyHp + eRegen);
         }
         
-        let gimmickNote = enemyGimmick === "regen"   ? " <span style='color:#4caf50;'>[再生]</span>" :
-                          enemyGimmick === "counter" ? " <span style='color:#ff5722;'>[反撃型]</span>" : "";
+        let gimmickNote = enemyGimmick === "regen"        ? " <span style='color:#4caf50;'>[捕食/再生]</span>" :
+                          enemyGimmick === "counter"       ? " <span style='color:#ff5722;'>[反撃型]</span>" :
+                          (enemyGimmick === "sin_berserk" && wrathMult > 1) ? " <span style='color:#d32f2f;'>[狂憤]</span>" : "";
         let displayText = `全体に <span class="c-red">${dmg}</span> ダメ${gimmickNote}`;
         
-        // 状態異常付与ギミック
-        displayText = applyEnemyAilments(displayText, stats, w);
+        // 状態異常付与ギミック（大罪ダンジョンはワールド非依存の専用ロジックを使う。天使・真ラスボスは特殊ギミックなし）
+        displayText = (gameState.currentDungeon === "sins")   ? applySinAilments(displayText, stats)
+                    : (gameState.currentDungeon === "angels") ? displayText
+                    : (gameState.currentDungeon === "final")  ? displayText
+                    : applyEnemyAilments(displayText, stats, w);
 
         document.getElementById('m-e-atk').innerHTML = displayText;
+    }
+
+    /** 大罪ボスラッシュ専用の状態異常・特殊効果ギミック処理（ワールド非依存） */
+    function applySinAilments(displayText, stats) {
+        const g = enemyGimmick;
+
+        // 色欲(アスモデウス)：魅了 → 既存の麻痺(-50%与ダメ)を流用し、演出のみ変更
+        if (g === "sin_charm" && playerParalysis === 0) {
+            if (Math.random() * 100 > stats.paralysisRes) {
+                playerParalysis = 1; paralysisDuration = 10;
+                displayText += ` <span style="color:#e91e63; font-weight:bold;">💋【魅了付与】</span>`;
+            }
+        }
+        // 嫉妬(レヴィアタン)：羨望 → 既存の暗闇(-50%与ダメ)を流用し、演出のみ変更
+        if (g === "sin_envy" && playerDarkness === 0) {
+            if (Math.random() * 100 > stats.darknessRes) {
+                playerDarkness = 1; darknessDuration = 10;
+                displayText += ` <span style="color:#2e7d32; font-weight:bold;">👁️【羨望の視線】</span>`;
+            }
+        }
+        // 怠惰(ベルフェゴール)：堕落 → 一定確率で次のクリック攻撃1回分を封じる
+        if (g === "sin_stun" && playerStunned === 0) {
+            if (Math.random() < 0.2) {
+                playerStunned = 1;
+                displayText += ` <span style="color:#8d6e63; font-weight:bold;">💤【堕落付与】</span>`;
+            }
+        }
+        // 強欲(マモン)：強奪 → 一定確率で所持ゴールドの一部を奪う
+        if (g === "sin_steal" && gameState.gold > 0) {
+            if (Math.random() < 0.15) {
+                const stolen = Math.max(1, Math.floor(gameState.gold * 0.05));
+                gameState.gold -= stolen;
+                displayText += ` <span style="color:#fbc02d; font-weight:bold;">💰【${fmt(stolen)}G強奪された！】</span>`;
+            }
+        }
+        return displayText;
+    }
+
+    /** アーティファクト11種すべてを所持しているか */
+    function allArtifactsOwned() {
+        const a = gameState.artifacts || {};
+        return Object.keys(ARTIFACT_DEFS).every(k => a[k]);
+    }
+
+    /** 真のラスボス(final)が「アーティファクト未コンプリートのため無敵」状態かどうか */
+    function isFinalBossLocked() {
+        return gameState.currentDungeon === "final" && !allArtifactsOwned();
+    }
+
+    /** 天使ボスの無効化ギミック判定。現在戦闘中の天使ボスが指定した種別のダメージ/効果を無効化するか返す。
+     *  damageType: "magic"(魔法攻撃) | "physical"(物理攻撃) | "heal"(回復) | "idle"(放置DPS) | "crit"(会心) */
+    function isAngelNullifying(damageType) {
+        if (gameState.currentDungeon !== "angels") return false;
+        const g = enemyGimmick;
+        if (damageType === "magic")    return g === "angel_nomagic";
+        if (damageType === "physical") return g === "angel_nophysical";
+        if (damageType === "heal")     return g === "angel_noheal";
+        if (damageType === "idle")     return g === "angel_noheal"; // ラファエルは回復と放置ダメージの両方を無効化
+        if (damageType === "crit")     return g === "angel_nocrit";
+        return false;
     }
 
     function applyEnemyAilments(displayText, stats, w) {
@@ -2849,10 +3623,11 @@
         
         let base = { Normal: 1, Rare: 3, Epic: 8, Legendary: 25 }[item.rarity] || 1;
         let smithBonus = gameState.facilities?.smithLevel || 0;
-        let count = base + smithBonus;
+        let urielBonus = calcArtifactBonus().urielStoneBonus; // ウリエルの翼：分解の強化石+1
+        let count = base + smithBonus + urielBonus;
         
         gameState.upgradeStone += count;
-        appendLog('log-drop-area', `${getLogTime()} 🛠️ 分解: ${item.name} ➡ <span style="color:#0288d1;">強化石+${count}</span>${smithBonus>0?` <span style="color:#ff9800;">(鍛冶屋+${smithBonus})</span>`:''}`, "c-gray");
+        appendLog('log-drop-area', `${getLogTime()} 🛠️ 分解: ${item.name} ➡ <span style="color:#0288d1;">強化石+${count}</span>${smithBonus>0?` <span style="color:#ff9800;">(鍛冶屋+${smithBonus})</span>`:''}${urielBonus>0?` <span style="color:#90caf9;">(ウリエル+${urielBonus})</span>`:''}`, "c-gray");
         gameState.inventory.splice(invIndex, 1);
         selectedItemIds.delete(itemId);
         saveGame(); 
@@ -2886,9 +3661,10 @@
 
         let totalStone = 0;
         let smithBonus = gameState.facilities?.smithLevel || 0;
+        let urielBonus = calcArtifactBonus().urielStoneBonus; // ウリエルの翼：分解の強化石+1(1個あたり)
         targets.forEach(item => {
             let base = { Normal: 1, Rare: 3, Epic: 8, Legendary: 25 }[item.rarity] || 1;
-            totalStone += base + smithBonus;
+            totalStone += base + smithBonus + urielBonus;
         });
 
         let targetIds = new Set(targets.map(i => i.id));
@@ -2908,10 +3684,11 @@
         if (!confirm(`選択中の ${targets.length} 個を売却しますか？`)) return;
 
         let alchMult = 1 + (gameState.facilities?.alchemyLevel || 0) * 0.15;
+        let urielSellMult = 1 + calcArtifactBonus().urielSellPct / 100; // ウリエルの翼：売却価格+10%
         let totalGold = 0;
         targets.forEach(item => {
             let basePrice = item.value * 6 + (item.options.length * 35);
-            totalGold += Math.floor(basePrice * alchMult);
+            totalGold += Math.floor(basePrice * alchMult * urielSellMult);
         });
 
         let targetIds = new Set(targets.map(i => i.id));
@@ -2933,10 +3710,11 @@
         
         let basePrice = item.value * 6 + (item.options.length * 35);
         let alchMult = 1 + (gameState.facilities?.alchemyLevel || 0) * 0.15;
-        let price = Math.floor(basePrice * alchMult);
+        let urielSellMult = 1 + calcArtifactBonus().urielSellPct / 100; // ウリエルの翼：売却価格+10%
+        let price = Math.floor(basePrice * alchMult * urielSellMult);
         
         gameState.gold += price;
-        appendLog('log-exp-area', `${getLogTime()} 💰 売却: ${item.name} ➡ <span class="c-gold">+${price} G</span>${alchMult>1?` <span style="color:#ff9800;">(錬金x${alchMult.toFixed(2)})</span>`:''}`, "c-gray");
+        appendLog('log-exp-area', `${getLogTime()} 💰 売却: ${item.name} ➡ <span class="c-gold">+${price} G</span>${alchMult>1?` <span style="color:#ff9800;">(錬金x${alchMult.toFixed(2)})</span>`:''}${urielSellMult>1?` <span style="color:#90caf9;">(ウリエル+${calcArtifactBonus().urielSellPct}%)</span>`:''}`, "c-gray");
         gameState.inventory.splice(invIndex, 1);
         selectedItemIds.delete(itemId);
         saveGame(); 
@@ -2947,9 +3725,13 @@
         let item = gameState.party[charIndex].currentEquip[slot]; 
         if (!item || item.name === "なし") return;
         
-        let maxLevel = gameState.upgradeMaxLevel || 20;
+        let maxLevel = getUpgradeMaxLevel();
         if (item.level >= maxLevel) {
-            return alert(`強化上限に達しました！\n現在の上限: +${maxLevel}\n(W10クリア後に+30に解放されます)`);
+            const hint = maxLevel < 30 ? "(ノーマルW10クリアで+10されます)"
+                       : maxLevel < 40 ? "(図鑑コンプリートで+10されます)"
+                       : maxLevel < 50 ? "(創生の間クリアで+10されます)"
+                       : "";
+            return alert(`強化上限に達しました！\n現在の上限: +${maxLevel}\n${hint}`);
         }
         
         let neededStone = (item.level + 1) * 2;
@@ -3212,7 +3994,19 @@
         gameState.inventory.push(newItem);
         appendLog('log-drop-area', `${getLogTime()} 🌟ドロップ: [${rarity}] [IL${itemLevel ?? "?"}] ${newItem.name}`, `rarity-${rarity}`);
         
-        if (rarity === "Legendary") checkQuests();
+        if (rarity === "Legendary") {
+            checkQuests();
+            showLegendaryToast();
+        }
+    }
+
+    /** Legendaryドロップ時の軽量トースト通知（画面をブロックしない、2秒で自動的に消える） */
+    function showLegendaryToast() {
+        let toast = document.createElement('div');
+        toast.className = 'legendary-toast';
+        toast.textContent = '🌟Legendがドロップしました🌟';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
     }
 
     // =========================================
@@ -3282,22 +4076,52 @@
         updateDisplay();
     }
 
-    function buyUpgradeStone() {
-        const cost = 50000;
+    function buyUpgradeStone(count = 1) {
+        const cost = 50000 * count;
         if (gameState.gold < cost) {
-            return alert(`ゴールドが足りません！\n必要: ${cost}G / 所持: ${gameState.gold}G`);
+            return alert(`ゴールドが足りません！\n必要: ${cost.toLocaleString('ja-JP')}G / 所持: ${gameState.gold.toLocaleString('ja-JP')}G`);
         }
         gameState.gold -= cost;
-        gameState.upgradeStone += 1;
-        appendLog('log-drop-area', `${getLogTime()} 💎 <span style="color:#3f51b5; font-weight:bold;">強化石を購入しました！</span> -${cost}G`, "c-yellow");
+        gameState.upgradeStone += count;
+        appendLog('log-drop-area', `${getLogTime()} 💎 <span style="color:#3f51b5; font-weight:bold;">強化石を${count}個購入しました！</span> -${cost.toLocaleString('ja-JP')}G`, "c-yellow");
         saveGame(); 
+        updateDisplay();
+    }
+
+    /** 経験値をゴールドに変換する（1:1の等価交換） */
+    function convertExpToGold() {
+        const sel = document.getElementById('exp-gold-convert-select');
+        const amount = parseInt(sel?.value || "100000", 10);
+        if (gameState.exp < amount) {
+            return alert(`経験値が足りません！\n必要: ${amount.toLocaleString('ja-JP')}EXP / 所持: ${Math.floor(gameState.exp).toLocaleString('ja-JP')}EXP`);
+        }
+        gameState.exp -= amount;
+        gameState.gold += amount;
+        appendLog('log-exp-area', `${getLogTime()} 🔄 <span style="color:#43a047; font-weight:bold;">経験値をゴールドに変換しました！</span> -${amount.toLocaleString('ja-JP')}EXP ➡ +${amount.toLocaleString('ja-JP')}G`, "c-yellow");
+        saveGame();
+        updateDisplay();
+    }
+
+    /** ゴールドを経験値に変換する（1:1の等価交換） */
+    function convertGoldToExp() {
+        const sel = document.getElementById('gold-exp-convert-select');
+        const amount = parseInt(sel?.value || "100000", 10);
+        if (gameState.gold < amount) {
+            return alert(`ゴールドが足りません！\n必要: ${amount.toLocaleString('ja-JP')}G / 所持: ${gameState.gold.toLocaleString('ja-JP')}G`);
+        }
+        gameState.gold -= amount;
+        gameState.exp += amount;
+        appendLog('log-exp-area', `${getLogTime()} 🔄 <span style="color:#1e88e5; font-weight:bold;">ゴールドを経験値に変換しました！</span> -${amount.toLocaleString('ja-JP')}G ➡ +${amount.toLocaleString('ja-JP')}EXP`, "c-yellow");
+        saveGame();
         updateDisplay();
     }
     
     function enhanceStatus(type) {
-        const cost = 100000;
+        const sel = document.getElementById('status-enhance-count');
+        const count = parseInt(sel?.value || "1", 10);
+        const cost = 100000 * count;
         if (gameState.exp < cost) {
-            return alert(`経験値が足りません！\n必要: ${cost}EXP / 所持: ${gameState.exp}EXP`);
+            return alert(`経験値が足りません！\n必要: ${cost.toLocaleString('ja-JP')}EXP / 所持: ${Math.floor(gameState.exp).toLocaleString('ja-JP')}EXP`);
         }
         
         gameState.exp -= cost;
@@ -3307,8 +4131,8 @@
         let emoji = { hp: "❤️", atk: "⚔️", def: "🛡️" }[type];
         let color = { hp: "#e53935", atk: "#ff6f00", def: "#0277bd" }[type];
         
-        gameState.statusBonus[type]++;
-        appendLog('log-exp-area', `${getLogTime()} ${emoji} <span style="color:${color}; font-weight:bold;">ステータス強化: ${typeName}+1</span> -100,000EXP`, "c-yellow");
+        gameState.statusBonus[type] += count;
+        appendLog('log-exp-area', `${getLogTime()} ${emoji} <span style="color:${color}; font-weight:bold;">ステータス強化: ${typeName}+${count}</span> -${cost.toLocaleString('ja-JP')}EXP`, "c-yellow");
         
         playerHp = calcPartyAllStats().maxHp;
         saveGame(); 
@@ -3346,10 +4170,11 @@
             });
         }
         const zukanB = calcZukanBonus();
+        const artB = calcArtifactBonus();
         return { 
-            atk: Math.floor(atk * (1 + ((gameState.hardUpgrades?.atk || 0) * 0.01))),
-            crit: crit + (zukanB.crit || 0),
-            critMultiplier: critMultiplier + (zukanB.critDmg || 0),
+            atk: Math.floor(atk * (1 + ((gameState.hardUpgrades?.atk || 0) * 0.01)) * (1 + zukanB.atk / 100) * (1 + artB.atkPct / 100)),
+            crit: crit + (zukanB.crit || 0) + artB.critFlat,
+            critMultiplier: critMultiplier + (zukanB.critDmg || 0) + artB.critDmgFlat,
         };
     }
 
@@ -3427,7 +4252,6 @@
         maxHp += (gameState.statusBonus?.hp || 0);
         dps += (gameState.statusBonus?.atk || 0);
         def += (gameState.statusBonus?.def || 0);
-        expBonus = bonus + guildExpBonus;
 
         // ハードポイント強化倍率（各Lv +1%、最大Lv20=+20%）
         const hu = gameState.hardUpgrades || {};
@@ -3441,6 +4265,16 @@
         const zukanBonus = calcZukanBonus();
         magPenetration += zukanBonus.magPenetration || 0;
         if (zukanBonus.idleDmg > 0) dps = Math.floor(dps * (1 + zukanBonus.idleDmg / 100));
+        if (zukanBonus.hp > 0)  maxHp = Math.floor(maxHp * (1 + zukanBonus.hp / 100));
+        if (zukanBonus.def > 0) def   = Math.floor(def   * (1 + zukanBonus.def / 100));
+
+        // アーティファクトボーナス（所持しているだけで発動するパッシブ効果）
+        const artBonus = calcArtifactBonus();
+        def = Math.floor(def * (1 + artBonus.defPct / 100));
+        maxHp = Math.floor(maxHp * (1 + artBonus.maxHpPct / 100));
+        if (artBonus.idleDmgPct > 0) dps = Math.floor(dps * (1 + artBonus.idleDmgPct / 100));
+        magPenetration += artBonus.magPenetrationFlat;
+        expBonus = bonus + guildExpBonus + artBonus.expPct;
         
         return { 
             dps, def, regen, maxHp, 
@@ -3565,9 +4399,13 @@
     /** HUD（HP/ゴールド/EXP/敵情報/ステージ表示）の更新 */
     function updateHUD(pStats) {
         const isUnderground = gameState.currentDungeon === "underground";
+        const isSins        = gameState.currentDungeon === "sins";
+        const isAngels      = gameState.currentDungeon === "angels";
+        const isFinal        = gameState.currentDungeon === "final";
         const isTraining    = gameState.currentDungeon === "training";
+        const isBossRush     = isSins || isAngels || isFinal; // World/Stageを持たないボスラッシュ系ダンジョン
         let dungeon = GAME_DATA.dungeons[gameState.currentDungeon] || GAME_DATA.dungeons.normal;
-        let worldName = (!isUnderground && !isTraining && dungeon.worldNames && dungeon.worldNames[prog().world]) || `ワールド${!isUnderground && !isTraining ? prog().world : 1}`;
+        let worldName = (!isUnderground && !isBossRush && !isTraining && dungeon.worldNames && dungeon.worldNames[prog().world]) || `ワールド${(!isUnderground && !isBossRush && !isTraining) ? prog().world : 1}`;
 
         // ダンジョンタブ（解放済みのみ表示）
         let tabRow = document.getElementById('dungeon-tab-row');
@@ -3577,7 +4415,7 @@
                 if (!gameState.unlockedDungeons || !gameState.unlockedDungeons[d.id]) return; // 未解放は非表示
                 let btn = document.createElement('button');
                 btn.className = 'dungeon-tab-btn' + (gameState.currentDungeon === d.id ? ' active' : '');
-                btn.textContent = d.label;
+                btn.textContent = (d.id === "final") ? (allArtifactsOwned() ? FINAL_BOSS.dungeonName : "❓❓❓") : d.label;
                 btn.type = 'button';
                 btn.onclick = () => switchDungeon(d.id);
                 tabRow.appendChild(btn);
@@ -3592,29 +4430,55 @@
         if (battleControlsBox) battleControlsBox.style.display = isTraining ? "none" : "block";
         if (trainingPanel)     trainingPanel.style.display     = isTraining ? "block" : "none";
 
-        if (isTraining) {
-            // 訓練所選択中はWorld/Stage/Floor行を全て隠し、専用パネルのみ更新する
-            const worldRow    = document.getElementById('world-row');
-            const stageRow    = document.getElementById('stage-row');
-            const stageProgRow = document.getElementById('stage-progress');
-            const floorProgRow = document.getElementById('floor-progress');
+        // 進行度表示行（World/Stage・地下迷宮Floor・大罪/天使の対戦相手）はここでまとめて取得し、
+        // 各分岐で必要な行だけ表示する（他は全て非表示にする）
+        const worldRow     = document.getElementById('world-row');
+        const stageRow      = document.getElementById('stage-row');
+        const stageProgRow  = document.getElementById('stage-progress');
+        const floorProgRow  = document.getElementById('floor-progress');
+        const sinsProgRow   = document.getElementById('sins-progress');
+        const angelsProgRow = document.getElementById('angels-progress');
+        const finalProgRow  = document.getElementById('final-progress');
+        const hideAllProgressRows = () => {
             if (worldRow)     worldRow.style.display     = "none";
             if (stageRow)     stageRow.style.display     = "none";
             if (stageProgRow) stageProgRow.style.display = "none";
             if (floorProgRow) floorProgRow.style.display = "none";
+            if (sinsProgRow)  sinsProgRow.style.display  = "none";
+            if (angelsProgRow) angelsProgRow.style.display = "none";
+            if (finalProgRow) finalProgRow.style.display = "none";
+        };
+
+        if (isTraining) {
+            hideAllProgressRows();
             updateTrainingPanel();
         } else if (isUnderground) {
+            hideAllProgressRows();
             updateUndergroundProgress();
+        } else if (isSins) {
+            hideAllProgressRows();
+            if (sinsProgRow) sinsProgRow.style.display = "flex";
+            const bossIndex = Math.max(1, Math.min(SIN_BOSSES.length, (gameState.progress.sins && gameState.progress.sins.bossIndex) || 1));
+            const boss = SIN_BOSSES[bossIndex - 1];
+            document.getElementById('sins-progress-text').innerText = `対戦相手 ${bossIndex} / ${SIN_BOSSES.length}　【${boss.label}】${boss.name}`;
+        } else if (isAngels) {
+            hideAllProgressRows();
+            if (angelsProgRow) angelsProgRow.style.display = "flex";
+            const bossIndex = Math.max(1, Math.min(ANGEL_BOSSES.length, (gameState.progress.angels && gameState.progress.angels.bossIndex) || 1));
+            const boss = ANGEL_BOSSES[bossIndex - 1];
+            document.getElementById('angels-progress-text').innerText = `対戦相手 ${bossIndex} / ${ANGEL_BOSSES.length}　【${boss.label}】${boss.name}`;
+        } else if (isFinal) {
+            hideAllProgressRows();
+            if (finalProgRow) finalProgRow.style.display = "flex";
+            document.getElementById('final-progress-text').innerText = allArtifactsOwned()
+                ? `🌌 ${FINAL_BOSS.dungeonName}　【真ラスボス】${FINAL_BOSS.name}`
+                : `❓❓❓　アーティファクトが足りない…（${Object.values(gameState.artifacts || {}).filter(Boolean).length} / ${Object.keys(ARTIFACT_DEFS).length}）`;
         } else {
-            // ノーマル/ハード用の行を表示（地下迷宮の行は隠す）
-            const worldRow    = document.getElementById('world-row');
-            const stageRow    = document.getElementById('stage-row');
-            const stageProgRow = document.getElementById('stage-progress');
-            const floorProgRow = document.getElementById('floor-progress');
+            // ノーマル/ハード用の行を表示（地下迷宮・大罪・天使の行は隠す）
+            hideAllProgressRows();
             if (worldRow)     worldRow.style.display     = "flex";
             if (stageRow)     stageRow.style.display     = "flex";
             if (stageProgRow) stageProgRow.style.display = "flex";
-            if (floorProgRow) floorProgRow.style.display = "none";
 
             // Worldプルダウン（到達済みのみ表示）
             let worldSelect = document.getElementById('world-select');
@@ -3821,7 +4685,7 @@
                 slotBox.className = "eq-slot-box";
                 let optHtml = item.options && item.options.length ? `<div class="opt-text">${item.options.map(o => o.text).join(", ")}</div>` : "";
 
-                let maxLevel = gameState.upgradeMaxLevel || 20;
+                let maxLevel = getUpgradeMaxLevel();
                 let neededStone = (item.level + 1) * 2;
                 let neededGold  = (item.level + 1) * 200;
                 let upgradeDisabled = (
@@ -3864,6 +4728,49 @@
         }
 
         updateInvDisplay();
+    }
+
+    /** アーティファクト一覧の表示更新（手帳タブ内、非表示の間はスキップ）。
+     *  ネタバレ防止のため、未解放ダンジョンに属するアーティファクトはリストにすら表示せず、
+     *  解放済みダンジョンのものは未入手でも「？？？」でボス名を伏せる。 */
+    function updateArtifactDisplay() {
+        if (!isVisible('tab-quest')) return;
+        const list = document.getElementById('artifact-list');
+        if (!list) return;
+        const artifacts = gameState.artifacts || {};
+        const unlocked = gameState.unlockedDungeons || {};
+
+        const isGateOpen = (gate) => gate === "always" || !!unlocked[gate];
+        const visibleKeys = Object.keys(ARTIFACT_DEFS).filter(key => isGateOpen(ARTIFACT_DEFS[key].unlockGate));
+
+        const ownedCount = visibleKeys.filter(key => artifacts[key]).length;
+        const countEl = document.getElementById('artifact-count');
+        const totalEl = document.getElementById('artifact-total');
+        if (countEl) countEl.textContent = ownedCount;
+        if (totalEl) totalEl.textContent = visibleKeys.length;
+
+        list.innerHTML = '';
+        visibleKeys.forEach(key => {
+            const def = ARTIFACT_DEFS[key];
+            const owned = !!artifacts[key];
+            let div = document.createElement('div');
+            div.style.cssText = `background:${owned ? '#2e2e4d' : '#111'}; border:1px solid ${owned ? '#7e57c2' : '#333'}; border-radius:5px; padding:8px 10px; display:flex; align-items:center; gap:10px; opacity:${owned ? '1' : '0.5'};`;
+            div.innerHTML = `
+                <div style="font-size:1.5em; flex-shrink:0;">${owned ? def.emoji : '❓'}</div>
+                <div style="min-width:0;">
+                    <div style="font-size:0.85em; color:#fff; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${owned ? def.name : '未入手'}</div>
+                    <div style="font-size:0.7em; color:#999; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${owned ? def.source : '？？？'}</div>
+                    ${owned ? `<div style="font-size:0.72em; color:#b39ddb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">✨ ${def.effect}</div>` : ''}
+                </div>`;
+            list.appendChild(div);
+        });
+
+        const noteEl = document.getElementById('artifact-complete-note');
+        if (noteEl) {
+            const complete = Object.keys(ARTIFACT_DEFS).every(k => artifacts[k]);
+            noteEl.style.display = complete ? 'block' : 'none';
+            if (complete) noteEl.innerHTML = `🌌 全てのアーティファクトを集めた…「${FINAL_BOSS.dungeonName}」への扉が完全に開いた。<br>✨ コンプリートボーナス：ATK/DEF/会心率/会心ダメージ さらに+5%`;
+        }
     }
 
     /** 施設タブの更新（街タブが非表示の間はスキップ） */
@@ -4000,6 +4907,7 @@
         updateFacilityTab();
         updateDailyQuestTab();
         updateQuestTab();
+        updateArtifactDisplay();
         updateBGMSEButtons();
         updateEnhanceTab();
         updateNotebookZukan();
