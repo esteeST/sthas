@@ -315,6 +315,12 @@
         .picker-item.from-hard { background: #ffe4e8; border-color: #f48fb1; }
         .inv-item.from-underground { background: #efebe9; border-color: #a1887f; }
         .picker-item.from-underground { background: #efebe9; border-color: #a1887f; }
+        .inv-item.from-sins { background: linear-gradient(135deg, #3a0000, #1a0000); border-color: #ff1744; }
+        .picker-item.from-sins { background: linear-gradient(135deg, #3a0000, #1a0000); border-color: #ff1744; }
+        .inv-item.from-angels { background: linear-gradient(135deg, #fffde7, #fff9c4); border-color: #ffd700; }
+        .picker-item.from-angels { background: linear-gradient(135deg, #fffde7, #fff9c4); border-color: #ffd700; }
+        .inv-item.from-final { background: linear-gradient(270deg, #ff1744, #ffd700, #00e5ff, #d500f9); border-color: #fff; }
+        .picker-item.from-final { background: linear-gradient(270deg, #ff1744, #ffd700, #00e5ff, #d500f9); border-color: #fff; }
 
         .c-yellow { color: #ffeb3b; }
         .c-gold { color: #ffd700; font-weight: bold; }
@@ -469,6 +475,12 @@
             <div style="margin-bottom:8px;">
                 <button type="button" onclick="attack()" onkeydown="return false" tabindex="-1" style="width:100%; padding:12px; background:#4caf50; color:white; border:none; border-radius:4px; font-weight:bold; font-size:1.1em;">
                     <span id="attack-label-pc">【敵をクリックして攻撃】</span><span id="attack-label-sp" style="display:none;">【敵をタップして攻撃】</span>
+                </button>
+            </div>
+
+            <div style="margin-bottom:8px;">
+                <button type="button" id="autoclick-btn" onclick="toggleAutoClick()" style="width:100%; padding:8px; color:white; border:none; border-radius:4px; font-weight:bold; font-size:0.95em;">
+                    🖱️ オートクリッカー: <span id="autoclick-status">OFF</span>
                 </button>
             </div>
             
@@ -1000,6 +1012,12 @@
             slotMarkers: { weapon: "⚔️", shield: "🛡️", head: "👑", body: "👕", hands: "🧤", feet: "🥾", acc1: "💍", acc2: "💍" },
             slotColors:  { weapon: "#ef5350", shield: "#42a5f5", head: "#ffca28", body: "#66bb6a", hands: "#ab47bc", feet: "#26a69a", acc1: "#ec407a", acc2: "#ec407a" },
             slotJpNames: { weapon: "武器", shield: "盾", head: "頭防具", body: "体防具", hands: "手防具", feet: "足防具", acc1: "装飾品1", acc2: "装飾品2" },
+            // --- パンデモニウム／エデン／創生の間 専用ドロップの接頭辞プール（通常装備と区別するため専用の語彙にする） ---
+            exclusivePrefixes: {
+                sins:  ["堕天の", "煉獄の", "背徳の", "深淵の", "業火の"],
+                angels:["聖光の", "天啓の", "祝福の", "白銀の", "神域の"],
+                final: ["創世の", "終焉の", "全能の", "The STの"],
+            },
         },
 
         // --- ジョブ ---
@@ -1293,7 +1311,7 @@
     };
 
     // 後方互換エイリアス（既存コードが参照する短い変数名を維持）
-    const { prefixes, slotNames, slotMarkers, slotColors, slotJpNames } = GAME_DATA.equipment;
+    const { prefixes, slotNames, slotMarkers, slotColors, slotJpNames, exclusivePrefixes } = GAME_DATA.equipment;
     const jobNamesEngJp  = GAME_DATA.jobs.namesJp;
     const treeMeta       = GAME_DATA.skills.treeMeta;
     const awakenCosts    = GAME_DATA.skills.awakenCosts;
@@ -1322,7 +1340,8 @@
         zukanKills: {},
         zukanUnlocked: {},
         trainingPoint: 0,
-        trainingUpgrades: { exp: 0, gold: 0, stone: 0, point: 0 }, // 訓練所強化（訓練ポイント消費、各レベル5まで）
+        trainingUpgrades: { exp: 0, gold: 0, stone: 0, point: 0, autoclick: 0 }, // 訓練所強化（訓練ポイント消費、各レベル5まで）
+        autoClickEnabled: false, // オートクリッカーのON/OFF
         daily: {
             date: null,       // 最後にリセットしたローカル日付（"YYYY-MM-DD"）。nullなら初回未初期化
             kills: 0,         // 本日の撃破数
@@ -1400,6 +1419,7 @@
     let playerDarkness = 0, darknessDuration = 0;   
     let playerParalysis = 0, paralysisDuration = 0; 
     let playerStunned = 0; // 大罪「怠惰」専用：>0の間、次のクリック攻撃1回分が無効化される
+    let autoClickAccumMs = 0; // オートクリッカー：前回の自動攻撃からの経過時間(ms)
     
     let bgmAudio = null;
 
@@ -1484,7 +1504,18 @@
         gold:  { maxLevel: 5, costMode: "scaling", costPerLevel: 10, bonusMode: "additive", bonusPerLevel: 8000, label: "💰 ゴールド+",   desc: "8時間の蓄積ゴールド上限が上昇する" },
         stone: { maxLevel: 5, costMode: "scaling", costPerLevel: 10, bonusMode: "additive", bonusPerLevel: 8,    label: "✨ 強化石+",     desc: "8時間の蓄積強化石が増える" },
         point: { maxLevel: 5, costMode: "flat",    costPerLevel: 1,  bonusMode: "double",                       label: "🏅 訓練ポイント+", desc: "8時間の蓄積訓練ポイント上限が倍になる" },
+        autoclick: { maxLevel: 5, costMode: "scaling", costPerLevel: 8, bonusMode: "additive", bonusPerLevel: 1, label: "🖱️ オート連打速度+", desc: "オートクリッカーの1秒あたりの攻撃回数が上がる" },
     };
+
+    // オートクリッカーの攻撃間隔（ミリ秒）。訓練所強化「オート連打速度+」のレベルに応じて短縮される。
+    const AUTOCLICK_BASE_INTERVAL_MS = 1200; // Lv0: 約0.83回/秒
+    const AUTOCLICK_INTERVAL_STEP_MS = 200;  // 1レベルごとに200ms短縮（Lv5で200ms=5回/秒）
+
+    /** 現在のオート連打の攻撃間隔(ms)を返す */
+    function getAutoClickIntervalMs() {
+        const lv = (gameState.trainingUpgrades && gameState.trainingUpgrades.autoclick) || 0;
+        return Math.max(AUTOCLICK_BASE_INTERVAL_MS - lv * AUTOCLICK_INTERVAL_STEP_MS, 200);
+    }
 
     /** 訓練所強化の次レベルに必要なコストを返す（curLevelは現在のレベル、購入後は curLevel+1 になる） */
     function getTrainingUpgradeCost(key, curLevel) {
@@ -1676,14 +1707,15 @@
         state.inventory.forEach(item => { if (item.isFavorite === undefined) item.isFavorite = false; });
         if (state.unlockedDungeons.training === undefined) state.unlockedDungeons.training = true;
         if (state.trainingPoint === undefined) state.trainingPoint = 0;
-        if (state.trainingUpgrades === undefined) state.trainingUpgrades = { exp: 0, gold: 0, stone: 0, point: 0 };
+        if (state.trainingUpgrades === undefined) state.trainingUpgrades = { exp: 0, gold: 0, stone: 0, point: 0, autoclick: 0 };
         // 旧仕様（true/false の1回きり）からの互換変換：trueだったものはレベル1として扱う
-        ["exp", "gold", "stone", "point"].forEach(k => {
+        ["exp", "gold", "stone", "point", "autoclick"].forEach(k => {
             if (typeof state.trainingUpgrades[k] === "boolean") {
                 state.trainingUpgrades[k] = state.trainingUpgrades[k] ? 1 : 0;
             }
             if (state.trainingUpgrades[k] === undefined) state.trainingUpgrades[k] = 0;
         });
+        if (state.autoClickEnabled === undefined) state.autoClickEnabled = false;
         if (state.training === undefined) {
             state.training = { pending: { exp: 0, gold: 0, point: 0, stone: 0 }, elapsedSec: 0, lastSeenTime: Date.now() };
         }
@@ -2646,6 +2678,8 @@
 
         // 確定でそのボスのアーティファクトをドロップ
         grantArtifact(boss.key, boss.artifact);
+        // 確定で専用装備もドロップ（tier=20+bossIndexで格上げ）
+        dropEquipmentExclusive("sins", 20 + bossIndex);
 
         // 次のボスへ（6体目撃破で1周し、1体目に戻る）
         let p = gameState.progress.sins || (gameState.progress.sins = { bossIndex: 1 });
@@ -2697,6 +2731,8 @@
 
         // 確定でそのボスのアーティファクトをドロップ
         grantArtifact(boss.key, boss.artifact);
+        // 確定で専用装備もドロップ（tier=30+bossIndexで大罪より格上）
+        dropEquipmentExclusive("angels", 30 + bossIndex);
 
         // 次のボスへ（4体目撃破で1周し、1体目に戻る）
         let p = gameState.progress.angels || (gameState.progress.angels = { bossIndex: 1 });
@@ -2745,6 +2781,9 @@
         playerDarkness = 0; darknessDuration = 0;
         playerParalysis = 0; paralysisDuration = 0;
         playerStunned = 0;
+
+        // 確定で専用装備もドロップ（tier=50固定で最強）
+        dropEquipmentExclusive("final", 50);
 
         if (wasFirstClear) {
             appendLog('log-exp-area', `${getLogTime()} 🌟🌟🌟 <span style="color:#ffd700; font-weight:bold; font-size:1.1em;">The STを打ち倒し、真のエンディングを迎えた…！</span>`, "c-yellow");
@@ -3027,6 +3066,31 @@
             console.error("attack() エラー:", error);
         }
     }
+
+    /** オートクリッカーのON/OFFを切り替える */
+    function toggleAutoClick() {
+        gameState.autoClickEnabled = !gameState.autoClickEnabled;
+        autoClickAccumMs = 0; // 切替時に蓄積時間をリセット（OFF→ON直後に即攻撃してしまうのを防ぐ）
+        saveGame();
+        updateDisplay();
+    }
+
+    /** オートクリッカーの実処理。100msごとに呼ばれ、蓄積時間が現在の攻撃間隔を超えたらattack()を1回実行する。 */
+    function autoClickTick() {
+        if (!gameState.isJobSelected) return;
+        if (!gameState.autoClickEnabled) return;
+        if (gameState.currentDungeon === "training") return; // 訓練所選択中は戦闘なし
+        if (playerHp <= 0) return; // 敗北演出中の誤爆防止
+
+        autoClickAccumMs += 100;
+        const interval = getAutoClickIntervalMs();
+        autoClickAccumMs = Math.min(autoClickAccumMs, interval * 10); // タブがバックグラウンドで止まっていた場合の大量連打防止
+        while (autoClickAccumMs >= interval) {
+            autoClickAccumMs -= interval;
+            attack();
+        }
+    }
+    setInterval(autoClickTick, 100);
 
     function useTreeSkill(skillKey) {
         if (coolTimes[skillKey] > 0) return;
@@ -3491,6 +3555,15 @@
         return filtered;
     }
 
+    /** 装備の入手元（ハード/地下迷宮/パンデモニウム/エデン/創生の間）を示すアイコン文字列を返す */
+    function itemSourceIcon(item) {
+        return `${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.fromSins ? '😈' : ''}${item.fromAngels ? '😇' : ''}${item.fromFinal ? '👑' : ''}`;
+    }
+    /** 装備の入手元を示すCSSクラス文字列を返す（先頭に半角スペース付き） */
+    function itemSourceClass(item) {
+        return `${item.fromHard ? ' from-hard' : ''}${item.fromUnderground ? ' from-underground' : ''}${item.fromSins ? ' from-sins' : ''}${item.fromAngels ? ' from-angels' : ''}${item.fromFinal ? ' from-final' : ''}`;
+    }
+
     function updateInvDisplay() {
         const invGrid = document.getElementById('inv-grid');
         if (!invGrid) return;
@@ -3499,7 +3572,7 @@
         filtered.forEach((item) => {
             let itemDiv = document.createElement('div');
             let isSelected = selectedItemIds.has(item.id);
-            itemDiv.className = `inv-item${item.isFavorite ? ' favorite' : ''}${isSelected ? ' selected' : ''}${item.fromHard ? ' from-hard' : ''}${item.fromUnderground ? ' from-underground' : ''}`;
+            itemDiv.className = `inv-item${item.isFavorite ? ' favorite' : ''}${isSelected ? ' selected' : ''}${itemSourceClass(item)}`;
             let optStrings = item.options ? item.options.map(o => `🔹${o.text}`).join(" | ") : "";
             let favoriteIcon = item.isFavorite ? '⭐' : '☆';
             
@@ -3507,7 +3580,7 @@
                 <input type="checkbox" class="inv-item-check" ${isSelected ? 'checked' : ''} ${item.isFavorite ? 'disabled title="お気に入りは選択できません"' : ''} onchange="toggleItemSelect('${item.id}', this.checked)">
                 <div class="inv-item-content" style="border-left: 5px solid ${slotColors[item.slot] || "#ccc"};">
                     <div>
-                        <span class="rarity-${item.rarity}">${slotMarkers[item.slot] || "🎒"} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value}${item.type === "atk" ? "A" : "D"})</span>
+                        <span class="rarity-${item.rarity}">${slotMarkers[item.slot] || "🎒"} ${itemSourceIcon(item)}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value}${item.type === "atk" ? "A" : "D"})</span>
                         <span style="font-size:0.75em; background:#eee; color:#333; padding:1px 4px; border-radius:3px; margin-left:5px;">${slotJpNames[item.slot] || item.slot}</span>
                         ${optStrings ? `<span class="opt-text">${optStrings}</span>` : ""}
                     </div>
@@ -3538,13 +3611,13 @@
         } else {
             filtered.forEach(item => {
                 let div = document.createElement('div'); 
-                div.className = `picker-item${item.fromHard ? ' from-hard' : ''}${item.fromUnderground ? ' from-underground' : ''}`;
+                div.className = `picker-item${itemSourceClass(item)}`;
                 let isWeaponMismatched = (item.slot === "weapon" && ((char.job === "warrior" && item.weaponType !== "Sword") || (char.job === "rogue" && item.weaponType !== "Bow") || (char.job === "mage" && item.weaponType !== "Staff")))
                     || (item.slot === "shield" && ((char.job === "warrior" && item.weaponType !== "Shield") || (char.job === "rogue" && item.weaponType !== "Arrow") || (char.job === "mage" && item.weaponType !== "Orb"))); 
                 
                 let optText = item.options ? item.options.map(o => o.text).join(", ") : "";
 
-                div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
+                div.innerHTML = `<div><strong class="rarity-${item.rarity}">${slotMarkers[item.slot]} ${itemSourceIcon(item)}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""}${item.level > 0 ? ` <span style="color:#ff9800;">+${item.level}</span>` : ""} (+${item.value} ${item.type.toUpperCase()})</strong><div class="opt-text">${optText || "追加オプションなし"}</div></div>`;
                 
                 let btn = document.createElement('button'); 
                 btn.className = "picker-btn";
@@ -3899,6 +3972,31 @@
         finalizeDrop(rarity, mult, maxOpts, wValue, optionStageForCalc, "underground", valueBonusMult, valueStageForCalc, itemLevel);
     }
 
+    /**
+     * パンデモニウム／エデン／創生の間 専用の確定ドロップ。
+     * これら3ダンジョンはボスのみ登場するため、撃破ごとに専用プールから必ずLegendary品質の装備を1つ生成する。
+     * tier はレアリティ倍率・基礎値の参照値（ハードの「wRarity」相当）で、ダンジョンが進むほど強くなるよう設計。
+     *   sins  : 20 + bossIndex(1〜6)  → 21〜26
+     *   angels: 30 + bossIndex(1〜4)  → 31〜34（大罪より格上）
+     *   final : 50 固定（最強）
+     */
+    function dropEquipmentExclusive(source, tier) {
+        if (gameState.inventory.length >= gameState.maxInventorySlots) {
+            gameState.upgradeStone++;
+            return;
+        }
+        const rarity = "Legendary";
+        const mult = 4.0 * (1 + (tier - 1) * 0.4);
+        const maxOpts = 3;
+        const wValue = 1;
+        const valueStageForCalc = 100 * tier; // ハードと同じ積み上げ式（ワールド1つ=100相当）
+        const optionStageForCalc = tier;
+        const itemLevel = 10 + tier;
+        const prefixPool = exclusivePrefixes[source] || null;
+
+        finalizeDrop(rarity, mult, maxOpts, wValue, optionStageForCalc, source, 1, valueStageForCalc, itemLevel, prefixPool);
+    }
+
     /** スロットをランダムに選び、表示名・武器種別・itemTypeを解決する */
     function resolveSlotAndType() {
         const slots = ["weapon", "shield", "head", "body", "hands", "feet", "acc1", "acc2"];
@@ -3969,8 +4067,9 @@
     }
 
     /** ドロップアイテムの実体生成〜インベントリ追加までの共通処理（オーケストレーター） */
-    function finalizeDrop(rarity, mult, maxOpts, wValue, stageForCalc, source, valueBonusMult = 1, valueStageForCalc = stageForCalc, itemLevel = null) {
-        const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+    function finalizeDrop(rarity, mult, maxOpts, wValue, stageForCalc, source, valueBonusMult = 1, valueStageForCalc = stageForCalc, itemLevel = null, prefixPoolOverride = null) {
+        const pPool = prefixPoolOverride || prefixes;
+        const p = pPool[Math.floor(Math.random() * pPool.length)];
         const { slot, name, weaponType, itemType } = resolveSlotAndType();
         const options = rollOptions(maxOpts, mult, stageForCalc, valueBonusMult);
         const finalValue = Math.floor(computeBaseValue(slot, valueStageForCalc, wValue, mult) * valueBonusMult);
@@ -3989,6 +4088,9 @@
             isFavorite: false,
             fromHard: source === "hard",
             fromUnderground: source === "underground",
+            fromSins: source === "sins",
+            fromAngels: source === "angels",
+            fromFinal: source === "final",
         };
         
         gameState.inventory.push(newItem);
@@ -4697,7 +4799,7 @@
 
                 slotBox.innerHTML = `
                     <div class="eq-info-area">
-                        <span class="rarity-${item.rarity}">${slotMarkers[slot]} ${item.fromHard ? '🔥' : ''}${item.fromUnderground ? '🕳️' : ''}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""} +${item.level} (+${item.value} ${item.type.toUpperCase()})</span>
+                        <span class="rarity-${item.rarity}">${slotMarkers[slot]} ${itemSourceIcon(item)}${item.name}${item.itemLevel != null ? ` <span style="color:#888;">[IL${item.itemLevel}]</span>` : ""} +${item.level} (+${item.value} ${item.type.toUpperCase()})</span>
                         ${optHtml}
                     </div>
                     <div class="eq-control-btns">
@@ -4707,6 +4809,9 @@
                     </div>`;
                 if (item.fromHard) slotBox.style.background = '#ffe4e8';
                 if (item.fromUnderground) slotBox.style.background = '#efebe9';
+                if (item.fromSins) slotBox.style.background = 'linear-gradient(135deg, #3a0000, #1a0000)';
+                if (item.fromAngels) slotBox.style.background = 'linear-gradient(135deg, #fffde7, #fff9c4)';
+                if (item.fromFinal) slotBox.style.background = 'linear-gradient(270deg, #ff1744, #ffd700, #00e5ff, #d500f9)';
                 grid.appendChild(slotBox);
             });
             charBox.appendChild(grid); 
@@ -4911,6 +5016,19 @@
         updateBGMSEButtons();
         updateEnhanceTab();
         updateNotebookZukan();
+        updateAutoClickButton();
+    }
+
+    /** オートクリッカーのON/OFFボタンの見た目を更新する */
+    function updateAutoClickButton() {
+        const btn = document.getElementById('autoclick-btn');
+        const status = document.getElementById('autoclick-status');
+        if (!btn || !status) return;
+        const on = !!gameState.autoClickEnabled;
+        const lv = (gameState.trainingUpgrades && gameState.trainingUpgrades.autoclick) || 0;
+        const perSec = (1000 / getAutoClickIntervalMs()).toFixed(1);
+        btn.style.background = on ? "#1976d2" : "#9e9e9e";
+        status.textContent = on ? `ON (${perSec}回/秒・訓練所強化Lv.${lv})` : "OFF";
     }
 
     /** 図鑑サブタブの更新（notebook-zukanが非表示の間はスキップ） */
